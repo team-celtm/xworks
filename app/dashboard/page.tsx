@@ -63,6 +63,7 @@ export default function DashboardPage() {
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [certs, setCerts] = useState<any[]>([]);
   const [loadingCerts, setLoadingCerts] = useState(true);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Carousel tracking
   const [, setCState] = useState<Record<string, number>>({});
@@ -354,16 +355,13 @@ export default function DashboardPage() {
   };
 
   const handleLogout = async () => {
+    setIsLoggingOut(true);
     try {
       const res = await fetch('/api/auth/logout', { method: 'POST' });
-      if (res.ok) {
-        // Redirection should clear the state anyway, but we can reset any local state if needed
+      // Keep overlay visible for a brief moment
+      setTimeout(() => {
         router.push('/Login');
-      } else {
-        console.error('Logout failed');
-        // Still redirect as fallback
-        router.push('/Login');
-      }
+      }, 1500);
     } catch (err) {
       console.error('Logout error:', err);
       router.push('/Login');
@@ -1285,6 +1283,17 @@ export default function DashboardPage() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ══ LOGOUT OVERLAY ══ */}
+      {isLoggingOut && (
+        <div className="enrol-backdrop open" style={{ zIndex: 9999, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="fade-up" style={{ textAlign: 'center', color: '#fff' }}>
+            <div style={{ fontSize: '48px', marginBottom: '20px' }}>👋</div>
+            <div style={{ fontSize: '24px', fontWeight: 800, marginBottom: '8px' }}>Logging you out...</div>
+            <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)' }}>Successfully logged out of XWORKS. Redirecting to Login...</div>
           </div>
         </div>
       )}
