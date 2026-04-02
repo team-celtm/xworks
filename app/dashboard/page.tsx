@@ -2,98 +2,199 @@
 
 import React, { useState, useEffect } from "react";
 import "./dashboard.css";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 /* ══ DATA ══ */
-const ALL_WORKSHOPS = [
-  { id: 1, icon: "🤖", name: "ChatGPT & Prompt Engineering", cat: "Artificial Intelligence", g: "g-ai", rating: "4.9", dur: "6 hrs", tags: ["ai", "python", "tech"], live: false, isNew: false, nearby: false },
-  { id: 2, icon: "🧠", name: "Machine Learning with Python", cat: "AI & Data", g: "g-py", rating: "4.8", dur: "12 hrs", tags: ["ai", "python", "tech", "data"], live: false, isNew: false, nearby: false },
-  { id: 3, icon: "🐍", name: "Python Zero to Hero", cat: "Programming", g: "g-py", rating: "4.9", dur: "10 hrs", tags: ["python", "tech", "programming"], live: false, isNew: false, nearby: false },
-  { id: 4, icon: "📊", name: "Excel & Power BI", cat: "Data & Analytics", g: "g-da", rating: "4.7", dur: "8 hrs", tags: ["data", "finance", "tech"], live: false, isNew: false, nearby: false },
-  { id: 5, icon: "🔐", name: "Ethical Hacking Masterclass", cat: "Cybersecurity", g: "g-cy", rating: "4.9", dur: "12 hrs", tags: ["security", "tech", "hacking"], live: false, isNew: false, nearby: false },
-  { id: 6, icon: "🎨", name: "UI/UX with Figma", cat: "Design", g: "g-de", rating: "4.8", dur: "9 hrs", tags: ["design", "tech", "ux"], live: false, isNew: true, nearby: false },
-  { id: 7, icon: "📸", name: "DSLR Photography", cat: "Photography", g: "g-ph", rating: "4.7", dur: "5 hrs", tags: ["photo", "creative"], live: false, isNew: false, nearby: false },
-  { id: 8, icon: "💰", name: "Investing for Indians", cat: "Personal Finance", g: "g-fi", rating: "4.8", dur: "6 hrs", tags: ["finance", "money", "investing"], live: false, isNew: false, nearby: false },
-  { id: 9, icon: "🧘", name: "Mindfulness & Meditation", cat: "Wellness", g: "g-we", rating: "4.9", dur: "4 hrs", tags: ["wellness", "mindfulness"], live: false, isNew: false, nearby: false },
-  { id: 10, icon: "👨‍🍳", name: "Indian Home Cooking", cat: "Cooking", g: "g-co", rating: "4.9", dur: "8 hrs", tags: ["cooking", "lifestyle"], live: false, isNew: false, nearby: false },
-  { id: 11, icon: "🔗", name: "Build AI Agents — LangChain", cat: "Artificial Intelligence", g: "g-ai", rating: "4.8", dur: "8 hrs", tags: ["ai", "python", "tech"], live: true, isNew: true, nearby: false },
-  { id: 12, icon: "🎸", name: "Guitar for Beginners", cat: "Music", g: "g-mu", rating: "4.6", dur: "5 hrs", tags: ["music", "creative"], live: true, isNew: false, nearby: true },
-  { id: 13, icon: "📱", name: "Flutter App Development", cat: "Programming", g: "g-py", rating: "4.8", dur: "14 hrs", tags: ["programming", "tech", "mobile"], live: true, isNew: true, nearby: false },
-  { id: 14, icon: "🌿", name: "Home Gardening Workshop", cat: "Environment", g: "g-en", rating: "4.9", dur: "3 hrs", tags: ["environment", "lifestyle"], live: true, isNew: false, nearby: true },
-  { id: 15, icon: "💡", name: "Startup MVP in 30 Days", cat: "Entrepreneurship", g: "g-bu", rating: "4.7", dur: "8 hrs", tags: ["business", "finance", "startup"], live: true, isNew: false, nearby: false },
-  { id: 16, icon: "🗣️", name: "Public Speaking Confidence", cat: "Life Skills", g: "g-we", rating: "4.8", dur: "4 hrs", tags: ["communication", "lifeskills"], live: true, isNew: false, nearby: true },
-  { id: 17, icon: "☁️", name: "AWS Cloud Fundamentals", cat: "Cloud & DevOps", g: "g-da", rating: "4.7", dur: "11 hrs", tags: ["tech", "cloud", "aws"], live: false, isNew: true, nearby: false },
-  { id: 18, icon: "🏠", name: "Real Estate Investment", cat: "Finance", g: "g-fi", rating: "4.6", dur: "5 hrs", tags: ["finance", "money", "investing"], live: false, isNew: false, nearby: false },
-  { id: 19, icon: "🎬", name: "Reels & Short Video", cat: "Photography & Film", g: "g-ph", rating: "4.7", dur: "4 hrs", tags: ["photo", "creative", "video"], live: true, isNew: true, nearby: false },
-  { id: 20, icon: "♻️", name: "Zero Waste Living", cat: "Environment", g: "g-en", rating: "4.8", dur: "3 hrs", tags: ["environment", "lifestyle", "sustainability"], live: false, isNew: true, nearby: false },
-];
+interface Workshop {
+  id: string | number;
+  slug: string;
+  icon: string;
+  name: string;
+  cat: string;
+  catLabel: string;
+  g: string;
+  rating: string;
+  dur: string;
+  tags: string[];
+  live: boolean;
+  isNew: boolean;
+  nearby: boolean;
+}
 
-const COMPLETED = [
-  { icon: "🐍", bg: "g-py", name: "Python Zero to Hero", meta: "Completed 12 Jan 2026 · 10 hrs", pct: 100 },
-  { icon: "📊", bg: "g-da", name: "Excel & Power BI for Business", meta: "Completed 28 Feb 2026 · 8 hrs", pct: 100 },
-  { icon: "🤖", bg: "g-ai", name: "ChatGPT & Prompt Engineering", meta: "Completed 5 Mar 2026 · 6 hrs", pct: 100 },
-  { icon: "📸", bg: "g-ph", name: "DSLR Photography Foundations", meta: "Completed 10 Mar 2026 · 5 hrs", pct: 100 },
-  { icon: "🧘", bg: "g-we", name: "Mindfulness & Meditation", meta: "Completed 14 Mar 2026 · 4 hrs", pct: 100 },
-  { icon: "💰", bg: "g-fi", name: "Investing for Indians", meta: "In progress · 4 of 6 hrs done", pct: 67 },
-];
-
-const UPCOMING = [
-  { day: "22", month: "Mar", name: "Ethical Hacking Masterclass", meta: "Instructor: Arjun Mehta · 12 hrs total · Session 1 of 6", mode: "live", modeLabel: "Live", time: "10:00 AM – 12:00 PM", joinable: true },
-  { day: "25", month: "Mar", name: "Build AI Agents with LangChain", meta: "Instructor: Dr. Priya Nair · 8 hrs total · Session 1 of 4", mode: "live", modeLabel: "Live", time: "3:00 PM – 5:00 PM", joinable: false },
-  { day: "2", month: "Apr", name: "Startup MVP in 30 Days", meta: "Instructor: Ravi Shankar · 8 hrs total · Full day workshop", mode: "rec", modeLabel: "Recorded", time: "Available from Apr 2", joinable: false },
-];
+interface DashboardEnrolData {
+  id?: number;
+  name?: string;
+  meta?: string;
+  price?: string;
+  basePrice?: number;
+  finalPrice?: number;
+  format?: string;
+  formatLabel?: string;
+  date?: string;
+  time?: string;
+  promoApplied?: boolean;
+  promoError?: string;
+  discountAmt?: number;
+  discount?: number;
+  payMethod?: string;
+  thumbBg?: string;
+  thumbEmoji?: string;
+}
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [activeView, setActiveView] = useState("home");
-  const [todayDate, setTodayDate] = useState("");
   const [promptQuery, setPromptQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<{ query: string; recorded: typeof ALL_WORKSHOPS; live: typeof ALL_WORKSHOPS } | null>(null);
+  const [searchResults, setSearchResults] = useState<{ query: string; recorded: Workshop[]; live: Workshop[] } | null>(null);
+  const [enrolments, setEnrolments] = useState<any[]>([]);
+  const [loadingEnrolments, setLoadingEnrolments] = useState(true);
 
   // Enrol modal state
   const [enrolModalOpen, setEnrolModalOpen] = useState(false);
   const [enrolStep, setEnrolStep] = useState(1);
-  const [enrolData, setEnrolData] = useState<Record<string, unknown>>({});
+  const [enrolData, setEnrolData] = useState<DashboardEnrolData>({});
   const [promoCode, setPromoCode] = useState("");
   const [promoOk, setPromoOk] = useState({ text: "", color: "", show: false });
 
   // Carousel tracking
   const [, setCState] = useState<Record<string, number>>({});
 
-  const [todayDate, setTodayDate] = useState("");
-  
+
+  const [todayDate] = useState(() => {
+    if (typeof window !== "undefined") {
+      return new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+    }
+    return "";
+  });
+
+  const [workshops, setWorkshops] = useState<Workshop[]>([]);
+
   useEffect(() => {
-    // Only access Date/Intl on client side to avoid hydration mismatch
-    setTodayDate(new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }));
-  }, [setTodayDate]);
+    const loadWorkshops = async () => {
+      try {
+        const res = await fetch("/api/courses");
+        const results = await res.json();
+        if (Array.isArray(results)) {
+          const mapped = results.map(r => ({
+            id: r.id,
+            slug: r.slug,
+            icon: r.emoji || "🎓",
+            name: r.name,
+            cat: r.cat,
+            catLabel: r.catLabel,
+            g: r.g || "g-ai",
+            rating: r.rating?.toString() || "0.0",
+            dur: r.dur,
+            tags: [r.cat, r.tag].filter(Boolean),
+            live: !!r.live,
+            isNew: r.tag === 'new',
+            nearby: !!r.nearby
+          }));
+          setWorkshops(mapped);
+        }
+      } catch (err) {
+        console.error("Failed to load initial workshops:", err);
+      }
+    };
 
-  const handleSearch = () => {
-    const q = promptQuery.trim().toLowerCase();
-    if (!q) return;
+    const fetchEnrolments = async () => {
+      setLoadingEnrolments(true);
+      try {
+        const res = await fetch("/api/learner/enrolments");
+        if (res.ok) {
+          const data = await res.json();
+          setEnrolments(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch enrolments:", err);
+      } finally {
+        setLoadingEnrolments(false);
+      }
+    };
 
-    const keywords = q.split(/\s+/);
-    const results = ALL_WORKSHOPS.filter((w) => {
-      const searchable = (w.name + " " + w.cat + " " + w.tags.join(" ")).toLowerCase();
-      return keywords.some((k) => searchable.includes(k));
+    loadWorkshops();
+    fetchEnrolments();
+  }, []);
+
+  const completedCount = enrolments.filter(e => e.enrolment_status === 'completed' || e.progressPct === 100).length;
+  const upcomingList = enrolments
+    .filter(e => e.scheduledStart)
+    .map(e => {
+      const sDate = new Date(e.scheduledStart);
+      return {
+        day: sDate.getDate().toString(),
+        month: sDate.toLocaleDateString("en-IN", { month: "short" }),
+        name: e.name,
+        meta: `Instructor: ${e.instructor} · ${e.dur} hrs total`,
+        mode: e.live ? "live" : "rec",
+        modeLabel: e.live ? "Live" : "Recorded",
+        time: sDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
+        joinable: sDate.getTime() - Date.now() < 15 * 60 * 1000 && sDate.getTime() > Date.now() - 3600000
+      };
     });
 
-    const recorded = results.filter((w) => !w.live);
-    const live = results.filter((w) => w.live);
+  const completedDisplayList = enrolments.map(e => ({
+    icon: e.emoji || "🎓",
+    bg: e.thumbBg || "g-ai",
+    name: e.name,
+    meta: e.progressPct === 100
+      ? `Completed ${new Date(e.completedAt || e.enrolledAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} · ${e.dur} hrs`
+      : `In progress · ${Math.round((e.progressPct / 100) * e.dur)} of ${e.dur} hrs done`,
+    pct: Math.round(e.progressPct)
+  }));
 
-    const recFill = recorded.length < 3 ? ALL_WORKSHOPS.filter((w) => !w.live).slice(0, 6) : recorded;
-    const liveFill = live.length < 2 ? ALL_WORKSHOPS.filter((w) => w.live).slice(0, 5) : live;
+  const handleSearch = async () => {
+    const q = promptQuery.trim();
+    if (!q) return;
 
-    setSearchResults({ query: q, recorded: recFill, live: liveFill });
-    setCState((prev) => ({ ...prev, rec: 0, live: 0 }));
-    
-    setTimeout(() => {
-       document.getElementById("searchResults")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }, 100);
+    try {
+      const res = await fetch(`/api/courses?q=${encodeURIComponent(q)}`);
+      const results = await res.json();
+
+      if (!Array.isArray(results)) {
+        console.error("Invalid search results:", results);
+        return;
+      }
+
+      // Map API results to dashboard structure
+      const mappedResults = results.map(r => ({
+        id: r.id,
+        slug: r.slug,
+        icon: r.emoji || "🎓",
+        name: r.name,
+        cat: r.cat,
+        catLabel: r.catLabel,
+        g: r.g || "g-ai",
+        rating: r.rating?.toString() || "0.0",
+        dur: r.dur,
+        tags: [r.cat, r.tag].filter(Boolean),
+        live: !!r.live,
+        isNew: r.tag === 'new',
+        nearby: !!r.nearby
+      }));
+
+      const recorded = mappedResults.filter((w) => !w.live);
+      const live = mappedResults.filter((w) => w.live);
+
+      // We maintain the results even if few for now, or we can still do a fill if needed.
+      // But for real search, we should show what we found.
+      setSearchResults({ query: q, recorded, live });
+      setCState((prev) => ({ ...prev, rec: 0, live: 0 }));
+
+      setTimeout(() => {
+        document.getElementById("searchResults")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }, 100);
+    } catch (err) {
+      console.error("Search failed:", err);
+    }
   };
 
   const handleQuickSearch = (text: string) => {
     setPromptQuery(text);
     // Needed to wait for state update before searching
     setTimeout(() => {
-        document.getElementById("promptBtn")?.click();
+      document.getElementById("promptBtn")?.click();
     }, 0);
   };
 
@@ -102,13 +203,13 @@ export default function DashboardPage() {
     if (!track) return;
     const cards = track.querySelectorAll(".wcard");
     if (!cards.length) return;
-    
+
     // In React we can't easily rely on offsetWidth before render, but for a simple slider this works usually if items exist
     const cardEl = cards[0] as HTMLElement;
     const cardW = cardEl.offsetWidth + 16;
     const visible = Math.max(1, Math.floor((track.parentElement?.offsetWidth || 800) / cardW));
     const max = Math.max(0, cards.length - visible);
-    
+
     setCState((prev) => {
       const current = prev[id] || 0;
       const next = Math.max(0, Math.min(current + dir, max));
@@ -117,17 +218,19 @@ export default function DashboardPage() {
     });
   };
 
-  const openEnrol = (w: typeof ALL_WORKSHOPS[0]) => {
+  const [modalSessions, setModalSessions] = useState<any[]>([]);
+
+  const openEnrol = async (w: Workshop) => {
     setEnrolData({
       name: w.name,
-      meta: `by Ananya Sharma · ★ ${w.rating} · ${w.dur} · Beginner`,
+      meta: `by Ananya Sharma · ★ ${w.rating} · ${w.dur} hrs · ${w.catLabel}`,
       price: "₹1,299",
       basePrice: 1299,
       finalPrice: 1299,
       format: "live",
       formatLabel: "live session",
-      date: "Sat 29 Mar",
-      time: "11:00 AM",
+      date: "",
+      time: "",
       payMethod: "UPI",
       promoApplied: false,
       thumbBg: w.g,
@@ -137,6 +240,24 @@ export default function DashboardPage() {
     setPromoCode("");
     setPromoOk({ text: "", color: "", show: false });
     setEnrolModalOpen(true);
+
+    try {
+      const res = await fetch(`/api/courses/id/${w.id}/sessions`);
+      if (res.ok) {
+        const data = await res.json();
+        setModalSessions(data);
+        if (data.length > 0) {
+          const first = data[0];
+          setEnrolData(prev => ({
+            ...prev,
+            date: new Date(first.scheduledStart).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }),
+            time: new Date(first.scheduledStart).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
+          }));
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load modal sessions:", err);
+    }
   };
 
   const closeEnrol = () => {
@@ -146,13 +267,13 @@ export default function DashboardPage() {
   const applyPromo = () => {
     const code = promoCode.trim().toUpperCase();
     const valid = ["XWORKS20", "FIRST20", "WELCOME", "LEARN20"];
-    
+
     if (valid.includes(code) && !enrolData.promoApplied) {
-      const discount = Math.round(enrolData.basePrice * 0.20);
-      setEnrolData((prev: Record<string, unknown>) => ({
+      const discount = Math.round((enrolData.basePrice || 0) * 0.20);
+      setEnrolData((prev: DashboardEnrolData) => ({
         ...prev,
         promoApplied: true,
-        finalPrice: prev.basePrice - discount,
+        finalPrice: (prev.basePrice || 0) - discount,
         discount
       }));
       setPromoOk({ text: "✓ Code applied — 20% off!", color: "#16A34A", show: true });
@@ -163,25 +284,42 @@ export default function DashboardPage() {
     }
   };
 
-  const renderWorkshopCard = (w: typeof ALL_WORKSHOPS[0]) => {
+  const handleLogout = async () => {
+    try {
+      const res = await fetch('/api/auth/logout', { method: 'POST' });
+      if (res.ok) {
+        // Redirection should clear the state anyway, but we can reset any local state if needed
+        router.push('/Login');
+      } else {
+        console.error('Logout failed');
+        // Still redirect as fallback
+        router.push('/Login');
+      }
+    } catch (err) {
+      console.error('Logout error:', err);
+      router.push('/Login');
+    }
+  };
+
+  const renderWorkshopCard = (w: Workshop) => {
     const tagClass = w.nearby ? "tag-near" : w.live ? "tag-live" : w.isNew ? "tag-new" : "tag-rec";
     const tagLabel = w.nearby ? "📍 Nearby" : w.live ? "🔴 Live" : w.isNew ? "New" : "Recorded";
 
     return (
-      <div className="wcard" key={w.id}>
+      <div className="wcard" key={w.id} style={{ cursor: 'pointer' }} onClick={() => router.push(`/courses/${w.slug}`)}>
         <div className="wcard-thumb">
           <div className={`wcard-thumb-bg ${w.g}`}></div>
           <div className="wcard-thumb-emoji">{w.icon}</div>
           <div className={`wcard-tag ${tagClass}`}>{tagLabel}</div>
         </div>
         <div className="wcard-body">
-          <div className="wcard-cat">{w.cat}</div>
+          <div className="wcard-cat">{w.catLabel}</div>
           <div className="wcard-name">{w.name}</div>
           <div className="wcard-meta">
             <span className="wcard-rating">★ {w.rating}</span>
-            <span>{w.dur}</span>
+            <span>{w.dur} hrs</span>
           </div>
-          <button className="wcard-enrol-btn" onClick={() => openEnrol(w)}>
+          <button className="wcard-enrol-btn" onClick={(e) => { e.stopPropagation(); openEnrol(w); }}>
             Enrol now →
           </button>
         </div>
@@ -222,13 +360,13 @@ export default function DashboardPage() {
           <button className={`sb-item ${activeView === "completed" ? "active" : ""}`} onClick={() => setActiveView("completed")}>
             <span className="sb-item-icon">✅</span>
             <span className="sb-item-label">Courses Completed</span>
-            <span className="sb-badge">6</span>
+            <span className="sb-badge">{enrolments.length}</span>
           </button>
 
           <button className={`sb-item ${activeView === "upcoming" ? "active" : ""}`} onClick={() => setActiveView("upcoming")}>
             <span className="sb-item-icon">📅</span>
             <span className="sb-item-label">Upcoming Courses</span>
-            <span className="sb-badge">3</span>
+            <span className="sb-badge">{upcomingList.length}</span>
           </button>
 
           <button className={`sb-item ${activeView === "curious" ? "active" : ""}`} onClick={() => setActiveView("curious")}>
@@ -245,7 +383,7 @@ export default function DashboardPage() {
         </nav>
 
         <div className="sb-footer">
-          <button className="sb-logout">
+          <button className="sb-logout" onClick={handleLogout}>
             <span className="sb-logout-icon">🚪</span>
             <span className="sb-logout-label">Log out</span>
           </button>
@@ -276,15 +414,15 @@ export default function DashboardPage() {
               <div className="stats-row fade-up" style={{ animationDelay: '0s' }}>
                 <div className="stat-card">
                   <div className="stat-icon" style={{ background: "var(--green-bg)" }}>✅</div>
-                  <div><div className="stat-num">6</div><div className="stat-label">Completed</div></div>
+                  <div><div className="stat-num">{completedCount}</div><div className="stat-label">Completed</div></div>
                 </div>
                 <div className="stat-card">
                   <div className="stat-icon" style={{ background: "var(--blue-bg)" }}>📅</div>
-                  <div><div className="stat-num">3</div><div className="stat-label">Upcoming</div></div>
+                  <div><div className="stat-num">{upcomingList.length}</div><div className="stat-label">Upcoming</div></div>
                 </div>
                 <div className="stat-card">
                   <div className="stat-icon" style={{ background: "var(--indigo-light)" }}>⏱️</div>
-                  <div><div className="stat-num">42h</div><div className="stat-label">Learning time</div></div>
+                  <div><div className="stat-num">{enrolments.reduce((sum, e) => sum + (e.dur || 0), 0)}h</div><div className="stat-label">Learning time</div></div>
                 </div>
                 <div className="stat-card">
                   <div className="stat-icon" style={{ background: "var(--purple-bg)" }}>🔥</div>
@@ -337,7 +475,7 @@ export default function DashboardPage() {
                         <div className="section-label">Section 1</div>
                         <div className="section-title">🎬 Recorded Workshops</div>
                       </div>
-                      <a className="section-pill" href="#">View all</a>
+                      <Link className="section-pill" href="/catalogue">View all →</Link>
                     </div>
                     <div className="carousel-wrap">
                       <button className="cbtn cbtn-l" onClick={() => slide("rec", -1)}>‹</button>
@@ -357,7 +495,7 @@ export default function DashboardPage() {
                         <div className="section-label">Section 2</div>
                         <div className="section-title">🔴 Live Workshops</div>
                       </div>
-                      <a className="section-pill" href="#">View all</a>
+                      <Link className="section-pill" href="/catalogue">View all →</Link>
                     </div>
                     <div className="carousel-wrap">
                       <button className="cbtn cbtn-l" onClick={() => slide("live", -1)}>‹</button>
@@ -378,13 +516,13 @@ export default function DashboardPage() {
                         <div className="section-label">Continue learning</div>
                         <div className="section-title">Pick up where you left off</div>
                       </div>
-                      <a className="section-pill" href="#">See all</a>
+                      <Link className="section-pill" href="/catalogue">View all →</Link>
                     </div>
                     <div className="carousel-wrap">
                       <button className="cbtn cbtn-l" onClick={() => slide("cont", -1)}>‹</button>
                       <div className="carousel-outer">
                         <div className="carousel-track" id="cont-track">
-                          {ALL_WORKSHOPS.slice(0, 5).map(renderWorkshopCard)}
+                          {workshops.slice(0, 5).map(renderWorkshopCard)}
                         </div>
                       </div>
                       <button className="cbtn cbtn-r" onClick={() => slide("cont", 1)}>›</button>
@@ -396,13 +534,13 @@ export default function DashboardPage() {
                         <div className="section-label">Trending now</div>
                         <div className="section-title">What everyone&apos;s taking</div>
                       </div>
-                      <a className="section-pill" href="#">See all</a>
+                      <Link className="section-pill" href="/catalogue">View all →</Link>
                     </div>
                     <div className="carousel-wrap">
                       <button className="cbtn cbtn-l" onClick={() => slide("trend", -1)}>‹</button>
                       <div className="carousel-outer">
                         <div className="carousel-track" id="trend-track">
-                          {ALL_WORKSHOPS.slice(5, 11).map(renderWorkshopCard)}
+                          {workshops.slice(5, 11).map(renderWorkshopCard)}
                         </div>
                       </div>
                       <button className="cbtn cbtn-r" onClick={() => slide("trend", 1)}>›</button>
@@ -426,7 +564,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="completed-grid fade-up" style={{ animationDelay: '0.06s' }}>
-                {COMPLETED.map((c, i) => (
+                {completedDisplayList.length > 0 ? completedDisplayList.map((c, i) => (
                   <div className="completed-card" key={i}>
                     <div className={`completed-icon ${c.bg}`} style={{ background: "none" }}>
                       <div style={{ width: "44px", height: "44px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px" }} className={c.bg}></div>
@@ -441,7 +579,11 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px', color: 'var(--text-3)' }}>
+                    {loadingEnrolments ? "Loading your learning journey..." : "You haven't enrolled in any courses yet."}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -459,7 +601,7 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="upcoming-list fade-up" style={{ animationDelay: '0.06s' }}>
-                {UPCOMING.map((u, i) => (
+                {upcomingList.length > 0 ? upcomingList.map((u, i) => (
                   <div className="upcoming-card" key={i}>
                     <div className="upcoming-date-block">
                       <div className="upcoming-day">{u.day}</div>
@@ -477,7 +619,11 @@ export default function DashboardPage() {
                       </button>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-3)', width: '100%', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>
+                    {loadingEnrolments ? "Checking for upcoming sessions..." : "No upcoming live sessions found."}
+                  </div>
+                )}
               </div>
 
               <div className="fade-up" style={{ marginTop: "8px", animationDelay: '0.12s' }}>
@@ -491,7 +637,7 @@ export default function DashboardPage() {
                   <button className="cbtn cbtn-l" onClick={() => slide("upsell", -1)}>‹</button>
                   <div className="carousel-outer">
                     <div className="carousel-track" id="upsell-track">
-                      {ALL_WORKSHOPS.filter((w) => ![11, 13, 15].includes(w.id)).slice(0, 6).map(renderWorkshopCard)}
+                      {workshops.slice(0, 6).map(renderWorkshopCard)}
                     </div>
                   </div>
                   <button className="cbtn cbtn-r" onClick={() => slide("upsell", 1)}>›</button>
@@ -520,7 +666,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="curious-grid">
-                  {ALL_WORKSHOPS.filter((w) => [11, 13, 17, 6].includes(w.id)).map(renderWorkshopCard)}
+                  {workshops.slice(0, 4).map(renderWorkshopCard)}
                 </div>
               </div>
               <div className="fade-up" style={{ animationDelay: '0.12s' }}>
@@ -531,7 +677,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="curious-grid">
-                  {ALL_WORKSHOPS.filter((w) => [12, 14, 19, 20].includes(w.id)).map(renderWorkshopCard)}
+                  {workshops.slice(4, 8).map(renderWorkshopCard)}
                 </div>
               </div>
             </div>
@@ -734,61 +880,50 @@ export default function DashboardPage() {
                   <div className="enrol-step-item"><div className="enrol-step-dot pending">3</div><div className="enrol-step-label">Payment</div></div>
                 </div>
                 <div className="enrol-body">
-                  <div className="enrol-section-label">Upcoming dates — March / April 2026</div>
-                  <div className="enrol-date-grid">
-                    {[
-                      { d: "disabled", day: "Sat", num: "21", full: "" },
-                      { d: "Sun 22 Mar", day: "Sun", num: "22", full: "" },
-                      { d: "Tue 24 Mar", day: "Tue", num: "24", full: "" },
-                      { d: "Sat 29 Mar", day: "Sat", num: "29", full: "" },
-                      { d: "Sun 30 Mar", day: "Sun", num: "30", full: "" },
-                      { d: "Tue 1 Apr", day: "Tue", num: "1 Apr", full: "13px" },
-                      { d: "Sat 5 Apr", day: "Sat", num: "5", full: "" },
-                      { d: "Sun 6 Apr", day: "Sun", num: "6", full: "" }
-                    ].map((d, i) => (
-                      <div
-                        key={i}
-                        className={`enrol-date-btn ${d.d === "disabled" ? "disabled" : ""} ${enrolData.date === d.d ? "sel" : ""}`}
-                        onClick={() => d.d !== "disabled" && setEnrolData({ ...enrolData, date: d.d })}
-                      >
-                        <div className="enrol-date-day">{d.day}</div>
-                        <div className="enrol-date-num" style={d.full ? { fontSize: d.full } : {}}>{d.num}</div>
+                  <div className="enrol-section-label">Available Sessions</div>
+                  <div className="enrol-date-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '10px' }}>
+                    {modalSessions.length > 0 ? modalSessions.map((s) => {
+                      const sDate = new Date(s.scheduledStart);
+                      const day = sDate.toLocaleDateString('en-IN', { weekday: 'short' });
+                      const num = sDate.getDate();
+                      const month = sDate.toLocaleDateString('en-IN', { month: 'short' });
+                      const fullStr = sDate.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+                      const timeStr = sDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+
+                      return (
+                        <div
+                          key={s.id}
+                          className={`enrol-date-btn ${enrolData.date === fullStr && enrolData.time === timeStr ? 'sel' : ''}`}
+                          onClick={() => setEnrolData(prev => ({ ...prev, date: fullStr, time: timeStr }))}
+                          style={{ height: 'auto', padding: '12px 8px', cursor: 'pointer' }}
+                        >
+                          <div className="enrol-date-day">{day}</div>
+                          <div className="enrol-date-num">{num} {month}</div>
+                          <div style={{ fontSize: '10px', marginTop: '4px', opacity: 0.8 }}>{timeStr}</div>
+                        </div>
+                      );
+                    }) : (
+                      <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '20px', color: 'var(--text-3)' }}>
+                        No sessions scheduled yet. Check back soon!
                       </div>
-                    ))}
+                    )}
                   </div>
-                  <div className="enrol-section-label">Available time slots — <span>{(enrolData.date as string)?.split("").slice(4).join("") || "29 Mar"}</span></div>
-                  <div className="enrol-time-row">
-                    <div className="enrol-time-btn full">9:00 AM &nbsp;<span style={{ fontSize: "10px" }}>Full</span></div>
-                    {["11:00 AM", "2:00 PM", "5:00 PM", "7:00 PM"].map((t) => (
-                      <div
-                        key={t}
-                        className={`enrol-time-btn ${enrolData.time === t ? "sel" : ""}`}
-                        onClick={() => setEnrolData({ ...enrolData, time: t })}
-                      >
-                        {t}
-                      </div>
-                    ))}
-                  </div>
-                  <div className="enrol-session-info">
-                    {(() => {
-                      const timeStr = enrolData.time as string;
-                      if (!timeStr) return null;
-                      const endTimeMatch = timeStr.match(/(\d+):00 (AM|PM)/);
-                      let endString = "1:00 PM";
-                      if (endTimeMatch) {
-                          let num = parseInt(endTimeMatch[1]);
-                          let suffix = endTimeMatch[2];
-                          num += 2;
-                          if (num >= 12) {
-                              if (num > 12) num -= 12;
-                              suffix = "PM";
-                          }
-                          endString = `${num}:00 ${suffix}`;
-                      }
-                      return `${enrolData.date as string} · ${enrolData.time as string} – ${endString} · Online via Zoom · 14 seats left`
-                    })()}
-                  </div>
-                  <button className="enrol-cta" onClick={() => setEnrolStep(3)}>Continue to payment →</button>
+
+                  {enrolData.date && (
+                    <div className="enrol-session-info" style={{ marginTop: '24px', padding: '12px', background: 'var(--surface-2)', borderRadius: '12px', fontSize: '13px', color: 'var(--text-2)' }}>
+                      Selected: <strong>{enrolData.date as string}</strong> at <strong>{enrolData.time as string}</strong>
+                      <div style={{ fontSize: '11px', marginTop: '4px' }}>Joining details will be sent after payment.</div>
+                    </div>
+                  )}
+
+                  <button
+                    className="enrol-cta"
+                    onClick={() => setEnrolStep(3)}
+                    disabled={!enrolData.date}
+                    style={{ marginTop: '24px', opacity: !enrolData.date ? 0.5 : 1 }}
+                  >
+                    Continue to payment →
+                  </button>
                 </div>
               </div>
             )}
