@@ -49,6 +49,7 @@ export default function DashboardPage() {
   const [searchResults, setSearchResults] = useState<{ query: string; recorded: Workshop[]; live: Workshop[] } | null>(null);
   const [enrolments, setEnrolments] = useState<any[]>([]);
   const [loadingEnrolments, setLoadingEnrolments] = useState(true);
+  const [user, setUser] = useState<any>(null);
 
   // Enrol modal state
   const [enrolModalOpen, setEnrolModalOpen] = useState(false);
@@ -56,17 +57,14 @@ export default function DashboardPage() {
   const [enrolData, setEnrolData] = useState<DashboardEnrolData>({});
   const [promoCode, setPromoCode] = useState("");
   const [promoOk, setPromoOk] = useState({ text: "", color: "", show: false });
+  const [playerContent, setPlayerContent] = useState<any>(null);
+  const [loadingPlayer, setLoadingPlayer] = useState(false);
 
   // Carousel tracking
   const [, setCState] = useState<Record<string, number>>({});
 
 
-  const [todayDate] = useState(() => {
-    if (typeof window !== "undefined") {
-      return new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
-    }
-    return "";
-  });
+  const [todayDate, setTodayDate] = useState("");
 
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
 
@@ -113,8 +111,22 @@ export default function DashboardPage() {
       }
     };
 
+    const fetchUser = async () => {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch user:", err);
+      }
+    };
+
     loadWorkshops();
     fetchEnrolments();
+    fetchUser();
+    setTodayDate(new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }));
   }, []);
 
   const completedCount = enrolments.filter(e => e.enrolment_status === 'completed' || e.progressPct === 100).length;
@@ -143,6 +155,8 @@ export default function DashboardPage() {
       : `In progress · ${Math.round((e.progressPct / 100) * e.dur)} of ${e.dur} hrs done`,
     pct: Math.round(e.progressPct)
   }));
+
+  const continueLearningList = enrolments.filter(e => e.progressPct > 0 && e.progressPct < 100);
 
   const handleSearch = async () => {
     const q = promptQuery.trim();
@@ -284,6 +298,40 @@ export default function DashboardPage() {
     }
   };
 
+  const fetchPlayerContent = async (id: string) => {
+    setActiveView("player");
+    setLoadingPlayer(true);
+    try {
+      const res = await fetch(`/api/learner/enrolments/${id}/access`);
+      if (res.ok) {
+        const data = await res.json();
+        setPlayerContent(data);
+      }
+    } catch (err) {
+      console.error("Player fetch error:", err);
+    } finally {
+      setLoadingPlayer(false);
+    }
+  };
+
+  const updatePlayerProgress = async (id: string, newPct: number) => {
+    try {
+      const res = await fetch(`/api/learner/enrolments/${id}/progress`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ progressPct: newPct }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setPlayerContent((prev: any) => ({ ...prev, currentProgress: updated.progress_pct }));
+        // Also update the main enrolments list to keep badges/bars in sync
+        setEnrolments(prev => prev.map(e => e.enrolment_id === id ? { ...e, progressPct: updated.progress_pct } : e));
+      }
+    } catch (err) {
+      console.error("Progress update failed:", err);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       const res = await fetch('/api/auth/logout', { method: 'POST' });
@@ -327,6 +375,31 @@ export default function DashboardPage() {
     );
   };
 
+  const renderEnrolledCard = (e: any) => {
+    return (
+      <div className="wcard" key={e.enrolment_id} style={{ cursor: 'pointer' }} onClick={() => fetchPlayerContent(e.enrolment_id)}>
+        <div className="wcard-thumb">
+          <div className={`wcard-thumb-bg ${e.thumbBg}`}></div>
+          <div className="wcard-thumb-emoji">{e.emoji || "🎓"}</div>
+          <div className="wcard-tag tag-rec">In progress</div>
+        </div>
+        <div className="wcard-body">
+          <div className="wcard-cat">{e.catLabel}</div>
+          <div className="wcard-name">{e.name}</div>
+          <div className="wcard-meta">
+            <span>{Math.round(e.progressPct)}% done</span>
+          </div>
+          <div className="progress-bar-wrap" style={{ marginTop: '12px', height: '4px', background: 'var(--surface-2)', borderRadius: '2px', overflow: 'hidden' }}>
+            <div className="progress-bar-fill" style={{ width: `${e.progressPct}%`, height: '100%', background: 'var(--blue)' }}></div>
+          </div>
+          <button className="wcard-enrol-btn" style={{ marginTop: '16px' }} onClick={(ev) => { ev.stopPropagation(); fetchPlayerContent(e.enrolment_id); }}>
+            Continue →
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="shell">
       {/* ══════════════════════════
@@ -342,10 +415,12 @@ export default function DashboardPage() {
         </div>
 
         <div className="sb-user">
-          <div className="sb-avatar">PR</div>
+          <div className="sb-avatar">
+            {user ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase() : "..."}
+          </div>
           <div>
-            <div className="sb-user-name">Priya Rajan</div>
-            <div className="sb-user-tag">Pro Learner</div>
+            <div className="sb-user-name">{user ? `${user.firstName} ${user.lastName}` : "Loading..."}</div>
+            <div className="sb-user-tag">{user?.role === 'learner' ? 'Pro Learner' : user?.role || 'Guest'}</div>
           </div>
         </div>
 
@@ -397,7 +472,7 @@ export default function DashboardPage() {
         {/* Topbar */}
         <div className="topbar">
           <div className="topbar-greeting">
-            Good morning, <strong>Priya</strong> 👋 Ready to learn something great today?
+            Good morning, <strong>{user?.firstName || "Learner"}</strong> 👋 Ready to learn something great today?
           </div>
           <div className="topbar-right">
             <div className="topbar-notif">🔔<div className="notif-dot"></div></div>
@@ -522,7 +597,7 @@ export default function DashboardPage() {
                       <button className="cbtn cbtn-l" onClick={() => slide("cont", -1)}>‹</button>
                       <div className="carousel-outer">
                         <div className="carousel-track" id="cont-track">
-                          {workshops.slice(0, 5).map(renderWorkshopCard)}
+                          {continueLearningList.length > 0 ? continueLearningList.map(renderEnrolledCard) : workshops.slice(0, 5).map(renderWorkshopCard)}
                         </div>
                       </div>
                       <button className="cbtn cbtn-r" onClick={() => slide("cont", 1)}>›</button>
@@ -699,10 +774,12 @@ export default function DashboardPage() {
                 <div className="settings-card">
                   <div className="settings-card-title">👤 Profile</div>
                   <div className="settings-avatar-row">
-                    <div className="settings-avatar-big">PR</div>
+                    <div className="settings-avatar-big">
+                      {user ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase() : "..."}
+                    </div>
                     <div>
-                      <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--ink)" }}>Priya Rajan</div>
-                      <div style={{ fontSize: "11px", color: "var(--text-3)", marginTop: "2px" }}>Pro Learner · Member since Jan 2025</div>
+                      <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--ink)" }}>{user ? `${user.firstName} ${user.lastName}` : "Loading..."}</div>
+                      <div style={{ fontSize: "11px", color: "var(--text-3)", marginTop: "2px" }}>{user?.role === 'learner' ? 'Pro Learner' : user?.role} · Member since {user ? new Date(user.created_at || Date.now()).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : '...'}</div>
                       <button style={{ marginTop: "8px", fontSize: "11px", color: "var(--blue)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
                         Change photo →
                       </button>
@@ -710,11 +787,11 @@ export default function DashboardPage() {
                   </div>
                   <div className="settings-field">
                     <label>Full name</label>
-                    <input className="settings-input" defaultValue="Priya Rajan" />
+                    <input className="settings-input" defaultValue={user ? `${user.firstName} ${user.lastName}` : ""} key={user?.id + "_name"} />
                   </div>
                   <div className="settings-field">
                     <label>Email</label>
-                    <input className="settings-input" defaultValue="priya.rajan@email.com" />
+                    <input className="settings-input" defaultValue={user?.email || ""} key={user?.id + "_email"} />
                   </div>
                   <div className="settings-field">
                     <label>Phone</label>
@@ -780,6 +857,63 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* ══ VIEW: PLAYER ══ */}
+          {activeView === "player" && (
+            <div className="view active fade-up" style={{ display: 'flex', gap: '20px', width: '100%' }}>
+              {loadingPlayer || !playerContent ? (
+                <div style={{ padding: '80px', textAlign: 'center', width: '100%', color: 'var(--text-3)' }}>
+                  Loading your learning experience...
+                </div>
+              ) : (
+                <>
+                  <div style={{ flex: 1 }}>
+                    <div className="section-label">Now playing</div>
+                    <div className="section-title" style={{ fontSize: '24px', marginBottom: '20px' }}>{playerContent.title}</div>
+                    
+                    <div style={{ width: '100%', aspectRatio: '16/9', background: '#000', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4B5058', marginBottom: '20px' }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ fontSize: '48px' }}>🎬</div>
+                        <div>Video Player Placeholder</div>
+                      </div>
+                    </div>
+
+                    <div className="stat-card" style={{ width: '100%', padding: '20px', display: 'flex', alignItems: 'center' }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>{Math.round(playerContent.currentProgress)}% Completed</div>
+                        <div className="progress-bar-wrap" style={{ height: '8px' }}>
+                          <div className="progress-bar-fill" style={{ width: `${playerContent.currentProgress}%` }}></div>
+                        </div>
+                      </div>
+                      <button 
+                        className="enrol-cta coral" 
+                        style={{ marginLeft: '20px', width: 'auto', padding: '10px 24px', marginTop: 0 }}
+                        onClick={() => updatePlayerProgress(playerContent.enrolmentId, Math.min(100, playerContent.currentProgress + 10))}
+                        disabled={playerContent.currentProgress >= 100}
+                      >
+                        Next Lesson →
+                      </button>
+                    </div>
+                  </div>
+
+                  <div style={{ width: '320px', background: 'var(--surface)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-md)', display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>Curriculum</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {playerContent.curriculum.map((item: any) => (
+                        <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'var(--surface-2)', borderRadius: '12px', opacity: item.completed ? 0.6 : 1 }}>
+                          <span style={{ fontSize: '18px' }}>{item.completed ? '✅' : '🔴'}</span>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '13px', fontWeight: 600 }}>{item.title}</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>{item.duration}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
