@@ -59,6 +59,8 @@ export default function DashboardPage() {
   const [promoOk, setPromoOk] = useState({ text: "", color: "", show: false });
   const [playerContent, setPlayerContent] = useState<any>(null);
   const [loadingPlayer, setLoadingPlayer] = useState(false);
+  const [sessions, setSessions] = useState<any[]>([]);
+  const [loadingSessions, setLoadingSessions] = useState(true);
 
   // Carousel tracking
   const [, setCState] = useState<Record<string, number>>({});
@@ -123,28 +125,29 @@ export default function DashboardPage() {
       }
     };
 
+    const fetchSessions = async () => {
+      setLoadingSessions(true);
+      try {
+        const res = await fetch("/api/learner/sessions");
+        if (res.ok) {
+          const data = await res.json();
+          setSessions(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch sessions:", err);
+      } finally {
+        setLoadingSessions(false);
+      }
+    };
+
     loadWorkshops();
     fetchEnrolments();
     fetchUser();
+    fetchSessions();
     setTodayDate(new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }));
   }, []);
 
   const completedCount = enrolments.filter(e => e.enrolment_status === 'completed' || e.progressPct === 100).length;
-  const upcomingList = enrolments
-    .filter(e => e.scheduledStart)
-    .map(e => {
-      const sDate = new Date(e.scheduledStart);
-      return {
-        day: sDate.getDate().toString(),
-        month: sDate.toLocaleDateString("en-IN", { month: "short" }),
-        name: e.name,
-        meta: `Instructor: ${e.instructor} · ${e.dur} hrs total`,
-        mode: e.live ? "live" : "rec",
-        modeLabel: e.live ? "Live" : "Recorded",
-        time: sDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
-        joinable: sDate.getTime() - Date.now() < 15 * 60 * 1000 && sDate.getTime() > Date.now() - 3600000
-      };
-    });
 
   const completedDisplayList = enrolments.map(e => ({
     icon: e.emoji || "🎓",
@@ -441,7 +444,7 @@ export default function DashboardPage() {
           <button className={`sb-item ${activeView === "upcoming" ? "active" : ""}`} onClick={() => setActiveView("upcoming")}>
             <span className="sb-item-icon">📅</span>
             <span className="sb-item-label">Upcoming Courses</span>
-            <span className="sb-badge">{upcomingList.length}</span>
+            <span className="sb-badge">{sessions.length}</span>
           </button>
 
           <button className={`sb-item ${activeView === "curious" ? "active" : ""}`} onClick={() => setActiveView("curious")}>
@@ -493,7 +496,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="stat-card">
                   <div className="stat-icon" style={{ background: "var(--blue-bg)" }}>📅</div>
-                  <div><div className="stat-num">{upcomingList.length}</div><div className="stat-label">Upcoming</div></div>
+                  <div><div className="stat-num">{sessions.length}</div><div className="stat-label">Upcoming</div></div>
                 </div>
                 <div className="stat-card">
                   <div className="stat-icon" style={{ background: "var(--indigo-light)" }}>⏱️</div>
@@ -603,6 +606,40 @@ export default function DashboardPage() {
                       <button className="cbtn cbtn-r" onClick={() => slide("cont", 1)}>›</button>
                     </div>
                   </div>
+
+                  {sessions.length > 0 && (
+                    <div className="fade-up" style={{ animationDelay: '0.14s' }}>
+                      <div className="section-hd">
+                        <div className="section-hd-left">
+                          <div className="section-label">Your schedule</div>
+                          <div className="section-title">Next live session</div>
+                        </div>
+                        <button className="section-pill" onClick={() => setActiveView("upcoming")}>View all sessions →</button>
+                      </div>
+                      <div className="stat-card" style={{ width: '100%', padding: '24px', display: 'flex', alignItems: 'center', background: 'var(--surface)', border: '1px solid var(--border-md)', borderRadius: '16px' }}>
+                        <div className="upcoming-date-block" style={{ margin: 0, marginRight: '24px' }}>
+                          <div className="upcoming-day">{new Date(sessions[0].scheduledStart).getDate()}</div>
+                          <div className="upcoming-month">{new Date(sessions[0].scheduledStart).toLocaleDateString('en-IN', { month: 'short' }).toUpperCase()}</div>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--ink)' }}>{sessions[0].sessionTitle}</div>
+                          <div style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>{sessions[0].courseName} · Starts at {new Date(sessions[0].scheduledStart).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</div>
+                        </div>
+                        <button 
+                          className="enrol-cta coral" 
+                          style={{ width: 'auto', padding: '12px 24px', marginTop: 0 }}
+                          onClick={() => {
+                            const joinable = new Date(sessions[0].scheduledStart).getTime() <= Date.now() + (15 * 60 * 1000);
+                            if (joinable && sessions[0].joinUrl) window.open(sessions[0].joinUrl, '_blank');
+                            else setActiveView("upcoming");
+                          }}
+                        >
+                          {new Date(sessions[0].scheduledStart).getTime() <= Date.now() + (15 * 60 * 1000) ? "Join Class →" : "View Details →"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="fade-up" style={{ animationDelay: '0.18s' }}>
                     <div className="section-hd">
                       <div className="section-hd-left">
@@ -676,27 +713,34 @@ export default function DashboardPage() {
                 </div>
               </div>
               <div className="upcoming-list fade-up" style={{ animationDelay: '0.06s' }}>
-                {upcomingList.length > 0 ? upcomingList.map((u, i) => (
-                  <div className="upcoming-card" key={i}>
-                    <div className="upcoming-date-block">
-                      <div className="upcoming-day">{u.day}</div>
-                      <div className="upcoming-month">{u.month}</div>
+                {sessions.length > 0 ? sessions.map((s, i) => {
+                  const startDate = new Date(s.scheduledStart);
+                  const isJoinable = startDate.getTime() <= Date.now() + (15 * 60 * 1000); // 15 mins before
+                  return (
+                    <div className="upcoming-card" key={i}>
+                      <div className="upcoming-date-block">
+                        <div className="upcoming-day">{startDate.getDate()}</div>
+                        <div className="upcoming-month">{startDate.toLocaleDateString('en-IN', { month: 'short' }).toUpperCase()}</div>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div className="upcoming-name">{s.sessionTitle}</div>
+                        <div className="upcoming-meta">{s.courseName} · {s.platform || 'Online'}</div>
+                      </div>
+                      <div className="upcoming-right">
+                        <span className={`upcoming-mode mode-live`}>🔴 Live</span>
+                        <div className="upcoming-time">⏰ {startDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</div>
+                        <button 
+                          className={`join-btn ${isJoinable ? "" : "disabled"}`}
+                          onClick={() => isJoinable && s.joinUrl && window.open(s.joinUrl, '_blank')}
+                        >
+                          {isJoinable ? "Join now →" : "Not yet"}
+                        </button>
+                      </div>
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="upcoming-name">{u.name}</div>
-                      <div className="upcoming-meta">{u.meta}</div>
-                    </div>
-                    <div className="upcoming-right">
-                      <span className={`upcoming-mode mode-${u.mode}`}>{u.modeLabel}</span>
-                      <div className="upcoming-time">⏰ {u.time}</div>
-                      <button className={`join-btn ${u.joinable ? "" : "disabled"}`}>
-                        {u.joinable ? "Join now →" : "Not yet"}
-                      </button>
-                    </div>
-                  </div>
-                )) : (
+                  );
+                }) : (
                   <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-3)', width: '100%', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>
-                    {loadingEnrolments ? "Checking for upcoming sessions..." : "No upcoming live sessions found."}
+                    {loadingSessions ? "Checking for upcoming sessions..." : "No upcoming live sessions found."}
                   </div>
                 )}
               </div>
