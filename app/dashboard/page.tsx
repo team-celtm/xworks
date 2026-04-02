@@ -61,6 +61,8 @@ export default function DashboardPage() {
   const [loadingPlayer, setLoadingPlayer] = useState(false);
   const [sessions, setSessions] = useState<any[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(true);
+  const [certs, setCerts] = useState<any[]>([]);
+  const [loadingCerts, setLoadingCerts] = useState(true);
 
   // Carousel tracking
   const [, setCState] = useState<Record<string, number>>({});
@@ -140,10 +142,26 @@ export default function DashboardPage() {
       }
     };
 
+    const fetchCerts = async () => {
+      setLoadingCerts(true);
+      try {
+        const res = await fetch("/api/learner/certificates");
+        if (res.ok) {
+          const data = await res.json();
+          setCerts(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch certs:", err);
+      } finally {
+        setLoadingCerts(false);
+      }
+    };
+
     loadWorkshops();
     fetchEnrolments();
     fetchUser();
     fetchSessions();
+    fetchCerts();
     setTodayDate(new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }));
   }, []);
 
@@ -438,7 +456,13 @@ export default function DashboardPage() {
           <button className={`sb-item ${activeView === "completed" ? "active" : ""}`} onClick={() => setActiveView("completed")}>
             <span className="sb-item-icon">✅</span>
             <span className="sb-item-label">Courses Completed</span>
-            <span className="sb-badge">{enrolments.length}</span>
+            <span className="sb-badge">{completedCount}</span>
+          </button>
+
+          <button className={`sb-item ${activeView === "certificates" ? "active" : ""}`} onClick={() => setActiveView("certificates")}>
+            <span className="sb-item-icon">📜</span>
+            <span className="sb-item-label">My Certificates</span>
+            <span className="sb-badge">{certs.length}</span>
           </button>
 
           <button className={`sb-item ${activeView === "upcoming" ? "active" : ""}`} onClick={() => setActiveView("upcoming")}>
@@ -958,6 +982,60 @@ export default function DashboardPage() {
                   </div>
                 </>
               )}
+            </div>
+          )}
+
+          {/* ══ VIEW: CERTIFICATES ══ */}
+          {activeView === "certificates" && (
+            <div className="view active fade-up" style={{ display: 'flex' }}>
+              <div className="fade-up" style={{ animationDelay: '0s' }}>
+                <div className="section-label">Your credentials</div>
+                <div className="section-title" style={{ fontFamily: "var(--font-d)", fontSize: "22px", fontWeight: 800, letterSpacing: "-0.5px", marginBottom: "4px" }}>
+                  My Certificates
+                </div>
+                <div style={{ fontSize: "13px", color: "var(--text-3)" }}>
+                  Verified proof of your expertise and hard work.
+                </div>
+              </div>
+              <div style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '20px' }} className="fade-up">
+                {certs.length > 0 ? certs.map((c, i) => (
+                  <div key={i} className="stat-card" style={{ width: '100%', padding: '24px', flexDirection: 'column', alignItems: 'flex-start', background: 'var(--surface)', border: '1px solid var(--border-md)', borderRadius: '16px' }}>
+                    <div style={{ display: 'flex', gap: '16px', width: '100%', marginBottom: '20px' }}>
+                      <div className={`completed-icon ${c.thumbBg}`} style={{ background: "none", margin: 0 }}>
+                        <div style={{ width: "40px", height: "40px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px" }} className={c.thumbBg}></div>
+                        <span style={{ position: "absolute", fontSize: "20px" }}>{c.emoji || '📜'}</span>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--ink)' }}>{c.courseName}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: '2px' }}>ID: {c.credentialId}</div>
+                      </div>
+                    </div>
+                    <div style={{ width: '100%', display: 'flex', gap: '12px' }}>
+                      <button 
+                        className="enrol-cta coral" 
+                        style={{ width: 'auto', padding: '10px 20px', marginTop: 0, fontSize: '13px' }}
+                        onClick={() => window.open(c.pdfUrl, '_blank')}
+                      >
+                         Download PDF ↓
+                      </button>
+                      <button 
+                        className="section-pill" 
+                        style={{ background: 'var(--surface-2)', border: '1px solid var(--border-md)', cursor: 'pointer' }}
+                        onClick={() => alert(`Share URL: ${c.verificationUrl}`)}
+                      >
+                         Share →
+                      </button>
+                    </div>
+                    <div style={{ marginTop: '16px', fontSize: '11px', color: 'var(--text-4)' }}>
+                      Issued on {new Date(c.issuedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </div>
+                  </div>
+                )) : (
+                  <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '60px', color: 'var(--text-3)', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>
+                    {loadingCerts ? "Generating your certificate library..." : "No certificates issued yet. Complete a course to earn your first!"}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
