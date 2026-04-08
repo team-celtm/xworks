@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import "./player.css";
+import "../player.css";
 
-export default function PlayerPage({ params }: { params: { enrolmentId: string } }) {
+export default function PlayerPage({ params }: { params: Promise<{ enrolmentId: string }> }) {
   const router = useRouter();
-  const { enrolmentId } = params;
+  const { enrolmentId } = React.use(params) as { enrolmentId: string };
   const [content, setContent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

@@ -396,7 +396,7 @@ export default function DashboardPage() {
 
   const renderEnrolledCard = (e: any) => {
     return (
-      <div className="wcard" key={e.enrolment_id} style={{ cursor: 'pointer' }} onClick={() => fetchPlayerContent(e.enrolment_id)}>
+      <div className="wcard" key={e.enrolment_id} style={{ cursor: 'pointer' }} onClick={() => router.push(`/player/${e.enrolment_id}`)}>
         <div className="wcard-thumb">
           <div className={`wcard-thumb-bg ${e.thumbBg}`}></div>
           <div className="wcard-thumb-emoji">{e.emoji || "🎓"}</div>
@@ -411,7 +411,7 @@ export default function DashboardPage() {
           <div className="progress-bar-wrap" style={{ marginTop: '12px', height: '4px', background: 'var(--surface-2)', borderRadius: '2px', overflow: 'hidden' }}>
             <div className="progress-bar-fill" style={{ width: `${e.progressPct}%`, height: '100%', background: 'var(--blue)' }}></div>
           </div>
-          <button className="wcard-enrol-btn" style={{ marginTop: '16px' }} onClick={(ev) => { ev.stopPropagation(); fetchPlayerContent(e.enrolment_id); }}>
+          <button className="wcard-enrol-btn" style={{ marginTop: '16px' }} onClick={(ev) => { ev.stopPropagation(); router.push(`/player/${e.enrolment_id}`); }}>
             Continue →
           </button>
         </div>
@@ -652,11 +652,13 @@ export default function DashboardPage() {
                           style={{ width: 'auto', padding: '12px 24px', marginTop: 0 }}
                           onClick={() => {
                             const joinable = new Date(sessions[0].scheduledStart).getTime() <= Date.now() + (15 * 60 * 1000);
-                            if (joinable && sessions[0].joinUrl) window.open(sessions[0].joinUrl, '_blank');
+                            const isPast = new Date(sessions[0].scheduledStart).getTime() < Date.now();
+                            if (sessions[0].recordingAvailable && isPast) window.open(`/api/learner/sessions/${sessions[0].sessionId}/recording`, '_blank');
+                            else if (joinable) window.open(`/api/learner/sessions/${sessions[0].sessionId}/join`, '_blank');
                             else setActiveView("upcoming");
                           }}
                         >
-                          {new Date(sessions[0].scheduledStart).getTime() <= Date.now() + (15 * 60 * 1000) ? "Join Class →" : "View Details →"}
+                          {sessions[0].recordingAvailable && new Date(sessions[0].scheduledStart).getTime() < Date.now() ? "Watch Recording ↗" : (new Date(sessions[0].scheduledStart).getTime() <= Date.now() + (15 * 60 * 1000) ? "Join Class →" : "View Details →")}
                         </button>
                       </div>
                     </div>
@@ -749,14 +751,26 @@ export default function DashboardPage() {
                         <div className="upcoming-meta">{s.courseName} · {s.platform || 'Online'}</div>
                       </div>
                       <div className="upcoming-right">
-                        <span className={`upcoming-mode mode-live`}>🔴 Live</span>
+                        <span className={`upcoming-mode ${startDate.getTime() > Date.now() ? (s.sessionStatus === 'cancelled' ? '' : 'mode-live') : ''}`}>
+                          {s.sessionStatus === 'cancelled' ? '🚫 Cancelled' : (startDate.getTime() > Date.now() ? '🔴 Live' : '⏺ Recorded')}
+                        </span>
                         <div className="upcoming-time">⏰ {startDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</div>
-                        <button 
-                          className={`join-btn ${isJoinable ? "" : "disabled"}`}
-                          onClick={() => isJoinable && s.joinUrl && window.open(s.joinUrl, '_blank')}
-                        >
-                          {isJoinable ? "Join now →" : "Not yet"}
-                        </button>
+                        {s.sessionStatus === 'cancelled' ? (
+                          <button className="join-btn disabled" disabled>Cancelled</button>
+                        ) : (
+                          <button 
+                            className={`join-btn ${isJoinable ? "" : (s.recordingAvailable && startDate.getTime() < Date.now() ? "" : "disabled")}`}
+                            onClick={() => {
+                              if (s.recordingAvailable && startDate.getTime() < Date.now()) {
+                                window.open(`/api/learner/sessions/${s.sessionId}/recording`, '_blank');
+                              } else if (isJoinable) {
+                                window.open(`/api/learner/sessions/${s.sessionId}/join`, '_blank');
+                              }
+                            }}
+                          >
+                            {s.recordingAvailable && startDate.getTime() < Date.now() ? "Watch Recording ↗" : (isJoinable ? "Join now →" : "Not yet")}
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -998,28 +1012,40 @@ export default function DashboardPage() {
               <div style={{ marginTop: '24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '20px' }} className="fade-up">
                 {certs.length > 0 ? certs.map((c, i) => (
                   <div key={i} className="stat-card" style={{ width: '100%', padding: '24px', flexDirection: 'column', alignItems: 'flex-start', background: 'var(--surface)', border: '1px solid var(--border-md)', borderRadius: '16px' }}>
-                    <div style={{ display: 'flex', gap: '16px', width: '100%', marginBottom: '20px' }}>
+                    <div 
+                      style={{ display: 'flex', gap: '16px', width: '100%', marginBottom: '20px', cursor: 'pointer', transition: 'opacity 0.2s' }}
+                      onClick={() => window.open(`/verify/${c.credentialId}`, '_blank')}
+                      onMouseOver={(e) => e.currentTarget.style.opacity = '0.8'}
+                      onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
+                    >
                       <div className={`completed-icon ${c.thumbBg}`} style={{ background: "none", margin: 0 }}>
                         <div style={{ width: "40px", height: "40px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px" }} className={c.thumbBg}></div>
                         <span style={{ position: "absolute", fontSize: "20px" }}>{c.emoji || '📜'}</span>
                       </div>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--ink)' }}>{c.courseName}</div>
-                        <div style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: '2px' }}>ID: {c.credentialId}</div>
+                        <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {c.courseName} 
+                          <span style={{ fontSize: '11px', color: '#3b82f6', fontWeight: 600, padding: '2px 8px', background: 'rgba(59, 130, 246, 0.1)', borderRadius: '100px' }}>Verify ↗</span>
+                        </div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: '4px' }}>ID: {c.credentialId}</div>
                       </div>
                     </div>
                     <div style={{ width: '100%', display: 'flex', gap: '12px' }}>
                       <button 
                         className="enrol-cta coral" 
                         style={{ width: 'auto', padding: '10px 20px', marginTop: 0, fontSize: '13px' }}
-                        onClick={() => window.open(c.pdfUrl, '_blank')}
+                        onClick={() => window.open(`/api/learner/certificates/${c.credentialId}/download`, '_blank')}
                       >
                          Download PDF ↓
                       </button>
                       <button 
                         className="section-pill" 
                         style={{ background: 'var(--surface-2)', border: '1px solid var(--border-md)', cursor: 'pointer' }}
-                        onClick={() => alert(`Share URL: ${c.verificationUrl}`)}
+                        onClick={() => {
+                          const url = window.location.origin + `/verify/${c.credentialId}`;
+                          navigator.clipboard.writeText(url);
+                          alert("Verification link copied to clipboard!");
+                        }}
                       >
                          Share →
                       </button>

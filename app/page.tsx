@@ -7,7 +7,7 @@ import { SUBJECTS, CAT_DATA } from './data';
 export default function Home() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isWorkshopModalOpen, setIsWorkshopModalOpen] = useState(false);
-  const [activeSubject, setActiveSubject] = useState(0);
+  const [activeSubjectSlug, setActiveSubjectSlug] = useState('tech');
 
   const [catOverlay, setCatOverlay] = useState({ isOpen: false, key: null as string | null, isClosing: false });
 
@@ -37,19 +37,66 @@ export default function Home() {
   const [categories, setCategories] = useState<any[]>([]);
   const [catCourses, setCatCourses] = useState<any[]>([]);
   const [isCatLoading, setIsCatLoading] = useState(false);
+  const [isBrowserLoading, setIsBrowserLoading] = useState(false);
+  const [browserCourses, setBrowserCourses] = useState<any[]>([]);
+  const [bestSellers, setBestSellers] = useState<any[]>([]);
+  const [newlyAdded, setNewlyAdded] = useState<any[]>([]);
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
 
   useEffect(() => {
     const fetchCats = async () => {
       try {
         const res = await fetch('/api/categories');
         const data = await res.json();
-        if (Array.isArray(data)) setCategories(data);
+        if (Array.isArray(data)) {
+          setCategories(data);
+          if (data.length > 0 && !activeSubjectSlug) {
+            setActiveSubjectSlug(data[0].slug);
+          }
+        }
       } catch (err) {
         console.error('Failed to fetch categories:', err);
       }
     };
+    const fetchHomeLists = async () => {
+      try {
+        const [bsRes, naRes] = await Promise.all([
+          fetch('/api/courses?sort=best&limit=10'),
+          fetch('/api/courses?sort=new&limit=10')
+        ]);
+        const bs = await bsRes.json();
+        const na = await naRes.json();
+        if (Array.isArray(bs)) setBestSellers(bs);
+        if (Array.isArray(na)) setNewlyAdded(na);
+      } catch (err) {
+        console.error('Failed to fetch home lists:', err);
+      }
+    };
     fetchCats();
+    fetchHomeLists();
   }, []);
+
+  useEffect(() => {
+    if (isWorkshopModalOpen) {
+      const fetchBrowserData = async () => {
+        setIsBrowserLoading(true);
+        try {
+          const res = await fetch(`/api/courses?category=${activeSubjectSlug}`);
+          const data = await res.json();
+          if (Array.isArray(data)) setBrowserCourses(data);
+        } catch (err) {
+          console.error('Failed to fetch browser data:', err);
+        } finally {
+          setIsBrowserLoading(false);
+        }
+      };
+      fetchBrowserData();
+    }
+  }, [isWorkshopModalOpen, activeSubjectSlug]);
 
   // Scroll effect on nav
   const navRef = useRef<HTMLElement>(null);
@@ -170,10 +217,12 @@ export default function Home() {
 
   const doSlide = (id: 'bs' | 'na', dir: number) => {
     if (id === 'bs') {
-      const val = Math.max(0, Math.min(bsSlide + dir, 4));
+      const maxVal = Math.max(0, bestSellers.length - 1);
+      const val = Math.max(0, Math.min(bsSlide + dir, maxVal));
       setBsSlide(val);
     } else {
-      const val = Math.max(0, Math.min(naSlide + dir, 4));
+      const maxVal = Math.max(0, newlyAdded.length - 1);
+      const val = Math.max(0, Math.min(naSlide + dir, maxVal));
       setNaSlide(val);
     }
   };
@@ -191,7 +240,31 @@ export default function Home() {
   }, [enrolData.isOpen, isWorkshopModalOpen, catOverlay.isOpen]);
 
   // Derived state for category
-  const activeCat = catOverlay.key ? CAT_DATA[catOverlay.key] : null;
+  const activeCat = catOverlay.key ? (categories.find(c => c.slug === catOverlay.key) || CAT_DATA[catOverlay.key]) : null;
+
+  const activeSubjectObj = categories.find(c => c.slug === activeSubjectSlug) || categories[0];
+
+  const browserSections = browserCourses.reduce((acc: any[], course: any) => {
+    const sectionName = course.catLabel || 'General';
+    let section = acc.find(s => s.title === sectionName);
+    if (!section) {
+      section = { title: sectionName, items: [] };
+      acc.push(section);
+    }
+    section.items.push({
+      id: course.id,
+      icon: course.emoji,
+      name: course.name,
+      meta: `${course.dur} hrs · ${course.level}`,
+      tag: course.tag,
+      tagLabel: course.tagLabel,
+      price: course.price,
+      instructor: course.instructor,
+      rating: course.rating,
+      g: course.g
+    });
+    return acc;
+  }, []);
 
   return (
     <div className="home-container">
@@ -282,7 +355,7 @@ export default function Home() {
                 className="cat-chip" 
                 onClick={() => openCatPage(c.slug)}
               >
-                <span className="cat-chip-icon">{icons[c.slug] || '🎓'}</span>
+                <span className="cat-chip-icon">{c.icon || '🎓'}</span>
                 <span className="cat-chip-label">{c.name}</span>
               </button>
             );
@@ -304,62 +377,23 @@ export default function Home() {
             <button className="carousel-btn carousel-btn-prev" onClick={() => doSlide('bs', -1)}>‹</button>
             <div className="carousel-track-outer">
               <div className="carousel-track" style={{ transform: `translateX(-${bsSlide * 280}px)` }}>
-                <div className="course-card" onClick={() => openEnrol('ChatGPT & Prompt Engineering Masterclass', 'by Expert · ★ 4.9 · 6 hrs · Beginner', '₹1,299', 'linear-gradient(135deg,#F0C97A,#E8900A)', 'AI')}>
-                  <div className="course-thumb"><div className="course-thumb-bg t-amber"></div><div className="course-thumb-label">AI</div><div className="course-badge badge-hot">🔥 Hot</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Artificial Intelligence</div>
-                    <div className="course-name">ChatGPT & Prompt Engineering Masterclass</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.9</span><span className="course-duration">⏱ 6 hrs</span></div>
-                  </div>
-                </div>
-                <div className="course-card" onClick={() => openEnrol('Python for Beginners — Zero to Hero', 'by Expert · ★ 4.8 · 10 hrs · Beginner', '₹1,799', 'linear-gradient(135deg,#94B8F0,#1A4DB8)', 'PY')}>
-                  <div className="course-thumb"><div className="course-thumb-bg t-blue"></div><div className="course-thumb-label">PY</div><div className="course-badge badge-popular">✦ Popular</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Programming</div>
-                    <div className="course-name">Python for Beginners — Zero to Hero</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.8</span><span className="course-duration">⏱ 10 hrs</span></div>
-                  </div>
-                </div>
-                <div className="course-card" onClick={() => openEnrol('Ethical Hacking: Beginner to Advanced', 'by Expert · ★ 4.9 · 12 hrs · All levels', '₹2,999', 'linear-gradient(135deg,#F0908A,#CC2A22)', '🔐')}>
-                  <div className="course-thumb"><div className="course-thumb-bg t-red"></div><div className="course-thumb-label">🔐</div><div className="course-badge badge-hot">🔥 Hot</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Cybersecurity</div>
-                    <div className="course-name">Ethical Hacking: Beginner to Advanced</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.9</span><span className="course-duration">⏱ 12 hrs</span></div>
-                  </div>
-                </div>
-                <div className="course-card" onClick={() => openEnrol('Excel & Power BI for Business Pros', 'by Expert · ★ 4.7 · 8 hrs · Beginner', '₹1,499', 'linear-gradient(135deg,#7DD4CC,#0E8C85)', '📊')}>
-                  <div className="course-thumb"><div className="course-thumb-bg t-teal"></div><div className="course-thumb-label">📊</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Data & Analytics</div>
-                    <div className="course-name">Excel & Power BI for Business Pros</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.7</span><span className="course-duration">⏱ 8 hrs</span></div>
-                  </div>
-                </div>
-                <div className="course-card" onClick={() => openEnrol('UI/UX Design with Figma — Full Course', 'by Expert · ★ 4.8 · 9 hrs · Beginner', '₹1,999', 'linear-gradient(135deg,#C4A8F0,#6B35CC)', 'UX')}>
-                  <div className="course-thumb"><div className="course-thumb-bg t-purple"></div><div className="course-thumb-label">UX</div><div className="course-badge badge-popular">✦ Popular</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Design</div>
-                    <div className="course-name">UI/UX Design with Figma — Full Course</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.8</span><span className="course-duration">⏱ 9 hrs</span></div>
-                  </div>
-                </div>
-                <div className="course-card" onClick={() => openEnrol('DSLR Photography — From Auto to Manual', 'by Expert · ★ 4.7 · 5 hrs · Beginner', '₹1,299', 'linear-gradient(135deg,#90D4A0,#1A8C34)', '📸')}>
-                  <div className="course-thumb"><div className="course-thumb-bg t-green"></div><div className="course-thumb-label">📸</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Photography</div>
-                    <div className="course-name">DSLR Photography — From Auto to Manual</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.7</span><span className="course-duration">⏱ 5 hrs</span></div>
-                  </div>
-                </div>
-                <div className="course-card" onClick={() => openEnrol('Mindfulness & Meditation for Busy Lives', 'by Expert · ★ 4.9 · 4 hrs · Beginner', '₹799', 'linear-gradient(135deg,#F0A0CC,#CC2070)', '🧘')}>
-                  <div className="course-thumb"><div className="course-thumb-bg t-pink"></div><div className="course-thumb-label">🧘</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Wellness</div>
-                    <div className="course-name">Mindfulness & Meditation for Busy Lives</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.9</span><span className="course-duration">⏱ 4 hrs</span></div>
-                  </div>
-                </div>
+                {hasMounted && bestSellers.map((c: any) => {
+                  const priceStr = '₹' + c.price.toLocaleString('en-IN');
+                  return (
+                    <div key={c.id} className="course-card" onClick={() => openEnrol(c.name, `by ${c.instructor} · ★ ${c.rating} · ${c.dur} hrs · ${c.level}`, priceStr, c.g || 't-amber', c.emoji)}>
+                      <div className="course-thumb">
+                        <div className={`course-thumb-bg ${c.g || 't-amber'}`}></div>
+                        <div className="course-thumb-label">{c.emoji}</div>
+                        {c.tagLabel && <div className={`course-badge badge-${c.tag}`}>{c.tagLabel}</div>}
+                      </div>
+                      <div className="course-body">
+                        <div className="course-category">{c.catLabel}</div>
+                        <div className="course-name">{c.name}</div>
+                        <div className="course-meta"><span className="course-rating">★ {c.rating}</span><span className="course-duration">⏱ {c.dur} hrs</span></div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
             <button className="carousel-btn carousel-btn-next" onClick={() => doSlide('bs', 1)}>›</button>
@@ -381,54 +415,23 @@ export default function Home() {
             <button className="carousel-btn carousel-btn-prev" onClick={() => doSlide('na', -1)}>‹</button>
             <div className="carousel-track-outer">
               <div className="carousel-track" style={{ transform: `translateX(-${naSlide * 280}px)` }}>
-                <div className="course-card">
-                  <div className="course-thumb"><div className="course-thumb-bg t-amber"></div><div className="course-thumb-label">AI</div><div className="course-badge badge-new">✦ New</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Artificial Intelligence</div>
-                    <div className="course-name">Build Your Own AI Agent with LangChain</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.8</span><span className="course-duration">⏱ 7 hrs</span></div>
-                  </div>
-                </div>
-                <div className="course-card">
-                  <div className="course-thumb"><div className="course-thumb-bg t-slate"></div><div className="course-thumb-label">☁️</div><div className="course-badge badge-new">✦ New</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Cloud & DevOps</div>
-                    <div className="course-name">AWS Cloud Fundamentals — Hands-on Labs</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.7</span><span className="course-duration">⏱ 11 hrs</span></div>
-                  </div>
-                </div>
-                <div className="course-card">
-                  <div className="course-thumb"><div className="course-thumb-bg t-pink"></div><div className="course-thumb-label">🎵</div><div className="course-badge badge-new">✦ New</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Music</div>
-                    <div className="course-name">Music Production for Absolute Beginners</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.6</span><span className="course-duration">⏱ 6 hrs</span></div>
-                  </div>
-                </div>
-                <div className="course-card">
-                  <div className="course-thumb"><div className="course-thumb-bg t-teal"></div><div className="course-thumb-label">📱</div><div className="course-badge badge-new">✦ New</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Programming</div>
-                    <div className="course-name">Flutter Mobile App Development</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.8</span><span className="course-duration">⏱ 14 hrs</span></div>
-                  </div>
-                </div>
-                <div className="course-card">
-                  <div className="course-thumb"><div className="course-thumb-bg t-green"></div><div className="course-thumb-label">🌿</div><div className="course-badge badge-new">✦ New</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Lifestyle</div>
-                    <div className="course-name">Home Gardening & Urban Farming</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.9</span><span className="course-duration">⏱ 3 hrs</span></div>
-                  </div>
-                </div>
-                <div className="course-card">
-                  <div className="course-thumb"><div className="course-thumb-bg t-blue"></div><div className="course-thumb-label">💰</div><div className="course-badge badge-new">✦ New</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Finance</div>
-                    <div className="course-name">Personal Finance & Investing for Indians</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.8</span><span className="course-duration">⏱ 5 hrs</span></div>
-                  </div>
-                </div>
+                {hasMounted && newlyAdded.map((c: any) => {
+                  const priceStr = '₹' + c.price.toLocaleString('en-IN');
+                  return (
+                    <div key={c.id} className="course-card" onClick={() => openEnrol(c.name, `by ${c.instructor} · ★ ${c.rating} · ${c.dur} hrs · ${c.level}`, priceStr, c.g || 't-amber', c.emoji)}>
+                      <div className="course-thumb">
+                        <div className={`course-thumb-bg ${c.g || 't-amber'}`}></div>
+                        <div className="course-thumb-label">{c.emoji}</div>
+                        {c.tagLabel && <div className={`course-badge badge-${c.tag}`}>{c.tagLabel}</div>}
+                      </div>
+                      <div className="course-body">
+                        <div className="course-category">{c.catLabel}</div>
+                        <div className="course-name">{c.name}</div>
+                        <div className="course-meta"><span className="course-rating">★ {c.rating}</span><span className="course-duration">⏱ {c.dur} hrs</span></div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
             <button className="carousel-btn carousel-btn-next" onClick={() => doSlide('na', 1)}>›</button>
@@ -554,43 +557,67 @@ export default function Home() {
           </div>
           <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
             <div style={{ width: '220px', flexShrink: 0, borderRight: '0.5px solid var(--border-md)', padding: '20px 0', background: 'var(--surface-2)' }}>
-              <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--text-3)', padding: '0 20px 12px' }}>5 subjects</div>
+              <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--text-3)', padding: '0 20px 12px' }}>{categories.length} subjects</div>
               <div id="subjectList">
-                {SUBJECTS.map((s, i) => (
-                  <button key={i} className={`subject-btn ${i === activeSubject ? 'active' : ''}`} onClick={() => setActiveSubject(i)}>
+                {categories.map((s) => (
+                  <button key={s.id} className={`subject-btn ${s.slug === activeSubjectSlug ? 'active' : ''}`} onClick={() => setActiveSubjectSlug(s.slug)}>
                     <span className="subject-icon">{s.icon}</span>
-                    <span className="sbtn-label">{s.label}</span>
-                    <span className="sbtn-count">{s.count.split(' ')[0]}</span>
+                    <span className="sbtn-label">{s.name}</span>
+                    <span className="sbtn-count">{s.course_count}</span>
                   </button>
                 ))}
               </div>
             </div>
             <div style={{ flex: 1, padding: '24px 32px', overflowY: 'auto' }} id="subjectContent">
-              <div className="subject-hero" style={{ background: SUBJECTS[activeSubject].color }}>
-                <div className="subject-hero-icon">{SUBJECTS[activeSubject].icon}</div>
-                <div>
-                  <div className="subject-hero-title">{SUBJECTS[activeSubject].label}</div>
-                  <div className="subject-hero-desc">{SUBJECTS[activeSubject].desc}</div>
-                </div>
-              </div>
-              {SUBJECTS[activeSubject].sections.map((sec: any, j: number) => (
-                <div className="sub-section" key={j}>
-                  <div className="sub-section-title">{sec.title}</div>
-                  <div className="sub-grid">
-                    {sec.items.map((item: any, k: number) => (
-                      <button className="sub-card" key={k} style={{ textAlign: 'left', width: '100%', border: '1px solid var(--border-md)' }}>
-                        <div className="sub-card-icon">{item.icon}</div>
-                        <div className="sub-card-name">{item.name}</div>
-                        <div className="sub-card-meta">{item.meta}</div>
-                        <span className={`sub-card-tag tag-${item.tag}`}>{item.tagLabel}</span>
-                      </button>
-                    ))}
+              {activeSubjectObj && (
+                <div className="subject-hero" style={{ background: activeSubjectObj.color || 'var(--surface-2)' }}>
+                  <div className="subject-hero-icon">{activeSubjectObj.icon}</div>
+                  <div>
+                    <div className="subject-hero-title">{activeSubjectObj.name}</div>
+                    <div className="subject-hero-desc">{activeSubjectObj.description}</div>
                   </div>
                 </div>
-              ))}
-              <div style={{ textAlign: 'center', padding: '24px 0 8px' }}>
-                <a href="#" style={{ fontSize: '13px', color: 'var(--indigo)', textDecoration: 'none', fontWeight: 600 }}>View all {SUBJECTS[activeSubject].count} →</a>
-              </div>
+              )}
+              
+              {isBrowserLoading ? (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <div className="loader" style={{ margin: '0 auto 12px' }}></div>
+                  <div style={{ color: 'var(--text-3)', fontSize: '13px' }}>Loading workshops...</div>
+                </div>
+              ) : browserSections.length > 0 ? (
+                browserSections.map((sec: any, j: number) => (
+                  <div className="sub-section" key={j}>
+                    <div className="sub-section-title">{sec.title}</div>
+                    <div className="sub-grid">
+                      {sec.items.map((item: any, k: number) => (
+                        <button 
+                          className="sub-card" 
+                          key={item.id || k} 
+                          style={{ textAlign: 'left', width: '100%', border: '1px solid var(--border-md)' }}
+                          onClick={() => openEnrol(item.name, `by ${item.instructor} · ★ ${item.rating} · ${item.meta}`, `₹${item.price.toLocaleString('en-IN')}`, '', item.icon)}
+                        >
+                          <div className="sub-card-icon">{item.icon}</div>
+                          <div className="sub-card-name">{item.name}</div>
+                          <div className="sub-card-meta">{item.meta}</div>
+                          <span className={`sub-card-tag tag-${item.tag}`}>{item.tagLabel}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-3)' }}>
+                  No workshops found in this subject yet.
+                </div>
+              )}
+              
+              {activeSubjectObj && (
+                <div style={{ textAlign: 'center', padding: '24px 0 8px' }}>
+                  <button onClick={() => openCatPage(activeSubjectObj.slug)} style={{ background: 'none', border: 'none', fontSize: '13px', color: 'var(--indigo)', cursor: 'pointer', fontWeight: 600 }}>
+                    View all {activeSubjectObj.course_count} {activeSubjectObj.name} workshops →
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -608,27 +635,23 @@ export default function Home() {
               <div className="cat-hero-left">
                 <span className="cat-hero-icon-big">{activeCat.icon}</span>
                 <div className="cat-hero-title">
-                  {activeCat.label.includes(' ') ? (
-                    <>
-                      <mark>{activeCat.label.split(' ')[0]}</mark> {activeCat.label.substring(activeCat.label.indexOf(' ') + 1)}
-                    </>
-                  ) : <mark>{activeCat.label}</mark>}
+                  {activeCat.name || activeCat.label}
                 </div>
-                <div className="cat-hero-desc">{activeCat.desc}</div>
+                <div className="cat-hero-desc">{activeCat.description || activeCat.desc}</div>
               </div>
               <div className="cat-hero-stats">
                 <div style={{ textAlign: 'center' }}>
-                  <div className="cat-hero-stat-num">{activeCat.workshops}<span>+</span></div>
+                  <div className="cat-hero-stat-num">{activeCat.course_count || activeCat.workshops}<span>+</span></div>
                   <div className="cat-hero-stat-label">Workshops</div>
                 </div>
                 <div style={{ width: '1px', background: 'var(--border-md)' }}></div>
                 <div style={{ textAlign: 'center' }}>
-                  <div className="cat-hero-stat-num">{activeCat.learners}</div>
+                  <div className="cat-hero-stat-num">{activeCat.learners || '4,000+'}</div>
                   <div className="cat-hero-stat-label">Learners</div>
                 </div>
                 <div style={{ width: '1px', background: 'var(--border-md)' }}></div>
                 <div style={{ textAlign: 'center' }}>
-                  <div className="cat-hero-stat-num">{activeCat.rating}<span>★</span></div>
+                  <div className="cat-hero-stat-num">{activeCat.rating || '4.8'}<span>★</span></div>
                   <div className="cat-hero-stat-label">Avg. rating</div>
                 </div>
               </div>

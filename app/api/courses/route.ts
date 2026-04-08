@@ -7,6 +7,9 @@ export async function GET(req: NextRequest) {
     const query = searchParams.get('q');
     const category = searchParams.get('category');
 
+    const sort = searchParams.get('sort');
+    const limit = parseInt(searchParams.get('limit') || '50', 10);
+
     let select = `
       SELECT 
         c.id, 
@@ -42,6 +45,14 @@ export async function GET(req: NextRequest) {
       where.push(`(cat.slug = $${values.length} OR cat.id IN (SELECT id FROM categories WHERE parent_id = (SELECT id FROM categories WHERE slug = $${values.length})))`);
     }
 
+    if (sort === 'new') {
+      where.push("c.tag = 'new'");
+    }
+
+    let orderBy = 'c.name ASC';
+    if (query) orderBy = 'rank DESC, ' + orderBy;
+    else if (sort === 'best') orderBy = 'c.rating DESC, ' + orderBy;
+
     let sql = `
       ${select}
       FROM courses c
@@ -49,7 +60,8 @@ export async function GET(req: NextRequest) {
       JOIN instructors i ON c.instructor_id = i.id
       JOIN users u ON i.user_id = u.id
       ${where.length > 0 ? 'WHERE ' + where.join(' AND ') : ''}
-      ORDER BY ${query ? 'rank DESC, ' : ''} c.name ASC
+      ORDER BY ${orderBy}
+      LIMIT ${limit}
     `;
 
     const { rows } = await pool.query(sql, values);

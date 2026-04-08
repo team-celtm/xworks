@@ -14,31 +14,25 @@ export async function GET(req: NextRequest) {
 
     const sql = `
       SELECT 
-        sr.status as "regStatus",
         ls.id as "sessionId",
         ls.title as "sessionTitle",
-        ls.status as "sessionStatus",
         ls.scheduled_start as "scheduledStart",
-        ls.scheduled_end as "scheduledEnd",
-        ls.join_url as "joinUrl",
-        ls.platform,
-        ls.recording_available as "recordingAvailable",
+        ls.status as "sessionStatus",
         c.name as "courseName",
-        c.emoji,
-        c.g as "thumbBg"
-      FROM session_registrations sr
-      JOIN live_sessions ls ON sr.session_id = ls.id
-      JOIN enrolments e ON sr.enrolment_id = e.id
+        COUNT(sr.id) as "registrantCount"
+      FROM live_sessions ls
       JOIN courses c ON ls.course_id = c.id
-      WHERE e.user_id = $1 
-        AND (ls.scheduled_start >= NOW() - INTERVAL '1 hour' OR ls.recording_available = true)
+      JOIN instructors i ON c.instructor_id = i.id
+      LEFT JOIN session_registrations sr ON sr.session_id = ls.id
+      WHERE i.user_id = $1
+      GROUP BY ls.id, c.name
       ORDER BY ls.scheduled_start DESC
     `;
     const { rows } = await pool.query(sql, [userId]);
 
     return NextResponse.json(rows, { status: 200 });
   } catch (error) {
-    console.error('Learner Sessions API Error:', error);
+    console.error('Instructor Sessions API Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

@@ -348,12 +348,9 @@ export default function CataloguePage() {
               { id:'all', icon:'🗂️', name:'All categories', count:176 },
               ...dbCategories.map(c => ({
                 id: c.slug,
-                icon: (record: any) => {
-                  const icons: Record<string, string> = {ai:'🤖',programming:'💻',cybersecurity:'🔐',data:'📊',design:'🎨',photography:'📸',wellness:'🪴',music:'🎵',business:'💼',mindfulness:'🧘'};
-                  return icons[c.slug] || '🎓';
-                },
+                icon: c.icon || '🎓',
                 name: c.name,
-                count: 'many' // we don't have counts in the DB yet, but we'll use a placeholder
+                count: c.course_count
               }))
             ].map((c: any) => (
               <div 
@@ -361,8 +358,9 @@ export default function CataloguePage() {
                 className={`cat-item ${state.cat === c.id ? 'active' : ''}`}
                 onClick={() => handleCatChange(c.id)}
               >
-                <span className="cat-item-icon">{typeof c.icon === 'function' ? c.icon() : c.icon}</span>
+                <span className="cat-item-icon">{c.icon}</span>
                 <span className="cat-item-name">{c.name}</span>
+                {c.count !== undefined && <span className="cat-item-count" style={{ marginLeft: 'auto', fontSize: '11px', color: 'var(--text-3)' }}>{c.count}</span>}
               </div>
             ))}
           </div>
