@@ -18,6 +18,8 @@ export async function GET(req: NextRequest) {
         ls.title as "sessionTitle",
         ls.scheduled_start as "scheduledStart",
         ls.status as "sessionStatus",
+        ls.host_url as "hostUrl",
+        ls.recording_available as "recordingAvailable",
         c.name as "courseName",
         COUNT(sr.id) as "registrantCount"
       FROM live_sessions ls
@@ -25,7 +27,7 @@ export async function GET(req: NextRequest) {
       JOIN instructors i ON c.instructor_id = i.id
       LEFT JOIN session_registrations sr ON sr.session_id = ls.id
       WHERE i.user_id = $1
-      GROUP BY ls.id, c.name
+      GROUP BY ls.id, c.name, ls.host_url, ls.recording_available
       ORDER BY ls.scheduled_start DESC
     `;
     const { rows } = await pool.query(sql, [userId]);

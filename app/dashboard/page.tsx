@@ -64,6 +64,24 @@ export default function DashboardPage() {
   const [certs, setCerts] = useState<any[]>([]);
   const [loadingCerts, setLoadingCerts] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<string>("");
+
+  useEffect(() => {
+    if (sessions.length > 0 && sessions[0].scheduledStart) {
+      const interval = setInterval(() => {
+        const diff = new Date(sessions[0].scheduledStart).getTime() - Date.now();
+        if (diff <= 0) {
+          setTimeLeft("Started");
+          return;
+        }
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const secs = Math.floor((diff % (1000 * 60)) / 1000);
+        setTimeLeft(`${hours > 0 ? hours + 'h ' : ''}${mins}m ${secs}s`);
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [sessions]);
 
   // Carousel tracking
   const [, setCState] = useState<Record<string, number>>({});
@@ -645,7 +663,10 @@ export default function DashboardPage() {
                         </div>
                         <div style={{ flex: 1 }}>
                           <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--ink)' }}>{sessions[0].sessionTitle}</div>
-                          <div style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>{sessions[0].courseName} · Starts at {new Date(sessions[0].scheduledStart).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</div>
+                          <div style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {sessions[0].courseName} · Starts at {new Date(sessions[0].scheduledStart).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                            {timeLeft && timeLeft !== 'Started' && <span style={{ color: 'var(--blue)', fontWeight: 600, padding: '2px 8px', background: 'var(--blue-bg)', borderRadius: '100px', fontSize: '11px' }}>Starting in {timeLeft}</span>}
+                          </div>
                         </div>
                         <button 
                           className="enrol-cta coral" 
