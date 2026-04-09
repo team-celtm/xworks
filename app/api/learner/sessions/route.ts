@@ -25,11 +25,13 @@ export async function GET(req: NextRequest) {
         ls.recording_available as "recordingAvailable",
         c.name as "courseName",
         c.emoji,
-        c.g as "thumbBg"
+        c.g as "thumbBg",
+        p.status as "paymentStatus"
       FROM session_registrations sr
       JOIN live_sessions ls ON sr.session_id = ls.id
       JOIN enrolments e ON sr.enrolment_id = e.id
       JOIN courses c ON ls.course_id = c.id
+      LEFT JOIN payments p ON e.id = p.enrolment_id
       WHERE e.user_id = $1 
         AND (ls.scheduled_start >= NOW() - INTERVAL '1 hour' OR ls.recording_available = true)
       ORDER BY ls.scheduled_start DESC

@@ -64,19 +64,30 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const emailPromises = [];
 
     for (const reg of registrants) {
-      // 4. Process Refund if less than 24h notice
+      // 4. Update Registration Status
+      await pool.query(`
+        UPDATE session_registrations
+        SET status = 'cancelled'
+        WHERE enrolment_id = $1 AND session_id = $2
+      `, [reg.enrolment_id, sessionId]);
+
+      // 5. Process Refund if less than 24h notice
       let refundNotice = '';
       if (isLessThan24h && reg.enrolment_id) {
         // We refund the associated payment
-        await pool.query(`
+        const refundRes = await pool.query(`
           UPDATE payments
           SET status = 'refunded'
           WHERE enrolment_id = $1 AND status = 'successful'
+          RETURNING id
         `, [reg.enrolment_id]);
-        refundNotice = `\n\nBecause this cancellation occurred with less than 24 hours notice, you have been issued a full automatic refund. This will be reflected on your original payment method shortly.`;
+        
+        if (refundRes.rows.length > 0) {
+          refundNotice = `\n\nBecause this cancellation occurred with less than 24 hours notice, you have been issued a full automatic refund. This will be reflected on your original payment method shortly.`;
+        }
       }
 
-      // 5. Notify via Email
+      // 6. Notify via Email
       const emailBody = `
         Hi ${reg.first_name},
         
@@ -87,13 +98,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         
         Thanks,
         XWORKS Team
+        www.xworks.com
       `;
 
       emailPromises.push(
         transporter.sendMail({
           from: '"XWORKS Support" <support@xworks.com>',
           to: reg.email,
-          subject: `Cancelled: ${sessionInfo.session_title}`,
+          subject: `Canceled: ${sessionInfo.session_title}`,
           text: emailBody.trim(),
         }).catch(err => console.error('Failed sending cancellation email:', err))
       );

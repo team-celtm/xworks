@@ -47,12 +47,14 @@ export async function GET(req: NextRequest) {
         (u.first_name || ' ' || u.last_name) as instructor,
         ls.scheduled_start as "scheduledStart",
         ls.scheduled_end as "scheduledEnd",
-        ls.status as "sessionStatus"
+        ls.status as "sessionStatus",
+        p.status as "paymentStatus"
       FROM enrolments e
       JOIN courses c ON e.course_id = c.id
       JOIN categories cat ON c.category_id = cat.id
       JOIN instructors i ON c.instructor_id = i.id
       JOIN users u ON i.user_id = u.id
+      LEFT JOIN payments p ON e.id = p.enrolment_id
       LEFT JOIN LATERAL (
         SELECT scheduled_start, scheduled_end, status
         FROM live_sessions

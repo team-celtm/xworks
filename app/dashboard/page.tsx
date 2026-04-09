@@ -425,6 +425,7 @@ export default function DashboardPage() {
           <div className="wcard-name">{e.name}</div>
           <div className="wcard-meta">
             <span>{Math.round(e.progressPct)}% done</span>
+            {e.paymentStatus === 'refunded' && <span style={{ color: 'var(--alert-red)', fontSize: '11px', fontWeight: 600, marginLeft: '8px' }}>· Refunded</span>}
           </div>
           <div className="progress-bar-wrap" style={{ marginTop: '12px', height: '4px', background: 'var(--surface-2)', borderRadius: '2px', overflow: 'hidden' }}>
             <div className="progress-bar-fill" style={{ width: `${e.progressPct}%`, height: '100%', background: 'var(--blue)' }}></div>
@@ -769,7 +770,10 @@ export default function DashboardPage() {
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div className="upcoming-name">{s.sessionTitle}</div>
-                        <div className="upcoming-meta">{s.courseName} · {s.platform || 'Online'}</div>
+                        <div className="upcoming-meta">
+                          {s.courseName} · {s.platform || 'Online'}
+                          {s.paymentStatus === 'refunded' && <span style={{ color: 'var(--alert-red)', fontWeight: 600, marginLeft: '8px' }}>· Refunded</span>}
+                        </div>
                       </div>
                       <div className="upcoming-right">
                         <span className={`upcoming-mode ${startDate.getTime() > Date.now() ? (s.sessionStatus === 'cancelled' ? '' : 'mode-live') : ''}`}>
