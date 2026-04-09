@@ -31,6 +31,16 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     await pool.query('UPDATE enrolments SET last_accessed_at = NOW() WHERE id = $1', [enrolmentId]);
 
     const course = rows[0];
+
+    // Fetch live sessions for this course
+    const sessionsSql = `
+      SELECT id, title, scheduled_start, recording_available, status
+      FROM live_sessions
+      WHERE course_id = $1
+      ORDER BY scheduled_start ASC
+    `;
+    const { rows: sessions } = await pool.query(sessionsSql, [course.course_id]);
+
     const content = {
       enrolmentId: course.id,
       courseId: course.course_id,
@@ -42,7 +52,14 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         { id: '1', title: 'Chapter 1: Getting Started', duration: '15:00', completed: parseFloat(course.progress_pct) >= 33 },
         { id: '2', title: 'Chapter 2: Core Concepts', duration: '45:00', completed: parseFloat(course.progress_pct) >= 66 },
         { id: '3', title: 'Chapter 3: Building Projects', duration: '60:00', completed: parseFloat(course.progress_pct) >= 100 },
-      ]
+      ],
+      sessions: sessions.map(s => ({
+        id: s.id,
+        title: s.title,
+        startTime: s.scheduled_start,
+        recordingAvailable: s.recordingAvailable ?? s.recording_available,
+        status: s.status
+      }))
     };
 
     return NextResponse.json(content, { status: 200 });

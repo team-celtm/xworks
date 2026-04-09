@@ -93,6 +93,34 @@ export default function PlayerPage({ params }: { params: Promise<{ enrolmentId: 
               </div>
             ))}
           </div>
+
+          <h3 style={{ marginTop: '32px', marginBottom: '16px' }}>Live Sessions & Recordings</h3>
+          <div className="p-list">
+            {content.sessions && content.sessions.length > 0 ? content.sessions.map((s: any) => (
+              <div 
+                className={`p-item ${s.recordingAvailable ? 'active-item' : ''}`} 
+                key={s.id} 
+                style={{ cursor: s.recordingAvailable ? 'pointer' : 'default', opacity: s.recordingAvailable ? 1 : 0.7 }}
+                onClick={() => {
+                  if (s.recordingAvailable) {
+                    window.open(`/api/sessions/${s.id}/recording`, '_blank');
+                  }
+                }}
+              >
+                <div className="p-item-icon">{s.recordingAvailable ? '📽️' : '🕒'}</div>
+                <div className="p-item-info">
+                  <div className="p-item-title">{s.title}</div>
+                  <div className="p-item-dur" style={{ color: s.recordingAvailable ? 'var(--blue)' : 'inherit' }}>
+                    {s.recordingAvailable ? 'Watch Recording ↗' : `Scheduled: ${new Date(s.startTime).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`}
+                  </div>
+                </div>
+              </div>
+            )) : (
+              <div style={{ padding: '16px', fontSize: '13px', color: 'var(--text-3)', textAlign: 'center', background: 'var(--surface-2)', borderRadius: '8px' }}>
+                No recordings available for this course.
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

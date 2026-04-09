@@ -674,7 +674,7 @@ export default function DashboardPage() {
                           onClick={() => {
                             const joinable = new Date(sessions[0].scheduledStart).getTime() <= Date.now() + (15 * 60 * 1000);
                             const isPast = new Date(sessions[0].scheduledStart).getTime() < Date.now();
-                            if (sessions[0].recordingAvailable && isPast) window.open(`/api/learner/sessions/${sessions[0].sessionId}/recording`, '_blank');
+                            if (sessions[0].recordingAvailable && isPast) window.open(`/api/sessions/${sessions[0].sessionId}/recording`, '_blank');
                             else if (joinable) window.open(`/api/learner/sessions/${sessions[0].sessionId}/join`, '_blank');
                             else setActiveView("upcoming");
                           }}
@@ -783,7 +783,7 @@ export default function DashboardPage() {
                             className={`join-btn ${isJoinable ? "" : (s.recordingAvailable && startDate.getTime() < Date.now() ? "" : "disabled")}`}
                             onClick={() => {
                               if (s.recordingAvailable && startDate.getTime() < Date.now()) {
-                                window.open(`/api/learner/sessions/${s.sessionId}/recording`, '_blank');
+                                window.open(`/api/sessions/${s.sessionId}/recording`, '_blank');
                               } else if (isJoinable) {
                                 window.open(`/api/learner/sessions/${s.sessionId}/join`, '_blank');
                               }
