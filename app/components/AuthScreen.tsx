@@ -179,7 +179,8 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
       });
       const data = await res.json();
       if (res.ok) {
-        router.push('/dashboard');
+        const returnUrl = searchParams?.get('returnUrl');
+        router.push(returnUrl || '/dashboard');
       } else {
         if (data.needsVerification) {
           setErrorText('Please verify your email address.');

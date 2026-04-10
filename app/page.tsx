@@ -1,18 +1,21 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import './home.css';
 import { SUBJECTS, CAT_DATA } from './data';
 
 export default function Home() {
+  const router = useRouter();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isWorkshopModalOpen, setIsWorkshopModalOpen] = useState(false);
-  const [activeSubject, setActiveSubject] = useState(0);
+  const [activeSubjectSlug, setActiveSubjectSlug] = useState('tech');
 
   const [catOverlay, setCatOverlay] = useState({ isOpen: false, key: null as string | null, isClosing: false });
 
   const [enrolData, setEnrolData] = useState({
     isOpen: false,
+    id: null as string | number | null,
     step: 1,
     name: '',
     meta: '',
@@ -21,12 +24,15 @@ export default function Home() {
     finalPrice: 1299,
     format: 'live',
     formatLabel: 'Live session',
-    date: 'Sat 29 Mar',
-    time: '11:00 AM',
+    date: '', 
+    time: '',
     promoApplied: false,
     payMethod: 'UPI',
     thumbBg: 'linear-gradient(135deg,#1A2E5A,#3A7ACC)',
-    thumbEmoji: '💬'
+    thumbEmoji: '💬',
+    enrolmentId: null as string | null,
+    sessions: [] as any[],
+    selectedSessionId: null as string | null
   });
   const [promoCode, setPromoCode] = useState('');
   const [promoMsg, setPromoMsg] = useState({ text: '', type: '' });
@@ -37,19 +43,60 @@ export default function Home() {
   const [categories, setCategories] = useState<any[]>([]);
   const [catCourses, setCatCourses] = useState<any[]>([]);
   const [isCatLoading, setIsCatLoading] = useState(false);
+  const [isBrowserLoading, setIsBrowserLoading] = useState(false);
+  const [browserCourses, setBrowserCourses] = useState<any[]>([]);
+  const [bestSellers, setBestSellers] = useState<any[]>([]);
+  const [newlyAdded, setNewlyAdded] = useState<any[]>([]);
+  const [hasMounted, setHasMounted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchCats = async () => {
+    setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const fetchData = async () => {
       try {
-        const res = await fetch('/api/categories');
-        const data = await res.json();
-        if (Array.isArray(data)) setCategories(data);
+        const [bsRes, naRes, catRes] = await Promise.all([
+          fetch('/api/courses?sort=best&limit=10'),
+          fetch('/api/courses?sort=new&limit=10'),
+          fetch('/api/categories')
+        ]);
+        const [bs, na, cats] = await Promise.all([bsRes.json(), naRes.json(), catRes.json()]);
+        if (Array.isArray(bs)) setBestSellers(bs);
+        if (Array.isArray(na)) setNewlyAdded(na);
+        if (Array.isArray(cats)) {
+          setCategories(cats);
+          if (cats.length > 0 && !activeSubjectSlug) {
+            setActiveSubjectSlug(cats[0].slug);
+          }
+        }
       } catch (err) {
-        console.error('Failed to fetch categories:', err);
+        console.error('Failed to fetch home data:', err);
+      } finally {
+        setIsLoading(false);
       }
     };
-    fetchCats();
+    fetchData();
   }, []);
+
+  useEffect(() => {
+    if (isWorkshopModalOpen) {
+      const fetchBrowserData = async () => {
+        setIsBrowserLoading(true);
+        try {
+          const res = await fetch(`/api/courses?category=${activeSubjectSlug}`);
+          const data = await res.json();
+          if (Array.isArray(data)) setBrowserCourses(data);
+        } catch (err) {
+          console.error('Failed to fetch browser data:', err);
+        } finally {
+          setIsBrowserLoading(false);
+        }
+      };
+      fetchBrowserData();
+    }
+  }, [isWorkshopModalOpen, activeSubjectSlug]);
 
   // Scroll effect on nav
   const navRef = useRef<HTMLElement>(null);
@@ -62,6 +109,29 @@ export default function Home() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  useEffect(() => {
+    if (enrolData.isOpen && enrolData.step === 2 && enrolData.id) {
+      const fetchSessions = async () => {
+        try {
+          const res = await fetch(`/api/courses/${enrolData.id}/sessions`);
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setEnrolData(prev => ({ 
+              ...prev, 
+              sessions: data,
+              selectedSessionId: data.length > 0 ? data[0].id : null,
+              date: data.length > 0 ? new Date(data[0].scheduled_start).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }) : '',
+              time: data.length > 0 ? new Date(data[0].scheduled_start).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }) : ''
+            }));
+          }
+        } catch (err) {
+          console.error('Failed to fetch sessions:', err);
+        }
+      };
+      fetchSessions();
+    }
+  }, [enrolData.isOpen, enrolData.step, enrolData.id]);
 
   // Intersection observer
   useEffect(() => {
@@ -121,16 +191,20 @@ export default function Home() {
   };
 
   // Enrol Modal
-  const openEnrol = (name: string, meta: string, price: string, thumbBg: string, thumbEmoji: string) => {
-    const basePrice = parseInt(price.replace(/[^0-9]/g, '')) || 1299;
+  const openEnrol = (id: string | number, name: string, meta: string, price: string, thumbBg: string, thumbEmoji: string) => {
+    const basePrice = parseInt(price.replace(/[^0-9]/g, '')) || 0;
     setEnrolData({
       isOpen: true,
+      id,
       step: 1,
       name, meta, price, basePrice, finalPrice: basePrice,
       format: 'live', formatLabel: 'Live session',
-      date: 'Sat 29 Mar', time: '11:00 AM',
+      date: '', time: '',
       promoApplied: false, payMethod: 'UPI',
-      thumbBg, thumbEmoji
+      thumbBg, thumbEmoji,
+      enrolmentId: null,
+      sessions: [],
+      selectedSessionId: null
     });
     setPromoCode('');
     setPromoMsg({ text: '', type: '' });
@@ -154,26 +228,155 @@ export default function Home() {
     setPromoMsg({ text: '', type: '' });
   };
 
-  const applyPromo = () => {
-    const code = promoCode.trim().toUpperCase();
-    const valid = ['XWORKS20', 'FIRST20', 'WELCOME', 'LEARN20'];
-    if (valid.includes(code) && !enrolData.promoApplied) {
-      const discount = Math.round(enrolData.basePrice * 0.20);
-      setEnrolData(prev => ({ ...prev, promoApplied: true, finalPrice: prev.basePrice - discount }));
-      setPromoMsg({ text: '✓ Code applied — 20% off!', type: 'success' });
-    } else if (enrolData.promoApplied) {
-      setPromoMsg({ text: '✓ Promo already applied!', type: 'success' });
-    } else {
-      setPromoMsg({ text: '✗ Invalid code. Try XWORKS20', type: 'error' });
+  const [isEnrolling, setIsEnrolling] = useState(false);
+
+  const handleModalEnrol = async () => {
+    if (!enrolData.id) return;
+    
+    setIsEnrolling(true);
+    try {
+      // If it's a paid course, start Razorpay flow
+      if (enrolData.finalPrice && enrolData.finalPrice > 0) {
+        const orderRes = await fetch('/api/payments/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            courseId: enrolData.id,
+            promoCode: enrolData.promoApplied ? promoCode : null
+           })
+        });
+        
+        const orderData = await orderRes.json();
+        
+        if (!orderRes.ok) {
+           if (orderRes.status === 401) {
+             router.push(`/Login?returnUrl=/`);
+             return;
+           }
+           setPromoMsg({ text: orderData.error || 'Could not create payment order', type: 'error' });
+           setIsEnrolling(false);
+           return;
+        }
+
+        const options = {
+          key: orderData.keyId,
+          amount: orderData.amount,
+          currency: 'INR',
+          name: 'XWORKS',
+          description: `Enrolment for ${orderData.courseName}`,
+          order_id: orderData.orderId,
+          handler: async (response: any) => {
+            setIsEnrolling(true);
+            const verifyRes = await fetch('/api/payments/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                courseId: enrolData.id,
+                promoCode: enrolData.promoApplied ? promoCode : null
+              })
+            });
+            const verifyData = await verifyRes.json();
+            if (verifyRes.ok) {
+              setEnrolData(prev => ({ ...prev, enrolmentId: verifyData.enrolmentId }));
+              
+              // AUTO REGISTER FOR SESSION IF SELECTED
+              if (enrolData.format === 'live' && enrolData.selectedSessionId) {
+                await fetch(`/api/sessions/${enrolData.selectedSessionId}/register`, { method: 'POST' });
+              }
+              
+              enrolGoStep(4);
+            } else {
+              setPromoMsg({ text: verifyData.error || 'Payment verification failed', type: 'error' });
+            }
+            setIsEnrolling(false);
+          },
+          prefill: {
+            name: '',
+            email: '',
+          },
+          theme: { color: '#4F46E5' },
+          modal: {
+            ondismiss: () => setIsEnrolling(false)
+          }
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.open();
+        return;
+      }
+
+      const res = await fetch('/api/learner/enrolments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          courseId: enrolData.id, 
+          sessionId: enrolData.selectedSessionId 
+        })
+      });
+
+      if (res.status === 401) {
+        router.push(`/Login?returnUrl=/`);
+        return;
+      }
+
+      const data = await res.json();
+      if (res.ok) {
+        setEnrolData(prev => ({ ...prev, enrolmentId: data.enrolmentId }));
+        
+        // AUTO REGISTER FOR SESSION IF SELECTED
+        if (enrolData.format === 'live' && enrolData.selectedSessionId) {
+          await fetch(`/api/sessions/${enrolData.selectedSessionId}/register`, { method: 'POST' });
+        }
+        
+        enrolGoStep(4);
+      } else {
+        setPromoMsg({ text: data.error || 'Failed to enrol', type: 'error' });
+      }
+    } catch (err: any) {
+      console.error('Enrol failed:', err);
+      setPromoMsg({ text: err.message || 'An error occurred', type: 'error' });
+    } finally {
+      setIsEnrolling(false);
+    }
+  };
+
+  const applyPromo = async () => {
+    if (!promoCode.trim()) return;
+    setIsCatLoading(true); // temporary loader
+    try {
+      const res = await fetch('/api/promo-codes/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: promoCode, courseId: enrolData.id })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const discountPercentage = parseFloat(data.discountPercentage);
+        const discount = Math.round(enrolData.basePrice * (discountPercentage / 100));
+        setEnrolData(prev => ({ ...prev, promoApplied: true, finalPrice: prev.basePrice - discount }));
+        setPromoMsg({ text: `✓ Code applied — ${discountPercentage}% off!`, type: 'success' });
+      } else {
+        setPromoMsg({ text: data.error || 'Invalid code', type: 'error' });
+        setEnrolData(prev => ({ ...prev, promoApplied: false, finalPrice: prev.basePrice }));
+      }
+    } catch (err) {
+      setPromoMsg({ text: 'Validation failed', type: 'error' });
+    } finally {
+      setIsCatLoading(false);
     }
   };
 
   const doSlide = (id: 'bs' | 'na', dir: number) => {
     if (id === 'bs') {
-      const val = Math.max(0, Math.min(bsSlide + dir, 4));
+      const maxVal = Math.max(0, bestSellers.length - 1);
+      const val = Math.max(0, Math.min(bsSlide + dir, maxVal));
       setBsSlide(val);
     } else {
-      const val = Math.max(0, Math.min(naSlide + dir, 4));
+      const maxVal = Math.max(0, newlyAdded.length - 1);
+      const val = Math.max(0, Math.min(naSlide + dir, maxVal));
       setNaSlide(val);
     }
   };
@@ -191,7 +394,31 @@ export default function Home() {
   }, [enrolData.isOpen, isWorkshopModalOpen, catOverlay.isOpen]);
 
   // Derived state for category
-  const activeCat = catOverlay.key ? CAT_DATA[catOverlay.key] : null;
+  const activeCat = catOverlay.key ? (categories.find(c => c.slug === catOverlay.key) || CAT_DATA[catOverlay.key]) : null;
+
+  const activeSubjectObj = categories.find(c => c.slug === activeSubjectSlug) || categories[0];
+
+  const browserSections = browserCourses.reduce((acc: any[], course: any) => {
+    const sectionName = course.catLabel || 'General';
+    let section = acc.find(s => s.title === sectionName);
+    if (!section) {
+      section = { title: sectionName, items: [] };
+      acc.push(section);
+    }
+    section.items.push({
+      id: course.id,
+      icon: course.emoji,
+      name: course.name,
+      meta: `${course.dur} hrs · ${course.level}`,
+      tag: course.tag,
+      tagLabel: course.tagLabel,
+      price: course.price,
+      instructor: course.instructor,
+      rating: course.rating,
+      g: course.g
+    });
+    return acc;
+  }, []);
 
   return (
     <div className="home-container">
@@ -274,7 +501,10 @@ export default function Home() {
       </div>
       <div className="categories-section">
         <div className="cat-grid">
-          {categories.map((c: any) => {
+          {isLoading ? (
+            [1,2,3,4,5,6].map(i => <div key={i} className="skeleton" style={{ width: '100px', height: '36px', borderRadius: '100px' }}></div>)
+          ) : (
+            categories.map((c: any) => {
             const icons: Record<string, string> = {ai:'🤖',programming:'💻',cybersecurity:'🔐',data:'📊',design:'🎨',photography:'📸',wellness:'🪴',music:'🎵',business:'💼',mindfulness:'🧘'};
             return (
               <button 
@@ -282,11 +512,12 @@ export default function Home() {
                 className="cat-chip" 
                 onClick={() => openCatPage(c.slug)}
               >
-                <span className="cat-chip-icon">{icons[c.slug] || '🎓'}</span>
+                <span className="cat-chip-icon">{c.icon || '🎓'}</span>
                 <span className="cat-chip-label">{c.name}</span>
               </button>
             );
-          })}
+          })
+        )}
         </div>
       </div>
 
@@ -304,62 +535,27 @@ export default function Home() {
             <button className="carousel-btn carousel-btn-prev" onClick={() => doSlide('bs', -1)}>‹</button>
             <div className="carousel-track-outer">
               <div className="carousel-track" style={{ transform: `translateX(-${bsSlide * 280}px)` }}>
-                <div className="course-card" onClick={() => openEnrol('ChatGPT & Prompt Engineering Masterclass', 'by Expert · ★ 4.9 · 6 hrs · Beginner', '₹1,299', 'linear-gradient(135deg,#F0C97A,#E8900A)', 'AI')}>
-                  <div className="course-thumb"><div className="course-thumb-bg t-amber"></div><div className="course-thumb-label">AI</div><div className="course-badge badge-hot">🔥 Hot</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Artificial Intelligence</div>
-                    <div className="course-name">ChatGPT & Prompt Engineering Masterclass</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.9</span><span className="course-duration">⏱ 6 hrs</span></div>
-                  </div>
-                </div>
-                <div className="course-card" onClick={() => openEnrol('Python for Beginners — Zero to Hero', 'by Expert · ★ 4.8 · 10 hrs · Beginner', '₹1,799', 'linear-gradient(135deg,#94B8F0,#1A4DB8)', 'PY')}>
-                  <div className="course-thumb"><div className="course-thumb-bg t-blue"></div><div className="course-thumb-label">PY</div><div className="course-badge badge-popular">✦ Popular</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Programming</div>
-                    <div className="course-name">Python for Beginners — Zero to Hero</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.8</span><span className="course-duration">⏱ 10 hrs</span></div>
-                  </div>
-                </div>
-                <div className="course-card" onClick={() => openEnrol('Ethical Hacking: Beginner to Advanced', 'by Expert · ★ 4.9 · 12 hrs · All levels', '₹2,999', 'linear-gradient(135deg,#F0908A,#CC2A22)', '🔐')}>
-                  <div className="course-thumb"><div className="course-thumb-bg t-red"></div><div className="course-thumb-label">🔐</div><div className="course-badge badge-hot">🔥 Hot</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Cybersecurity</div>
-                    <div className="course-name">Ethical Hacking: Beginner to Advanced</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.9</span><span className="course-duration">⏱ 12 hrs</span></div>
-                  </div>
-                </div>
-                <div className="course-card" onClick={() => openEnrol('Excel & Power BI for Business Pros', 'by Expert · ★ 4.7 · 8 hrs · Beginner', '₹1,499', 'linear-gradient(135deg,#7DD4CC,#0E8C85)', '📊')}>
-                  <div className="course-thumb"><div className="course-thumb-bg t-teal"></div><div className="course-thumb-label">📊</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Data & Analytics</div>
-                    <div className="course-name">Excel & Power BI for Business Pros</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.7</span><span className="course-duration">⏱ 8 hrs</span></div>
-                  </div>
-                </div>
-                <div className="course-card" onClick={() => openEnrol('UI/UX Design with Figma — Full Course', 'by Expert · ★ 4.8 · 9 hrs · Beginner', '₹1,999', 'linear-gradient(135deg,#C4A8F0,#6B35CC)', 'UX')}>
-                  <div className="course-thumb"><div className="course-thumb-bg t-purple"></div><div className="course-thumb-label">UX</div><div className="course-badge badge-popular">✦ Popular</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Design</div>
-                    <div className="course-name">UI/UX Design with Figma — Full Course</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.8</span><span className="course-duration">⏱ 9 hrs</span></div>
-                  </div>
-                </div>
-                <div className="course-card" onClick={() => openEnrol('DSLR Photography — From Auto to Manual', 'by Expert · ★ 4.7 · 5 hrs · Beginner', '₹1,299', 'linear-gradient(135deg,#90D4A0,#1A8C34)', '📸')}>
-                  <div className="course-thumb"><div className="course-thumb-bg t-green"></div><div className="course-thumb-label">📸</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Photography</div>
-                    <div className="course-name">DSLR Photography — From Auto to Manual</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.7</span><span className="course-duration">⏱ 5 hrs</span></div>
-                  </div>
-                </div>
-                <div className="course-card" onClick={() => openEnrol('Mindfulness & Meditation for Busy Lives', 'by Expert · ★ 4.9 · 4 hrs · Beginner', '₹799', 'linear-gradient(135deg,#F0A0CC,#CC2070)', '🧘')}>
-                  <div className="course-thumb"><div className="course-thumb-bg t-pink"></div><div className="course-thumb-label">🧘</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Wellness</div>
-                    <div className="course-name">Mindfulness & Meditation for Busy Lives</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.9</span><span className="course-duration">⏱ 4 hrs</span></div>
-                  </div>
-                </div>
+                {isLoading ? (
+                  [1,2,3,4].map(i => <div key={i} className="skeleton skeleton-card" style={{ flex: '0 0 260px' }}></div>)
+                ) : (
+                  hasMounted && bestSellers.map((c: any) => {
+                  const priceStr = '₹' + c.price.toLocaleString('en-IN');
+                  return (
+                    <div key={c.id} className="course-card" onClick={() => openEnrol(c.id, c.name, `by ${c.instructor} · ★ ${c.rating} · ${c.dur} hrs · ${c.level}`, priceStr, c.g || 't-amber', c.emoji)}>
+                      <div className="course-thumb">
+                        <div className={`course-thumb-bg ${c.g || 't-amber'}`}></div>
+                        <div className="course-thumb-label">{c.emoji}</div>
+                        {c.tagLabel && <div className={`course-badge badge-${c.tag}`}>{c.tagLabel}</div>}
+                      </div>
+                      <div className="course-body">
+                        <div className="course-category">{c.catLabel}</div>
+                        <div className="course-name">{c.name}</div>
+                        <div className="course-meta"><span className="course-rating">★ {c.rating}</span><span className="course-duration">⏱ {c.dur} hrs</span></div>
+                      </div>
+                    </div>
+                  );
+                })
+                )}
               </div>
             </div>
             <button className="carousel-btn carousel-btn-next" onClick={() => doSlide('bs', 1)}>›</button>
@@ -381,54 +577,27 @@ export default function Home() {
             <button className="carousel-btn carousel-btn-prev" onClick={() => doSlide('na', -1)}>‹</button>
             <div className="carousel-track-outer">
               <div className="carousel-track" style={{ transform: `translateX(-${naSlide * 280}px)` }}>
-                <div className="course-card">
-                  <div className="course-thumb"><div className="course-thumb-bg t-amber"></div><div className="course-thumb-label">AI</div><div className="course-badge badge-new">✦ New</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Artificial Intelligence</div>
-                    <div className="course-name">Build Your Own AI Agent with LangChain</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.8</span><span className="course-duration">⏱ 7 hrs</span></div>
-                  </div>
-                </div>
-                <div className="course-card">
-                  <div className="course-thumb"><div className="course-thumb-bg t-slate"></div><div className="course-thumb-label">☁️</div><div className="course-badge badge-new">✦ New</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Cloud & DevOps</div>
-                    <div className="course-name">AWS Cloud Fundamentals — Hands-on Labs</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.7</span><span className="course-duration">⏱ 11 hrs</span></div>
-                  </div>
-                </div>
-                <div className="course-card">
-                  <div className="course-thumb"><div className="course-thumb-bg t-pink"></div><div className="course-thumb-label">🎵</div><div className="course-badge badge-new">✦ New</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Music</div>
-                    <div className="course-name">Music Production for Absolute Beginners</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.6</span><span className="course-duration">⏱ 6 hrs</span></div>
-                  </div>
-                </div>
-                <div className="course-card">
-                  <div className="course-thumb"><div className="course-thumb-bg t-teal"></div><div className="course-thumb-label">📱</div><div className="course-badge badge-new">✦ New</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Programming</div>
-                    <div className="course-name">Flutter Mobile App Development</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.8</span><span className="course-duration">⏱ 14 hrs</span></div>
-                  </div>
-                </div>
-                <div className="course-card">
-                  <div className="course-thumb"><div className="course-thumb-bg t-green"></div><div className="course-thumb-label">🌿</div><div className="course-badge badge-new">✦ New</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Lifestyle</div>
-                    <div className="course-name">Home Gardening & Urban Farming</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.9</span><span className="course-duration">⏱ 3 hrs</span></div>
-                  </div>
-                </div>
-                <div className="course-card">
-                  <div className="course-thumb"><div className="course-thumb-bg t-blue"></div><div className="course-thumb-label">💰</div><div className="course-badge badge-new">✦ New</div></div>
-                  <div className="course-body">
-                    <div className="course-category">Finance</div>
-                    <div className="course-name">Personal Finance & Investing for Indians</div>
-                    <div className="course-meta"><span className="course-rating">★ 4.8</span><span className="course-duration">⏱ 5 hrs</span></div>
-                  </div>
-                </div>
+                {isLoading ? (
+                  [1,2,3,4].map(i => <div key={i} className="skeleton skeleton-card" style={{ flex: '0 0 260px' }}></div>)
+                ) : (
+                  hasMounted && newlyAdded.map((c: any) => {
+                  const priceStr = '₹' + c.price.toLocaleString('en-IN');
+                  return (
+                    <div key={c.id} className="course-card" onClick={() => openEnrol(c.id, c.name, `by ${c.instructor} · ★ ${c.rating} · ${c.dur} hrs · ${c.level}`, priceStr, c.g || 't-amber', c.emoji)}>
+                      <div className="course-thumb">
+                        <div className={`course-thumb-bg ${c.g || 't-amber'}`}></div>
+                        <div className="course-thumb-label">{c.emoji}</div>
+                        {c.tagLabel && <div className={`course-badge badge-${c.tag}`}>{c.tagLabel}</div>}
+                      </div>
+                      <div className="course-body">
+                        <div className="course-category">{c.catLabel}</div>
+                        <div className="course-name">{c.name}</div>
+                        <div className="course-meta"><span className="course-rating">★ {c.rating}</span><span className="course-duration">⏱ {c.dur} hrs</span></div>
+                      </div>
+                    </div>
+                  );
+                })
+                )}
               </div>
             </div>
             <button className="carousel-btn carousel-btn-next" onClick={() => doSlide('na', 1)}>›</button>
@@ -554,43 +723,67 @@ export default function Home() {
           </div>
           <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
             <div style={{ width: '220px', flexShrink: 0, borderRight: '0.5px solid var(--border-md)', padding: '20px 0', background: 'var(--surface-2)' }}>
-              <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--text-3)', padding: '0 20px 12px' }}>5 subjects</div>
+              <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2px', textTransform: 'uppercase', color: 'var(--text-3)', padding: '0 20px 12px' }}>{categories.length} subjects</div>
               <div id="subjectList">
-                {SUBJECTS.map((s, i) => (
-                  <button key={i} className={`subject-btn ${i === activeSubject ? 'active' : ''}`} onClick={() => setActiveSubject(i)}>
+                {categories.map((s) => (
+                  <button key={s.id} className={`subject-btn ${s.slug === activeSubjectSlug ? 'active' : ''}`} onClick={() => setActiveSubjectSlug(s.slug)}>
                     <span className="subject-icon">{s.icon}</span>
-                    <span className="sbtn-label">{s.label}</span>
-                    <span className="sbtn-count">{s.count.split(' ')[0]}</span>
+                    <span className="sbtn-label">{s.name}</span>
+                    <span className="sbtn-count">{s.course_count}</span>
                   </button>
                 ))}
               </div>
             </div>
             <div style={{ flex: 1, padding: '24px 32px', overflowY: 'auto' }} id="subjectContent">
-              <div className="subject-hero" style={{ background: SUBJECTS[activeSubject].color }}>
-                <div className="subject-hero-icon">{SUBJECTS[activeSubject].icon}</div>
-                <div>
-                  <div className="subject-hero-title">{SUBJECTS[activeSubject].label}</div>
-                  <div className="subject-hero-desc">{SUBJECTS[activeSubject].desc}</div>
-                </div>
-              </div>
-              {SUBJECTS[activeSubject].sections.map((sec: any, j: number) => (
-                <div className="sub-section" key={j}>
-                  <div className="sub-section-title">{sec.title}</div>
-                  <div className="sub-grid">
-                    {sec.items.map((item: any, k: number) => (
-                      <button className="sub-card" key={k} style={{ textAlign: 'left', width: '100%', border: '1px solid var(--border-md)' }}>
-                        <div className="sub-card-icon">{item.icon}</div>
-                        <div className="sub-card-name">{item.name}</div>
-                        <div className="sub-card-meta">{item.meta}</div>
-                        <span className={`sub-card-tag tag-${item.tag}`}>{item.tagLabel}</span>
-                      </button>
-                    ))}
+              {activeSubjectObj && (
+                <div className="subject-hero" style={{ background: activeSubjectObj.color || 'var(--surface-2)' }}>
+                  <div className="subject-hero-icon">{activeSubjectObj.icon}</div>
+                  <div>
+                    <div className="subject-hero-title">{activeSubjectObj.name}</div>
+                    <div className="subject-hero-desc">{activeSubjectObj.description}</div>
                   </div>
                 </div>
-              ))}
-              <div style={{ textAlign: 'center', padding: '24px 0 8px' }}>
-                <a href="#" style={{ fontSize: '13px', color: 'var(--indigo)', textDecoration: 'none', fontWeight: 600 }}>View all {SUBJECTS[activeSubject].count} →</a>
-              </div>
+              )}
+              
+              {isBrowserLoading ? (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <div className="loader" style={{ margin: '0 auto 12px' }}></div>
+                  <div style={{ color: 'var(--text-3)', fontSize: '13px' }}>Loading workshops...</div>
+                </div>
+              ) : browserSections.length > 0 ? (
+                browserSections.map((sec: any, j: number) => (
+                  <div className="sub-section" key={j}>
+                    <div className="sub-section-title">{sec.title}</div>
+                    <div className="sub-grid">
+                      {sec.items.map((item: any, k: number) => (
+                        <button 
+                          className="sub-card" 
+                          key={item.id || k} 
+                          style={{ textAlign: 'left', width: '100%', border: '1px solid var(--border-md)' }}
+                          onClick={() => openEnrol(item.id, item.name, `by ${item.instructor} · ★ ${item.rating} · ${item.meta}`, `₹${item.price.toLocaleString('en-IN')}`, '', item.icon)}
+                        >
+                          <div className="sub-card-icon">{item.icon}</div>
+                          <div className="sub-card-name">{item.name}</div>
+                          <div className="sub-card-meta">{item.meta}</div>
+                          <span className={`sub-card-tag tag-${item.tag}`}>{item.tagLabel}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-3)' }}>
+                  No workshops found in this subject yet.
+                </div>
+              )}
+              
+              {activeSubjectObj && (
+                <div style={{ textAlign: 'center', padding: '24px 0 8px' }}>
+                  <button onClick={() => openCatPage(activeSubjectObj.slug)} style={{ background: 'none', border: 'none', fontSize: '13px', color: 'var(--indigo)', cursor: 'pointer', fontWeight: 600 }}>
+                    View all {activeSubjectObj.course_count} {activeSubjectObj.name} workshops →
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -608,27 +801,23 @@ export default function Home() {
               <div className="cat-hero-left">
                 <span className="cat-hero-icon-big">{activeCat.icon}</span>
                 <div className="cat-hero-title">
-                  {activeCat.label.includes(' ') ? (
-                    <>
-                      <mark>{activeCat.label.split(' ')[0]}</mark> {activeCat.label.substring(activeCat.label.indexOf(' ') + 1)}
-                    </>
-                  ) : <mark>{activeCat.label}</mark>}
+                  {activeCat.name || activeCat.label}
                 </div>
-                <div className="cat-hero-desc">{activeCat.desc}</div>
+                <div className="cat-hero-desc">{activeCat.description || activeCat.desc}</div>
               </div>
               <div className="cat-hero-stats">
                 <div style={{ textAlign: 'center' }}>
-                  <div className="cat-hero-stat-num">{activeCat.workshops}<span>+</span></div>
+                  <div className="cat-hero-stat-num">{activeCat.course_count || activeCat.workshops}<span>+</span></div>
                   <div className="cat-hero-stat-label">Workshops</div>
                 </div>
                 <div style={{ width: '1px', background: 'var(--border-md)' }}></div>
                 <div style={{ textAlign: 'center' }}>
-                  <div className="cat-hero-stat-num">{activeCat.learners}</div>
+                  <div className="cat-hero-stat-num">{activeCat.learners || '4,000+'}</div>
                   <div className="cat-hero-stat-label">Learners</div>
                 </div>
                 <div style={{ width: '1px', background: 'var(--border-md)' }}></div>
                 <div style={{ textAlign: 'center' }}>
-                  <div className="cat-hero-stat-num">{activeCat.rating}<span>★</span></div>
+                  <div className="cat-hero-stat-num">{activeCat.rating || '4.8'}<span>★</span></div>
                   <div className="cat-hero-stat-label">Avg. rating</div>
                 </div>
               </div>
@@ -662,7 +851,7 @@ export default function Home() {
                               <span className="cat-card-dur">⏱ {c.dur} hrs</span>
                               <span className="cat-card-price">{priceStr}</span>
                             </div>
-                            <button className="cat-enroll-btn" onClick={() => openEnrol(c.name, `by ${c.instructor} · ★ ${c.rating} · ${c.dur} hrs · ${c.level}`, priceStr, '', c.emoji)}>Enrol now →</button>
+                            <button className="cat-enroll-btn" onClick={() => openEnrol(c.id, c.name, `by ${c.instructor} · ★ ${c.rating} · ${c.dur} hrs · ${c.level}`, priceStr, '', c.emoji)}>Enrol now →</button>
                           </div>
                         </div>
                       );
@@ -708,13 +897,13 @@ export default function Home() {
                 </div>
                 <div className="enrol-section-label">Choose your format</div>
                 <div className="enrol-format-grid">
-                  <div className={`enrol-format-btn ${enrolData.format === 'live' ? 'selected' : ''}`} onClick={() => enrolSelectFormat('live', '₹1,299')}>
+                  <div className={`enrol-format-btn ${enrolData.format === 'live' ? 'selected' : ''}`} onClick={() => enrolSelectFormat('live', enrolData.price)}>
                     <div className="enrol-format-icon">🔴</div><div className="enrol-format-name">Live session</div><div className="enrol-format-sub">Interactive · Q&A included</div>
                   </div>
-                  <div className={`enrol-format-btn ${enrolData.format === 'recorded' ? 'selected' : ''}`} onClick={() => enrolSelectFormat('recorded', '₹999')}>
+                  <div className={`enrol-format-btn ${enrolData.format === 'recorded' ? 'selected' : ''}`} onClick={() => enrolSelectFormat('recorded', enrolData.price)}>
                     <div className="enrol-format-icon">📹</div><div className="enrol-format-name">Recorded</div><div className="enrol-format-sub">Watch anytime · Self-paced</div>
                   </div>
-                  <div className={`enrol-format-btn ${enrolData.format === 'inperson' ? 'selected' : ''}`} onClick={() => enrolSelectFormat('inperson', '₹849')}>
+                  <div className={`enrol-format-btn ${enrolData.format === 'inperson' ? 'selected' : ''}`} onClick={() => enrolSelectFormat('inperson', enrolData.price)}>
                     <div className="enrol-format-icon">📍</div><div className="enrol-format-name">In-person</div><div className="enrol-format-sub">Nearby · Limited seats</div>
                   </div>
                 </div>
@@ -738,25 +927,50 @@ export default function Home() {
                 <div className="enrol-step-item"><div className="enrol-step-dot pending">3</div><div className="enrol-step-label">Payment</div></div>
               </div>
               <div className="enrol-body">
-                <div className="enrol-section-label">Upcoming dates — March / April 2026</div>
+                <div className="enrol-section-label">Available sessions</div>
                 <div className="enrol-date-grid">
-                  <button className="enrol-date-btn disabled"><div className="enrol-date-day">Sat</div><div className="enrol-date-num">21</div></button>
-                  <button className={`enrol-date-btn ${enrolData.date === 'Sun 22 Mar' ? 'sel' : ''}`} onClick={() => setEnrolData(prev => ({ ...prev, date: 'Sun 22 Mar', time: '11:00 AM' }))}><div className="enrol-date-day">Sun</div><div className="enrol-date-num">22</div></button>
-                  <button className={`enrol-date-btn ${enrolData.date === 'Tue 24 Mar' ? 'sel' : ''}`} onClick={() => setEnrolData(prev => ({ ...prev, date: 'Tue 24 Mar', time: '11:00 AM' }))}><div className="enrol-date-day">Tue</div><div className="enrol-date-num">24</div></button>
-                  <button className={`enrol-date-btn ${enrolData.date === 'Sat 29 Mar' ? 'sel' : ''}`} onClick={() => setEnrolData(prev => ({ ...prev, date: 'Sat 29 Mar', time: '11:00 AM' }))}><div className="enrol-date-day">Sat</div><div className="enrol-date-num">29</div></button>
-                  <button className={`enrol-date-btn ${enrolData.date === 'Sun 30 Mar' ? 'sel' : ''}`} onClick={() => setEnrolData(prev => ({ ...prev, date: 'Sun 30 Mar', time: '11:00 AM' }))}><div className="enrol-date-day">Sun</div><div className="enrol-date-num">30</div></button>
-                  <button className={`enrol-date-btn ${enrolData.date === 'Tue 1 Apr' ? 'sel' : ''}`} onClick={() => setEnrolData(prev => ({ ...prev, date: 'Tue 1 Apr', time: '11:00 AM' }))}><div className="enrol-date-day">Tue</div><div className="enrol-date-num" style={{ fontSize: '13px' }}>1 Apr</div></button>
+                  {enrolData.sessions.length > 0 ? (
+                    enrolData.sessions.map((s) => {
+                      const d = new Date(s.scheduled_start);
+                      const day = d.toLocaleDateString('en-IN', { weekday: 'short' });
+                      const num = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+                      const time = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+                      const isFull = s.max_seats && s.registered_count >= s.max_seats;
+                      
+                      return (
+                        <button 
+                          key={s.id} 
+                          className={`enrol-date-btn ${enrolData.selectedSessionId === s.id ? 'sel' : ''} ${isFull ? 'disabled' : ''}`}
+                          disabled={isFull}
+                          onClick={() => setEnrolData(prev => ({ 
+                            ...prev, 
+                            selectedSessionId: s.id,
+                            date: `${day} ${num}`,
+                            time
+                          }))}
+                        >
+                          <div className="enrol-date-day">{day}</div>
+                          <div className="enrol-date-num">{num}</div>
+                          <div style={{ fontSize: '10px', marginTop: '4px', opacity: 0.8 }}>{time}</div>
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div style={{ gridColumn: '1/-1', padding: '16px 0', textAlign: 'center', color: 'var(--text-3)', fontSize: '14px' }}>
+                      No upcoming live sessions found. You can still enrol to access recordings or pick a date later.
+                    </div>
+                  )}
                 </div>
-                <div className="enrol-section-label">Available time slots — <span>{enrolData.date}</span></div>
-                <div className="enrol-time-row">
-                  <button className="enrol-time-btn full">9:00 AM &nbsp;<span style={{ fontSize: '10px' }}>Full</span></button>
-                  <button className={`enrol-time-btn ${enrolData.time === '11:00 AM' ? 'sel' : ''}`} onClick={() => setEnrolData(prev => ({ ...prev, time: '11:00 AM' }))}>11:00 AM</button>
-                  <button className={`enrol-time-btn ${enrolData.time === '2:00 PM' ? 'sel' : ''}`} onClick={() => setEnrolData(prev => ({ ...prev, time: '2:00 PM' }))}>2:00 PM</button>
-                  <button className={`enrol-time-btn ${enrolData.time === '5:00 PM' ? 'sel' : ''}`} onClick={() => setEnrolData(prev => ({ ...prev, time: '5:00 PM' }))}>5:00 PM</button>
-                </div>
-                <div className="enrol-session-info">
-                  {enrolData.date} · {enrolData.time} – {(parseInt(enrolData.time) + 2) % 12 || 12}:00 {parseInt(enrolData.time) + 2 >= 12 && !enrolData.time.includes('PM') ? 'PM' : enrolData.time.split(' ')[1]} &nbsp;·&nbsp; {enrolData.format === 'live' ? 'Online via Zoom' : 'Location TBD'} &nbsp;·&nbsp; 14 seats left
-                </div>
+                
+                {enrolData.selectedSessionId && (
+                  <>
+                    <div className="enrol-section-label">Selected slot</div>
+                    <div className="enrol-session-info">
+                      {enrolData.date} · {enrolData.time} &nbsp;·&nbsp; {enrolData.format === 'live' ? 'Online via Zoom' : 'Location TBD'}
+                    </div>
+                  </>
+                )}
+                
                 <button className="enrol-cta" onClick={() => enrolGoStep(3)}>Continue to payment →</button>
               </div>
             </div>
@@ -793,8 +1007,14 @@ export default function Home() {
                     <button key={method} className={`enrol-pay-btn ${enrolData.payMethod === method ? 'sel' : ''}`} onClick={() => setEnrolData(prev => ({ ...prev, payMethod: method }))}>{method}</button>
                   ))}
                 </div>
-                <div className="enrol-upi-field" dangerouslySetInnerHTML={{ __html: enrolData.payMethod === 'UPI' ? 'UPI ID: &nbsp;<strong>priya@okaxis</strong>' : enrolData.payMethod === 'Card' ? '<span style="color:#4B5080">Card ending in &nbsp;<strong>•••• 4242</strong> &nbsp;(Visa)</span>' : enrolData.payMethod === 'Net banking' ? '<span style="color:#4B5080">Bank: &nbsp;<strong>HDFC Bank</strong></span>' : `<span style="color:#4B5080">EMI: &nbsp;<strong>3 × ₹${Math.round(enrolData.finalPrice / 3).toLocaleString('en-IN')}/month</strong> &nbsp;at 0% interest</span>` }}></div>
-                <button className="enrol-cta coral" onClick={() => enrolGoStep(4)}>Pay ₹{enrolData.finalPrice.toLocaleString('en-IN')} securely →</button>
+                <div className="enrol-upi-field">
+                  {enrolData.payMethod === 'UPI' && <span>UPI ID: &nbsp;<strong>priya@okaxis</strong></span>}
+                  {enrolData.payMethod === 'Card' && <span style={{ color: '#4B5080' }}>Card ending in &nbsp;<strong>•••• 4242</strong> &nbsp;(Visa)</span>}
+                  {enrolData.payMethod === 'Net banking' && <span style={{ color: '#4B5080' }}>Bank: &nbsp;<strong>HDFC Bank</strong></span>}
+                </div>
+                <button className={`enrol-cta coral ${isEnrolling ? 'loading' : ''}`} onClick={handleModalEnrol} disabled={isEnrolling}>
+                   {isEnrolling ? 'Processing...' : enrolData.finalPrice === 0 ? 'Enrol for Free →' : `Pay ₹${enrolData.finalPrice.toLocaleString('en-IN')} securely →`}
+                </button>
                 <div className="enrol-fine">🔒 Secured by Razorpay &nbsp;·&nbsp; 100% refund if class is cancelled</div>
               </div>
             </div>
@@ -815,7 +1035,16 @@ export default function Home() {
                 </div>
                 <div className="enrol-success-btns">
                   <button className="enrol-success-btn" onClick={closeEnrol}>Close</button>
-                  <button className="enrol-success-btn primary" onClick={closeEnrol}>Go to dashboard →</button>
+                  <button 
+                    className="enrol-success-btn primary" 
+                    onClick={() => {
+                      closeEnrol();
+                      if (enrolData.enrolmentId) router.push(`/player/${enrolData.enrolmentId}`);
+                      else router.push('/dashboard/enrolments');
+                    }}
+                  >
+                    Start Learning →
+                  </button>
                 </div>
               </div>
             </div>

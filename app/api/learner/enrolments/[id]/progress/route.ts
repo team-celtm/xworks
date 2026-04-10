@@ -4,14 +4,14 @@ import { jwtVerify } from 'jose';
 
 const SESSION_SECRET = process.env.SESSION_SECRET || 'your-default-secret-change-me';
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const accessToken = req.cookies.get('access_token')?.value;
     if (!accessToken) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { payload } = await jwtVerify(accessToken, new TextEncoder().encode(SESSION_SECRET));
     const userId = (payload as any).id;
-    const enrolmentId = params.id;
+    const { id: enrolmentId } = await params;
 
     const { progressPct } = await req.json();
 
@@ -37,6 +37,22 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
     if (rows.length === 0) {
       return NextResponse.json({ error: 'Enrolment not found' }, { status: 404 });
+    }
+
+    if (progressPct === 100) {
+      // Trigger certificate job (fire and forget)
+      const protocol = req.headers.get('x-forwarded-proto') || 'http';
+      const host = req.headers.get('host') || 'localhost:3000';
+      
+      fetch(`${protocol}://${host}/api/certificates`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId, 
+          courseId: rows[0].course_id, 
+          enrolmentId 
+        })
+      }).catch(err => console.error("Failed to trigger certificate job", err));
     }
 
     return NextResponse.json(rows[0], { status: 200 });

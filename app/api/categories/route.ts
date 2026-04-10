@@ -10,9 +10,11 @@ export async function GET(req: NextRequest) {
     let values: any[] = [];
 
     if (parentSlug) {
-      // Fetch sub-categories of a specific parent
+      // Fetch sub-categories of a specific parent with course counts
       query = `
-        SELECT c.id, c.slug, c.name, c.parent_id
+        SELECT 
+          c.id, c.slug, c.name, c.parent_id, c.icon, c.description, c.color, c.accent,
+          (SELECT COUNT(*) FROM courses WHERE category_id = c.id) as course_count
         FROM categories c
         JOIN categories p ON c.parent_id = p.id
         WHERE p.slug = $1
@@ -20,9 +22,15 @@ export async function GET(req: NextRequest) {
       `;
       values.push(parentSlug);
     } else {
-      // Fetch only top-level categories
+      // Fetch top-level categories with total course counts (including sub-categories)
       query = `
-        SELECT id, slug, name, parent_id
+        SELECT 
+          id, slug, name, parent_id, icon, description, color, accent,
+          (
+            SELECT COUNT(*) FROM courses 
+            WHERE category_id = categories.id 
+            OR category_id IN (SELECT id FROM categories WHERE parent_id = categories.id)
+          ) as course_count
         FROM categories
         WHERE parent_id IS NULL
         ORDER BY name ASC
