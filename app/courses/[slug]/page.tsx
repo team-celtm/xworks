@@ -3,6 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
 interface CourseDetail {
   id: string;
   name: string;
@@ -45,7 +51,9 @@ export default function CourseDetailPage() {
   const [course, setCourse] = useState<CourseDetail | null>(null);
   const [sessions, setSessions] = useState<LiveSession[]>([]);
   const [loading, setLoading] = useState(true);
+  const [enrolling, setEnrolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     async function fetchDetail() {
@@ -77,14 +85,105 @@ export default function CourseDetailPage() {
     </div>
   );
 
-  if (error || !course) return (
+  const handleEnrol = async () => {
+    if (!course) return;
+    setEnrolling(true);
+    setError(null);
+
+    try {
+      const res = await fetch('/api/learner/enrolments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ courseId: course.id })
+      });
+
+      if (res.status === 401) {
+        router.push(`/Login?returnUrl=/courses/${slug}`);
+        return;
+      }
+
+      const data = await res.json();
+
+      if (res.status === 402) {
+        // Paid course - Intiate Razorpay
+        const orderRes = await fetch('/api/payments/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ courseId: course.id })
+        });
+        
+        if (!orderRes.ok) throw new Error('Could not create payment order');
+        const orderData = await orderRes.json();
+
+        const options = {
+          key: orderData.keyId,
+          amount: orderData.amount,
+          currency: 'INR',
+          name: 'XWORKS',
+          description: `Enrolment for ${orderData.courseName}`,
+          order_id: orderData.orderId,
+          handler: async (response: any) => {
+            setEnrolling(true);
+            const verifyRes = await fetch('/api/payments/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                courseId: course.id
+              })
+            });
+            const verifyData = await verifyRes.json();
+            if (verifyRes.ok) {
+              setSuccess(true);
+              setTimeout(() => router.push(`/player/${verifyData.enrolmentId}`), 1000);
+            } else {
+              setError(verifyData.error || 'Payment verification failed');
+              setEnrolling(false);
+            }
+          },
+          prefill: {
+            name: '', // Optional: populate if you have user info
+            email: '',
+          },
+          theme: { color: '#4F46E5' }
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+        setEnrolling(false);
+        return;
+      }
+
+      if (res.ok) {
+        setSuccess(true);
+        setTimeout(() => {
+          router.push(`/player/${data.enrolmentId}`);
+        }, 1500);
+      } else {
+        throw new Error(data.error || 'Failed to enrol');
+      }
+    } catch (err: any) {
+      setError(err.message);
+      setEnrolling(false);
+    }
+  };
+
+  if (loading) return (
+    <div className="loading-screen" style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="loader"></div>
+    </div>
+  );
+
+  if (!course) return (
     <div className="error-screen" style={{ textAlign: 'center', padding: '100px 20px' }}>
       <h1>{error || 'Course not found'}</h1>
       <button onClick={() => router.back()}>Go back</button>
     </div>
   );
 
-  const priceStr = '₹' + course.price.toLocaleString('en-IN');
+  const priceStr = course.price === 0 ? 'FREE' : '₹' + course.price.toLocaleString('en-IN');
 
   return (
     <div className="detail-page" style={{ background: 'var(--surface-2)', minHeight: '100vh' }}>
@@ -179,7 +278,40 @@ export default function CourseDetailPage() {
                       ))}
                    </ul>
 
-                   <button style={{ width: '100%', padding: '18px', borderRadius: '16px', background: 'var(--indigo)', color: '#fff', border: 'none', fontSize: '16px', fontWeight: 700, cursor: 'pointer', marginBottom: '16px' }}>Enrol now →</button>
+                   <button 
+                     onClick={handleEnrol}
+                     disabled={enrolling || success}
+                     style={{ 
+                       width: '100%', 
+                       padding: '18px', 
+                       borderRadius: '16px', 
+                       background: success ? '#16A34A' : 'var(--indigo)', 
+                       color: '#fff', 
+                       border: 'none', 
+                       fontSize: '16px', 
+                       fontWeight: 700, 
+                       cursor: (enrolling || success) ? 'default' : 'pointer', 
+                       marginBottom: '16px',
+                       display: 'flex',
+                       alignItems: 'center',
+                       justifyContent: 'center',
+                       gap: '10px',
+                       opacity: enrolling ? 0.8 : 1
+                     }}
+                   >
+                     {enrolling ? (
+                       <div className="btn-loader"></div>
+                     ) : success ? (
+                       '✓ Enrolled Successfully'
+                     ) : (
+                       'Enrol now →'
+                     )}
+                   </button>
+                   {error && !loading && (
+                     <div style={{ color: '#EF4444', fontSize: '13px', textAlign: 'center', marginBottom: '16px', fontWeight: 500 }}>
+                       {error}
+                     </div>
+                   )}
                    <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-3)' }}>100% money-back guarantee</div>
                 </div>
              </div>
@@ -202,6 +334,18 @@ export default function CourseDetailPage() {
         .detail-emoji-box.ct-bu { background: linear-gradient(135deg,#fff,#F0FDFA); border: 1px solid #CCFBF1; }
         .detail-emoji-box.ct-mi { background: linear-gradient(135deg,#fff,#FAF5FF); border: 1px solid #F3E8FF; }
         .detail-emoji-box.ct-cy { background: linear-gradient(135deg,#fff,#F8FAFC); border: 1px solid #E2E8F0; }
+
+        .btn-loader {
+          width: 20px;
+          height: 20px;
+          border: 2.5px solid rgba(255,255,255,0.3);
+          border-top-color: #fff;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
       `}</style>
     </div>
   );

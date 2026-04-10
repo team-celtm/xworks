@@ -326,14 +326,18 @@
 .course-rating{color:var(--indigo);font-weight:600}
 .course-duration{display:flex;align-items:center;gap:4px}
 
-.t-amber{background:linear-gradient(135deg,#F0C97A,#E8900A)}
-.t-teal{background:linear-gradient(135deg,#7DD4CC,#0E8C85)}
-.t-purple{background:linear-gradient(135deg,#C4A8F0,#6B35CC)}
-.t-red{background:linear-gradient(135deg,#F0908A,#CC2A22)}
-.t-blue{background:linear-gradient(135deg,#94B8F0,#1A4DB8)}
-.t-green{background:linear-gradient(135deg,#90D4A0,#1A8C34)}
-.t-pink{background:linear-gradient(135deg,#F0A0CC,#CC2070)}
-.t-slate{background:linear-gradient(135deg,#A8B8CC,#3A5070)}
+.t-amber, .g-ai{background:linear-gradient(135deg,#F0C97A,#E8900A)}
+.t-teal, .g-da{background:linear-gradient(135deg,#7DD4CC,#0E8C85)}
+.t-purple, .g-de{background:linear-gradient(135deg,#C4A8F0,#6B35CC)}
+.t-red, .g-cy{background:linear-gradient(135deg,#F0908A,#CC2A22)}
+.t-blue, .g-py{background:linear-gradient(135deg,#94B8F0,#1A4DB8)}
+.t-green, .g-li{background:linear-gradient(135deg,#90D4A0,#1A8C34)}
+.t-pink, .g-we{background:linear-gradient(135deg,#F0A0CC,#CC2070)}
+.t-slate, .g-sl{background:linear-gradient(135deg,#A8B8CC,#3A5070)}
+.g-bu{background:linear-gradient(135deg,#70A0F0,#1A4DB8)}
+.g-mu{background:linear-gradient(135deg,#F0C97A,#E8900A)}
+.g-ph{background:linear-gradient(135deg,#94B8F0,#1A4DB8)}
+.g-mi{background:linear-gradient(135deg,#C4A8F0,#6B35CC)}
 
 /* ══════════════════════════
    CATEGORIES STRIP
@@ -913,3 +917,51 @@
 
 .fade-in { opacity: 0; transform: translateY(20px); transition: opacity 0.5s ease, transform 0.5s ease; }
 .fade-in.visible { opacity: 1; transform: translateY(0); }
+/* ══════════════════════════
+   LOADERS & SKELETONS
+   ══════════════════════════ */
+.btn-loading {
+  position: relative;
+  color: transparent !important;
+  pointer-events: none;
+}
+.btn-loading::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  top: calc(50% - 9px);
+  left: calc(50% - 9px);
+  border: 2px solid rgba(255,255,255,0.3);
+  border-radius: 50%;
+  border-top-color: #fff;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #F0F2FF 25%, #E0E7FF 50%, #F0F2FF 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 8px;
+}
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-card {
+  height: 280px;
+  border-radius: 14px;
+  border: 0.5px solid var(--border);
+}
+
+.spinner-sm {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(55,48,163,0.1);
+  border-top-color: var(--indigo);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}

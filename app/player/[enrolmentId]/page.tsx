@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import "./player.css";
+import "../player.css";
 
-export default function PlayerPage({ params }: { params: { enrolmentId: string } }) {
+export default function PlayerPage({ params }: { params: Promise<{ enrolmentId: string }> }) {
   const router = useRouter();
-  const { enrolmentId } = params;
+  const { enrolmentId } = React.use(params) as { enrolmentId: string };
   const [content, setContent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -60,16 +60,26 @@ export default function PlayerPage({ params }: { params: { enrolmentId: string }
 
       <div className="player-main">
         <div className="p-vid-area">
-          <div className="p-vid-placeholder">
-            <div className="p-vid-icon">🎬</div>
-            <div className="p-vid-text">Video Player Placeholder</div>
+          <div className="p-video-container">
+            <video 
+              src={content.videoUrl} 
+              className="p-video"
+              controls 
+              autoPlay
+              poster="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=2070&auto=format&fit=crop"
+            />
           </div>
           
           <div className="p-controls">
-            <div className="p-prog-bar">
-              <div className="p-prog-fill" style={{ width: `${content.currentProgress}%` }}></div>
+            <div className="p-prog-container">
+               <div className="p-prog-meta">
+                 <span>Progress</span>
+                 <span>{Math.round(content.currentProgress)}%</span>
+               </div>
+               <div className="p-prog-bar">
+                 <div className="p-prog-fill" style={{ width: `${content.currentProgress}%` }}></div>
+               </div>
             </div>
-            <div className="p-prog-label">{Math.round(content.currentProgress)}% Completed</div>
             <button 
               className="p-finish-btn" 
               onClick={() => updateProgress(Math.min(100, content.currentProgress + 10))}
@@ -79,19 +89,46 @@ export default function PlayerPage({ params }: { params: { enrolmentId: string }
             </button>
           </div>
         </div>
-
+ 
         <div className="p-curric">
-          <h3>Course Content</h3>
+          <div className="p-section-title">Course Content</div>
           <div className="p-list">
             {content.curriculum.map((item: any) => (
               <div className={`p-item ${item.completed ? 'done' : ''}`} key={item.id}>
-                <div className="p-item-icon">{item.completed ? '✅' : '🔴'}</div>
+                <div className="p-item-icon">{item.completed ? '✓' : '•'}</div>
                 <div className="p-item-info">
-                  <div className="p-item-title">{item.title}</div>
-                  <div className="p-item-dur">{item.duration}</div>
+                   <div className="p-item-title">{item.title}</div>
+                   <div className="p-item-dur">{item.duration}</div>
                 </div>
               </div>
             ))}
+          </div>
+ 
+          <div className="p-section-title" style={{ marginTop: '32px' }}>Live Sessions & Recordings</div>
+          <div className="p-list">
+            {content.sessions && content.sessions.length > 0 ? content.sessions.map((s: any) => (
+              <div 
+                className={`p-item ${s.recordingAvailable ? 'active-item' : ''}`} 
+                key={s.id} 
+                onClick={() => {
+                  if (s.recordingAvailable) {
+                    window.open(`/api/sessions/${s.id}/recording`, '_blank');
+                  }
+                }}
+              >
+                <div className="p-item-icon">{s.recordingAvailable ? '📽' : '🕒'}</div>
+                <div className="p-item-info">
+                   <div className="p-item-title">{s.title}</div>
+                   <div className="p-item-dur" style={{ color: s.recordingAvailable ? 'var(--p-accent)' : 'inherit' }}>
+                    {s.recordingAvailable ? 'Watch Recording ↗' : `Scheduled: ${new Date(s.startTime).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`}
+                   </div>
+                </div>
+              </div>
+            )) : (
+              <div style={{ padding: '16px', fontSize: '13px', color: 'var(--p-text-dim)', textAlign: 'center', background: 'rgba(255,255,255,0.03)', borderRadius: '12px' }}>
+                No recordings available for this course.
+              </div>
+            )}
           </div>
         </div>
       </div>
