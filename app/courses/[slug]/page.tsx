@@ -137,7 +137,13 @@ export default function CourseDetailPage() {
             const verifyData = await verifyRes.json();
             if (verifyRes.ok) {
               setSuccess(true);
-              setTimeout(() => router.push(`/player/${verifyData.enrolmentId}`), 1000);
+              setTimeout(() => {
+                if (course.live) {
+                  router.push(`/dashboard?view=upcoming`);
+                } else {
+                  router.push(`/player/${verifyData.enrolmentId}`);
+                }
+              }, 1000);
             } else {
               setError(verifyData.error || 'Payment verification failed');
               setEnrolling(false);
@@ -159,7 +165,11 @@ export default function CourseDetailPage() {
       if (res.ok) {
         setSuccess(true);
         setTimeout(() => {
-          router.push(`/player/${data.enrolmentId}`);
+          if (course.live) {
+            router.push(`/dashboard?view=upcoming`);
+          } else {
+            router.push(`/player/${data.enrolmentId}`);
+          }
         }, 1500);
       } else {
         throw new Error(data.error || 'Failed to enrol');

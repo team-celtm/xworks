@@ -618,7 +618,10 @@ export default function CataloguePage() {
                       </div>
                       <button 
                         className={`wcard-enrol ${isNearby ? 'nearby-btn' : ''}`} 
-                        onClick={() => openEnrol(w)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openEnrol(w);
+                        }}
                       >
                         {isNearby ? 'Join in-person →' : 'Enrol now →'}
                       </button>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import "./dashboard.css";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -194,6 +194,12 @@ export default function DashboardPage() {
     fetchCerts();
     setTodayDate(new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }));
     setHasMounted(true);
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const view = urlParams.get("view");
+    if (view) {
+      setActiveView(view);
+    }
   }, []);
 
   const completedCount = enrolments.filter(e => e.enrolment_status === 'completed' || e.progressPct === 100).length;
@@ -303,10 +309,10 @@ export default function DashboardPage() {
       });
       
       if (res.ok) {
-        alert(isReschedule ? "Session rescheduled!" : "Booking confirmed! Check your email.");
         setBookingSession(null);
         fetchEnrolments();
         fetchSessions();
+        setActiveView("upcoming"); 
       } else {
         const data = await res.json();
         alert(data.error || "Action failed");
@@ -559,8 +565,19 @@ export default function DashboardPage() {
             <span>{w.dur} hrs</span>
           </div>
           {userEnrol ? (
-            <button className="wcard-enrol-btn" style={{ background: 'var(--blue)' }} onClick={(e) => { e.stopPropagation(); router.push(`/player/${userEnrol.enrolment_id}`); }}>
-              Continue →
+            <button className="wcard-enrol-btn" style={{ background: 'var(--blue)' }} onClick={(e) => { 
+                e.stopPropagation(); 
+                if (w.live) {
+                  if (!userEnrol.userSessionRegId) {
+                    handleOpenBooking(String(w.id), w.name);
+                  } else {
+                    setActiveView("upcoming");
+                  }
+                } else {
+                  router.push(`/player/${userEnrol.enrolment_id}`); 
+                }
+              }}>
+              {w.live ? (userEnrol.userSessionRegId ? "View Schedule →" : "Book Seat →") : "Continue →"}
             </button>
           ) : userCompleted ? (
             <button className="wcard-enrol-btn" style={{ background: 'var(--indigo-light)', color: 'var(--indigo)' }} onClick={(e) => { e.stopPropagation(); openEnrol(w); }}>
@@ -1576,7 +1593,7 @@ export default function DashboardPage() {
                     <div className="enrol-confirm-row"><span className="enrol-confirm-label">Amount paid</span><span className="enrol-confirm-val" style={{ color: "#3730A3" }}>₹{(enrolData.finalPrice as number)?.toLocaleString("en-IN")}</span></div>
                   </div>
                   <div className="enrol-success-btns">
-                    <button className="enrol-success-btn" onClick={closeEnrol}>Close</button>
+                    <button className="enrol-success-btn" onClick={() => { closeEnrol(); setActiveView("upcoming"); }}>View in Upcoming →</button>
                     <button className="enrol-success-btn primary" onClick={() => { closeEnrol(); setActiveView("upcoming"); }}>Go to dashboard →</button>
                   </div>
                 </div>
