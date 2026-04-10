@@ -1,8 +1,15 @@
-'use client';
-import React, { useState, useMemo, useEffect } from 'react';
+"use client";
+
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import './catalogue.css';
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 interface Workshop {
   id: number | string;
@@ -25,6 +32,7 @@ interface Workshop {
 }
 
 interface EnrolData {
+  id?: string | number;
   name?: string;
   meta?: string;
   price?: string;
@@ -38,6 +46,7 @@ interface EnrolData {
   thumbBg?: string;
   thumbEmoji?: string;
   discountAmt?: number;
+  selectedSessionId?: string | null;
 }
 
 export default function CataloguePage() {
@@ -120,7 +129,7 @@ export default function CataloguePage() {
   }, [state.search, state.cat]);
 
   const updateState = (updates: Partial<typeof state>) => {
-    setState(prev => ({ ...prev, ...updates, page: updates.page ?? 1 }));
+    setState((prev: any) => ({ ...prev, ...updates, page: updates.page ?? 1 }));
   };
 
   const filtered = useMemo(() => {
@@ -183,6 +192,7 @@ export default function CataloguePage() {
 
   const openEnrol = async (w: Workshop) => {
     setEnrolData({
+      id: w.id,
       name: w.name,
       meta: `by ${w.instructor} · ★ ${w.rating} · ${w.dur} hrs · ${w.level}`,
       price: `₹${w.price.toLocaleString('en-IN')}`,
@@ -203,7 +213,7 @@ export default function CataloguePage() {
     setPromoError('');
 
     try {
-      const res = await fetch(`/api/courses/id/${w.id}/sessions`);
+      const res = await fetch(`/api/courses/${w.id}/sessions`);
       if (res.ok) {
         const data = await res.json();
         setModalSessions(data);
@@ -211,8 +221,9 @@ export default function CataloguePage() {
            const first = data[0];
            setEnrolData(prev => ({
              ...prev, 
-             date: new Date(first.scheduledStart).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }),
-             time: new Date(first.scheduledStart).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+             selectedSessionId: first.id,
+             date: new Date(first.scheduled_start).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }),
+             time: new Date(first.scheduled_start).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
            }));
         }
       }
@@ -225,18 +236,147 @@ export default function CataloguePage() {
     setShowEnrol(false);
   };
 
-  const applyPromo = () => {
-    const code = promoCode.trim().toUpperCase();
-    const valid = ['XWORKS20','FIRST20','WELCOME','LEARN20'];
-    if (valid.includes(code) && !promoApplied) {
-      setPromoApplied(true);
-      const discount = Math.round((enrolData.basePrice || 0) * 0.20);
-      setEnrolData((prev: EnrolData) => ({ ...prev, finalPrice: (prev.basePrice || 0) - discount, discountAmt: discount }));
-      setPromoError('');
-    } else if (promoApplied) {
-      setPromoError('Promo already applied!');
-    } else {
-      setPromoError('Invalid code. Try XWORKS20');
+  const [modalEnrolmentId, setModalEnrolmentId] = useState<string | null>(null);
+
+  const handleModalEnrol = async () => {
+    if (!enrolData.id) return;
+    
+    setLoading(true);
+    try {
+      // If it's a paid course, start Razorpay flow
+      if (enrolData.finalPrice && enrolData.finalPrice > 0) {
+        const orderRes = await fetch('/api/payments/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            courseId: enrolData.id,
+            promoCode: promoApplied ? promoCode : null
+           })
+        });
+        
+        const orderData = await orderRes.json();
+        
+        if (!orderRes.ok) {
+           if (orderRes.status === 401) {
+             router.push(`/Login?returnUrl=/catalogue`);
+             return;
+           }
+           setPromoError(orderData.error || 'Could not create payment order');
+           setLoading(false);
+           return;
+        }
+
+        const options = {
+          key: orderData.keyId,
+          amount: orderData.amount,
+          currency: 'INR',
+          name: 'XWORKS',
+          description: `Enrolment for ${orderData.courseName}`,
+          order_id: orderData.orderId,
+          handler: async (response: any) => {
+            setLoading(true);
+            const verifyRes = await fetch('/api/payments/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                courseId: enrolData.id,
+                promoCode: promoApplied ? promoCode : null
+              })
+            });
+             const verifyData = await verifyRes.json();
+            if (verifyRes.ok) {
+              setModalEnrolmentId(verifyData.enrolmentId);
+              
+              // NEW: Session Registration
+              if (enrolData.format === 'live' && enrolData.selectedSessionId) {
+                await fetch(`/api/sessions/${enrolData.selectedSessionId}/register`, { method: 'POST' });
+              }
+              
+              setEnrolStep(4);
+            } else {
+              alert(verifyData.error || 'Payment verification failed');
+            }
+            setLoading(false);
+          },
+          prefill: {
+            name: '',
+            email: '',
+          },
+          theme: { color: '#4F46E5' }
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+        setLoading(false);
+        return;
+      }
+
+      const res = await fetch('/api/learner/enrolments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          courseId: enrolData.id,
+          sessionId: enrolData.selectedSessionId
+        })
+      });
+
+      if (res.status === 401) {
+        router.push(`/Login?returnUrl=/catalogue`);
+        return;
+      }
+
+      const data = await res.json();
+      if (res.ok) {
+        setModalEnrolmentId(data.enrolmentId);
+        
+        // NEW: Session Registration
+        if (enrolData.format === 'live' && enrolData.selectedSessionId) {
+          await fetch(`/api/sessions/${enrolData.selectedSessionId}/register`, { method: 'POST' });
+        }
+        
+        setEnrolStep(4);
+      } else {
+        alert(data.error || 'Failed to enrol');
+      }
+    } catch (err: any) {
+      console.error('Enrol failed:', err);
+      alert(err.message || 'An error occurred during enrolment');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const applyPromo = async () => {
+    if (!promoCode.trim()) return;
+    setLoading(true);
+    try {
+      const res = await fetch('/api/promo-codes/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: promoCode, courseId: enrolData.id })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPromoApplied(true);
+        const discount = Math.round((enrolData.basePrice || 0) * (data.discountPercentage / 100));
+        setEnrolData((prev: EnrolData) => ({ 
+          ...prev, 
+          finalPrice: (prev.basePrice || 0) - discount, 
+          discountAmt: discount 
+        }));
+        setPromoError('');
+      } else {
+        setPromoError(data.error || 'Invalid code');
+        setPromoApplied(false);
+        setEnrolData((prev: EnrolData) => ({ ...prev, finalPrice: prev.basePrice, discountAmt: 0 }));
+      }
+    } catch (err) {
+      setPromoError('Validation failed');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -346,7 +486,7 @@ export default function CataloguePage() {
             <div className="sidebar-label">Category</div>
             {[
               { id:'all', icon:'🗂️', name:'All categories', count:176 },
-              ...dbCategories.map(c => ({
+              ...dbCategories.map((c: any) => ({
                 id: c.slug,
                 icon: c.icon || '🎓',
                 name: c.name,
@@ -415,7 +555,7 @@ export default function CataloguePage() {
           </div>
 
           <div className="active-filters">
-            {chips.map((c, i) => (
+            {chips.map((c: any, i: number) => (
               <div key={i} className="active-chip" onClick={c.clear}>
                 <span>{c.label}</span><span className="active-chip-x">×</span>
               </div>
@@ -446,7 +586,7 @@ export default function CataloguePage() {
                 <button className="reset-btn" onClick={resetAll}>Clear all filters</button>
               </div>
             ) : (
-              paginated.map((w, i) => {
+              paginated.map((w: any, i: number) => {
                 const isNearby = w.nearby;
                 const tagClass = isNearby ? 'tag-near' : w.tag === 'live' ? 'tag-live' : w.tag === 'new' ? 'tag-new' : w.tag === 'pop' ? 'tag-pop' : 'tag-rec';
                 const tagLabel = isNearby ? '📍 Nearby' : w.tagLabel;
@@ -621,50 +761,51 @@ export default function CataloguePage() {
                   <div className="enrol-step-item"><div className="enrol-step-dot pending">3</div><div className="enrol-step-label">Payment</div></div>
                 </div>
                 <div className="enrol-body">
-                  <div className="enrol-section-label">Available Sessions</div>
-                  <div className="enrol-date-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '10px' }}>
-                    {modalSessions.length > 0 ? modalSessions.map((s) => {
-                      const sDate = new Date(s.scheduledStart);
-                      const day = sDate.toLocaleDateString('en-IN', { weekday: 'short' });
-                      const num = sDate.getDate();
-                      const month = sDate.toLocaleDateString('en-IN', { month: 'short' });
-                      const fullStr = sDate.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
-                      const timeStr = sDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-
+                <div className="enrol-date-grid">
+                  {modalSessions.length > 0 ? (
+                    modalSessions.map((s: any) => {
+                      const d = new Date(s.scheduled_start);
+                      const day = d.toLocaleDateString('en-IN', { weekday: 'short' });
+                      const num = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+                      const time = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+                      const isFull = s.max_seats && s.registered_count >= s.max_seats;
+                      
                       return (
-                        <div 
+                        <button 
                           key={s.id} 
-                          className={`enrol-date-btn ${enrolData.date === fullStr && enrolData.time === timeStr ? 'sel' : ''}`}
-                          onClick={() => setEnrolData((prev: EnrolData) => ({ ...prev, date: fullStr, time: timeStr }))}
-                          style={{ height: 'auto', padding: '12px 8px', cursor: 'pointer' }}
+                          className={`enrol-date-btn ${enrolData.selectedSessionId === s.id ? 'sel' : ''} ${isFull ? 'disabled' : ''}`}
+                          disabled={isFull}
+                          style={{ height: 'auto', padding: '12px 8px' }}
+                          onClick={() => setEnrolData((prev: EnrolData) => ({ 
+                            ...prev, 
+                            selectedSessionId: s.id,
+                            date: `${day} ${num}`,
+                            time
+                          }))}
                         >
                           <div className="enrol-date-day">{day}</div>
-                          <div className="enrol-date-num" style={{ fontSize: '15px' }}>{num} {month}</div>
-                          <div style={{ fontSize: '10px', marginTop: '4px', opacity: 0.8 }}>{timeStr}</div>
-                        </div>
+                          <div className="enrol-date-num">{num}</div>
+                          <div style={{ fontSize: '10px', marginTop: '4px', opacity: 0.8 }}>{time}</div>
+                        </button>
                       );
-                    }) : (
-                      <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '20px', color: 'var(--text-3)' }}>
-                        No sessions scheduled yet. Check back soon!
-                      </div>
-                    )}
-                  </div>
-                  
-                  {enrolData.date && (
-                    <div className="enrol-session-info" style={{ marginTop: '24px', padding: '14px', background: 'rgba(79, 70, 229, 0.05)', borderRadius: '12px', fontSize: '13px', color: 'var(--text-1)', border: '1px solid rgba(79, 70, 229, 0.1)' }}>
-                      Selected: <strong>{enrolData.date as string}</strong> at <strong>{enrolData.time as string}</strong>
-                      <div style={{ fontSize: '11px', marginTop: '4px', color: 'var(--text-3)' }}>Course link and materials will be sent to your email after enrolment.</div>
+                    })
+                  ) : (
+                    <div style={{ gridColumn: '1/-1', padding: '16px 0', textAlign: 'center', color: 'var(--text-3)', fontSize: '14px' }}>
+                      No upcoming live sessions found.
                     </div>
                   )}
-
-                  <button 
-                    className="enrol-cta" 
-                    onClick={() => setEnrolStep(3)}
-                    disabled={!enrolData.date}
-                    style={{ marginTop: '24px', opacity: !enrolData.date ? 0.5 : 1, transition: 'all 0.3s ease' }}
-                  >
-                    Continue to payment →
-                  </button>
+                </div>
+                
+                {enrolData.selectedSessionId && (
+                  <>
+                    <div className="enrol-section-label">Selected slot</div>
+                    <div className="enrol-session-info">
+                      {enrolData.date as string} · {enrolData.time as string} &nbsp;·&nbsp; {enrolData.format === 'live' ? 'Online via Zoom' : 'Location TBD'}
+                    </div>
+                  </>
+                )}
+                
+                <button className="enrol-cta" onClick={() => setEnrolStep(3)}>Continue to payment →</button>
                 </div>
               </div>
             )}
@@ -732,8 +873,18 @@ export default function CataloguePage() {
                     {enrolData.payMethod === 'Net banking' && <span style={{ color: '#4B5080' }}>Bank: &nbsp;<strong>HDFC Bank</strong></span>}
                     {enrolData.payMethod === 'EMI' && <span style={{ color: '#4B5080' }}>EMI: &nbsp;<strong>3 × ₹{(Math.round((enrolData.finalPrice || 0)/3)).toLocaleString('en-IN')}/month</strong> &nbsp;at 0% interest</span>}
                   </div>
-                  <button className="enrol-cta coral" onClick={() => setEnrolStep(4)}>
-                    Pay ₹{(enrolData.finalPrice || 0).toLocaleString('en-IN')} securely →
+                  <button 
+                    className={`enrol-cta coral ${loading ? 'btn-loading' : ''}`} 
+                    onClick={handleModalEnrol}
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <div className="btn-loader"></div>
+                    ) : (enrolData.finalPrice || 0) === 0 ? (
+                      'Enrol for Free →'
+                    ) : (
+                      `Pay ₹${(enrolData.finalPrice || 0).toLocaleString('en-IN')} securely →`
+                    )}
                   </button>
                   <div className="enrol-fine">🔒 Secured by Razorpay &nbsp;·&nbsp; 100% refund if class is cancelled</div>
                 </div>
@@ -755,7 +906,16 @@ export default function CataloguePage() {
                 </div>
                 <div className="enrol-success-btns">
                   <button className="enrol-success-btn" onClick={closeEnrol}>Close</button>
-                  <button className="enrol-success-btn primary" onClick={() => { closeEnrol(); router.push('/dashboard'); }}>Go to dashboard →</button>
+                  <button 
+                    className="enrol-success-btn primary" 
+                    onClick={() => { 
+                      closeEnrol(); 
+                      if (modalEnrolmentId) router.push(`/player/${modalEnrolmentId}`);
+                      else router.push('/dashboard/enrolments'); 
+                    }}
+                  >
+                    {modalEnrolmentId ? 'Start Learning →' : 'Go to dashboard →'}
+                  </button>
                 </div>
               </div>
             )}

@@ -1,10 +1,12 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import './home.css';
 import { SUBJECTS, CAT_DATA } from './data';
 
 export default function Home() {
+  const router = useRouter();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isWorkshopModalOpen, setIsWorkshopModalOpen] = useState(false);
   const [activeSubjectSlug, setActiveSubjectSlug] = useState('tech');
@@ -13,6 +15,7 @@ export default function Home() {
 
   const [enrolData, setEnrolData] = useState({
     isOpen: false,
+    id: null as string | number | null,
     step: 1,
     name: '',
     meta: '',
@@ -21,12 +24,15 @@ export default function Home() {
     finalPrice: 1299,
     format: 'live',
     formatLabel: 'Live session',
-    date: 'Sat 29 Mar',
-    time: '11:00 AM',
+    date: '', 
+    time: '',
     promoApplied: false,
     payMethod: 'UPI',
     thumbBg: 'linear-gradient(135deg,#1A2E5A,#3A7ACC)',
-    thumbEmoji: '💬'
+    thumbEmoji: '💬',
+    enrolmentId: null as string | null,
+    sessions: [] as any[],
+    selectedSessionId: null as string | null
   });
   const [promoCode, setPromoCode] = useState('');
   const [promoMsg, setPromoMsg] = useState({ text: '', type: '' });
@@ -42,42 +48,36 @@ export default function Home() {
   const [bestSellers, setBestSellers] = useState<any[]>([]);
   const [newlyAdded, setNewlyAdded] = useState<any[]>([]);
   const [hasMounted, setHasMounted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setHasMounted(true);
   }, []);
 
   useEffect(() => {
-    const fetchCats = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch('/api/categories');
-        const data = await res.json();
-        if (Array.isArray(data)) {
-          setCategories(data);
-          if (data.length > 0 && !activeSubjectSlug) {
-            setActiveSubjectSlug(data[0].slug);
+        const [bsRes, naRes, catRes] = await Promise.all([
+          fetch('/api/courses?sort=best&limit=10'),
+          fetch('/api/courses?sort=new&limit=10'),
+          fetch('/api/categories')
+        ]);
+        const [bs, na, cats] = await Promise.all([bsRes.json(), naRes.json(), catRes.json()]);
+        if (Array.isArray(bs)) setBestSellers(bs);
+        if (Array.isArray(na)) setNewlyAdded(na);
+        if (Array.isArray(cats)) {
+          setCategories(cats);
+          if (cats.length > 0 && !activeSubjectSlug) {
+            setActiveSubjectSlug(cats[0].slug);
           }
         }
       } catch (err) {
-        console.error('Failed to fetch categories:', err);
+        console.error('Failed to fetch home data:', err);
+      } finally {
+        setIsLoading(false);
       }
     };
-    const fetchHomeLists = async () => {
-      try {
-        const [bsRes, naRes] = await Promise.all([
-          fetch('/api/courses?sort=best&limit=10'),
-          fetch('/api/courses?sort=new&limit=10')
-        ]);
-        const bs = await bsRes.json();
-        const na = await naRes.json();
-        if (Array.isArray(bs)) setBestSellers(bs);
-        if (Array.isArray(na)) setNewlyAdded(na);
-      } catch (err) {
-        console.error('Failed to fetch home lists:', err);
-      }
-    };
-    fetchCats();
-    fetchHomeLists();
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -109,6 +109,29 @@ export default function Home() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  useEffect(() => {
+    if (enrolData.isOpen && enrolData.step === 2 && enrolData.id) {
+      const fetchSessions = async () => {
+        try {
+          const res = await fetch(`/api/courses/${enrolData.id}/sessions`);
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setEnrolData(prev => ({ 
+              ...prev, 
+              sessions: data,
+              selectedSessionId: data.length > 0 ? data[0].id : null,
+              date: data.length > 0 ? new Date(data[0].scheduled_start).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }) : '',
+              time: data.length > 0 ? new Date(data[0].scheduled_start).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }) : ''
+            }));
+          }
+        } catch (err) {
+          console.error('Failed to fetch sessions:', err);
+        }
+      };
+      fetchSessions();
+    }
+  }, [enrolData.isOpen, enrolData.step, enrolData.id]);
 
   // Intersection observer
   useEffect(() => {
@@ -168,16 +191,20 @@ export default function Home() {
   };
 
   // Enrol Modal
-  const openEnrol = (name: string, meta: string, price: string, thumbBg: string, thumbEmoji: string) => {
-    const basePrice = parseInt(price.replace(/[^0-9]/g, '')) || 1299;
+  const openEnrol = (id: string | number, name: string, meta: string, price: string, thumbBg: string, thumbEmoji: string) => {
+    const basePrice = parseInt(price.replace(/[^0-9]/g, '')) || 0;
     setEnrolData({
       isOpen: true,
+      id,
       step: 1,
       name, meta, price, basePrice, finalPrice: basePrice,
       format: 'live', formatLabel: 'Live session',
-      date: 'Sat 29 Mar', time: '11:00 AM',
+      date: '', time: '',
       promoApplied: false, payMethod: 'UPI',
-      thumbBg, thumbEmoji
+      thumbBg, thumbEmoji,
+      enrolmentId: null,
+      sessions: [],
+      selectedSessionId: null
     });
     setPromoCode('');
     setPromoMsg({ text: '', type: '' });
@@ -201,17 +228,144 @@ export default function Home() {
     setPromoMsg({ text: '', type: '' });
   };
 
-  const applyPromo = () => {
-    const code = promoCode.trim().toUpperCase();
-    const valid = ['XWORKS20', 'FIRST20', 'WELCOME', 'LEARN20'];
-    if (valid.includes(code) && !enrolData.promoApplied) {
-      const discount = Math.round(enrolData.basePrice * 0.20);
-      setEnrolData(prev => ({ ...prev, promoApplied: true, finalPrice: prev.basePrice - discount }));
-      setPromoMsg({ text: '✓ Code applied — 20% off!', type: 'success' });
-    } else if (enrolData.promoApplied) {
-      setPromoMsg({ text: '✓ Promo already applied!', type: 'success' });
-    } else {
-      setPromoMsg({ text: '✗ Invalid code. Try XWORKS20', type: 'error' });
+  const [isEnrolling, setIsEnrolling] = useState(false);
+
+  const handleModalEnrol = async () => {
+    if (!enrolData.id) return;
+    
+    setIsEnrolling(true);
+    try {
+      // If it's a paid course, start Razorpay flow
+      if (enrolData.finalPrice && enrolData.finalPrice > 0) {
+        const orderRes = await fetch('/api/payments/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            courseId: enrolData.id,
+            promoCode: enrolData.promoApplied ? promoCode : null
+           })
+        });
+        
+        const orderData = await orderRes.json();
+        
+        if (!orderRes.ok) {
+           if (orderRes.status === 401) {
+             router.push(`/Login?returnUrl=/`);
+             return;
+           }
+           setPromoMsg({ text: orderData.error || 'Could not create payment order', type: 'error' });
+           setIsEnrolling(false);
+           return;
+        }
+
+        const options = {
+          key: orderData.keyId,
+          amount: orderData.amount,
+          currency: 'INR',
+          name: 'XWORKS',
+          description: `Enrolment for ${orderData.courseName}`,
+          order_id: orderData.orderId,
+          handler: async (response: any) => {
+            setIsEnrolling(true);
+            const verifyRes = await fetch('/api/payments/verify', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                courseId: enrolData.id,
+                promoCode: enrolData.promoApplied ? promoCode : null
+              })
+            });
+            const verifyData = await verifyRes.json();
+            if (verifyRes.ok) {
+              setEnrolData(prev => ({ ...prev, enrolmentId: verifyData.enrolmentId }));
+              
+              // AUTO REGISTER FOR SESSION IF SELECTED
+              if (enrolData.format === 'live' && enrolData.selectedSessionId) {
+                await fetch(`/api/sessions/${enrolData.selectedSessionId}/register`, { method: 'POST' });
+              }
+              
+              enrolGoStep(4);
+            } else {
+              setPromoMsg({ text: verifyData.error || 'Payment verification failed', type: 'error' });
+            }
+            setIsEnrolling(false);
+          },
+          prefill: {
+            name: '',
+            email: '',
+          },
+          theme: { color: '#4F46E5' },
+          modal: {
+            ondismiss: () => setIsEnrolling(false)
+          }
+        };
+
+        const rzp = new (window as any).Razorpay(options);
+        rzp.open();
+        return;
+      }
+
+      const res = await fetch('/api/learner/enrolments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          courseId: enrolData.id, 
+          sessionId: enrolData.selectedSessionId 
+        })
+      });
+
+      if (res.status === 401) {
+        router.push(`/Login?returnUrl=/`);
+        return;
+      }
+
+      const data = await res.json();
+      if (res.ok) {
+        setEnrolData(prev => ({ ...prev, enrolmentId: data.enrolmentId }));
+        
+        // AUTO REGISTER FOR SESSION IF SELECTED
+        if (enrolData.format === 'live' && enrolData.selectedSessionId) {
+          await fetch(`/api/sessions/${enrolData.selectedSessionId}/register`, { method: 'POST' });
+        }
+        
+        enrolGoStep(4);
+      } else {
+        setPromoMsg({ text: data.error || 'Failed to enrol', type: 'error' });
+      }
+    } catch (err: any) {
+      console.error('Enrol failed:', err);
+      setPromoMsg({ text: err.message || 'An error occurred', type: 'error' });
+    } finally {
+      setIsEnrolling(false);
+    }
+  };
+
+  const applyPromo = async () => {
+    if (!promoCode.trim()) return;
+    setIsCatLoading(true); // temporary loader
+    try {
+      const res = await fetch('/api/promo-codes/validate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: promoCode, courseId: enrolData.id })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const discountPercentage = parseFloat(data.discountPercentage);
+        const discount = Math.round(enrolData.basePrice * (discountPercentage / 100));
+        setEnrolData(prev => ({ ...prev, promoApplied: true, finalPrice: prev.basePrice - discount }));
+        setPromoMsg({ text: `✓ Code applied — ${discountPercentage}% off!`, type: 'success' });
+      } else {
+        setPromoMsg({ text: data.error || 'Invalid code', type: 'error' });
+        setEnrolData(prev => ({ ...prev, promoApplied: false, finalPrice: prev.basePrice }));
+      }
+    } catch (err) {
+      setPromoMsg({ text: 'Validation failed', type: 'error' });
+    } finally {
+      setIsCatLoading(false);
     }
   };
 
@@ -347,7 +501,10 @@ export default function Home() {
       </div>
       <div className="categories-section">
         <div className="cat-grid">
-          {categories.map((c: any) => {
+          {isLoading ? (
+            [1,2,3,4,5,6].map(i => <div key={i} className="skeleton" style={{ width: '100px', height: '36px', borderRadius: '100px' }}></div>)
+          ) : (
+            categories.map((c: any) => {
             const icons: Record<string, string> = {ai:'🤖',programming:'💻',cybersecurity:'🔐',data:'📊',design:'🎨',photography:'📸',wellness:'🪴',music:'🎵',business:'💼',mindfulness:'🧘'};
             return (
               <button 
@@ -359,7 +516,8 @@ export default function Home() {
                 <span className="cat-chip-label">{c.name}</span>
               </button>
             );
-          })}
+          })
+        )}
         </div>
       </div>
 
@@ -377,10 +535,13 @@ export default function Home() {
             <button className="carousel-btn carousel-btn-prev" onClick={() => doSlide('bs', -1)}>‹</button>
             <div className="carousel-track-outer">
               <div className="carousel-track" style={{ transform: `translateX(-${bsSlide * 280}px)` }}>
-                {hasMounted && bestSellers.map((c: any) => {
+                {isLoading ? (
+                  [1,2,3,4].map(i => <div key={i} className="skeleton skeleton-card" style={{ flex: '0 0 260px' }}></div>)
+                ) : (
+                  hasMounted && bestSellers.map((c: any) => {
                   const priceStr = '₹' + c.price.toLocaleString('en-IN');
                   return (
-                    <div key={c.id} className="course-card" onClick={() => openEnrol(c.name, `by ${c.instructor} · ★ ${c.rating} · ${c.dur} hrs · ${c.level}`, priceStr, c.g || 't-amber', c.emoji)}>
+                    <div key={c.id} className="course-card" onClick={() => openEnrol(c.id, c.name, `by ${c.instructor} · ★ ${c.rating} · ${c.dur} hrs · ${c.level}`, priceStr, c.g || 't-amber', c.emoji)}>
                       <div className="course-thumb">
                         <div className={`course-thumb-bg ${c.g || 't-amber'}`}></div>
                         <div className="course-thumb-label">{c.emoji}</div>
@@ -393,7 +554,8 @@ export default function Home() {
                       </div>
                     </div>
                   );
-                })}
+                })
+                )}
               </div>
             </div>
             <button className="carousel-btn carousel-btn-next" onClick={() => doSlide('bs', 1)}>›</button>
@@ -415,10 +577,13 @@ export default function Home() {
             <button className="carousel-btn carousel-btn-prev" onClick={() => doSlide('na', -1)}>‹</button>
             <div className="carousel-track-outer">
               <div className="carousel-track" style={{ transform: `translateX(-${naSlide * 280}px)` }}>
-                {hasMounted && newlyAdded.map((c: any) => {
+                {isLoading ? (
+                  [1,2,3,4].map(i => <div key={i} className="skeleton skeleton-card" style={{ flex: '0 0 260px' }}></div>)
+                ) : (
+                  hasMounted && newlyAdded.map((c: any) => {
                   const priceStr = '₹' + c.price.toLocaleString('en-IN');
                   return (
-                    <div key={c.id} className="course-card" onClick={() => openEnrol(c.name, `by ${c.instructor} · ★ ${c.rating} · ${c.dur} hrs · ${c.level}`, priceStr, c.g || 't-amber', c.emoji)}>
+                    <div key={c.id} className="course-card" onClick={() => openEnrol(c.id, c.name, `by ${c.instructor} · ★ ${c.rating} · ${c.dur} hrs · ${c.level}`, priceStr, c.g || 't-amber', c.emoji)}>
                       <div className="course-thumb">
                         <div className={`course-thumb-bg ${c.g || 't-amber'}`}></div>
                         <div className="course-thumb-label">{c.emoji}</div>
@@ -431,7 +596,8 @@ export default function Home() {
                       </div>
                     </div>
                   );
-                })}
+                })
+                )}
               </div>
             </div>
             <button className="carousel-btn carousel-btn-next" onClick={() => doSlide('na', 1)}>›</button>
@@ -594,7 +760,7 @@ export default function Home() {
                           className="sub-card" 
                           key={item.id || k} 
                           style={{ textAlign: 'left', width: '100%', border: '1px solid var(--border-md)' }}
-                          onClick={() => openEnrol(item.name, `by ${item.instructor} · ★ ${item.rating} · ${item.meta}`, `₹${item.price.toLocaleString('en-IN')}`, '', item.icon)}
+                          onClick={() => openEnrol(item.id, item.name, `by ${item.instructor} · ★ ${item.rating} · ${item.meta}`, `₹${item.price.toLocaleString('en-IN')}`, '', item.icon)}
                         >
                           <div className="sub-card-icon">{item.icon}</div>
                           <div className="sub-card-name">{item.name}</div>
@@ -685,7 +851,7 @@ export default function Home() {
                               <span className="cat-card-dur">⏱ {c.dur} hrs</span>
                               <span className="cat-card-price">{priceStr}</span>
                             </div>
-                            <button className="cat-enroll-btn" onClick={() => openEnrol(c.name, `by ${c.instructor} · ★ ${c.rating} · ${c.dur} hrs · ${c.level}`, priceStr, '', c.emoji)}>Enrol now →</button>
+                            <button className="cat-enroll-btn" onClick={() => openEnrol(c.id, c.name, `by ${c.instructor} · ★ ${c.rating} · ${c.dur} hrs · ${c.level}`, priceStr, '', c.emoji)}>Enrol now →</button>
                           </div>
                         </div>
                       );
@@ -731,13 +897,13 @@ export default function Home() {
                 </div>
                 <div className="enrol-section-label">Choose your format</div>
                 <div className="enrol-format-grid">
-                  <div className={`enrol-format-btn ${enrolData.format === 'live' ? 'selected' : ''}`} onClick={() => enrolSelectFormat('live', '₹1,299')}>
+                  <div className={`enrol-format-btn ${enrolData.format === 'live' ? 'selected' : ''}`} onClick={() => enrolSelectFormat('live', enrolData.price)}>
                     <div className="enrol-format-icon">🔴</div><div className="enrol-format-name">Live session</div><div className="enrol-format-sub">Interactive · Q&A included</div>
                   </div>
-                  <div className={`enrol-format-btn ${enrolData.format === 'recorded' ? 'selected' : ''}`} onClick={() => enrolSelectFormat('recorded', '₹999')}>
+                  <div className={`enrol-format-btn ${enrolData.format === 'recorded' ? 'selected' : ''}`} onClick={() => enrolSelectFormat('recorded', enrolData.price)}>
                     <div className="enrol-format-icon">📹</div><div className="enrol-format-name">Recorded</div><div className="enrol-format-sub">Watch anytime · Self-paced</div>
                   </div>
-                  <div className={`enrol-format-btn ${enrolData.format === 'inperson' ? 'selected' : ''}`} onClick={() => enrolSelectFormat('inperson', '₹849')}>
+                  <div className={`enrol-format-btn ${enrolData.format === 'inperson' ? 'selected' : ''}`} onClick={() => enrolSelectFormat('inperson', enrolData.price)}>
                     <div className="enrol-format-icon">📍</div><div className="enrol-format-name">In-person</div><div className="enrol-format-sub">Nearby · Limited seats</div>
                   </div>
                 </div>
@@ -761,25 +927,50 @@ export default function Home() {
                 <div className="enrol-step-item"><div className="enrol-step-dot pending">3</div><div className="enrol-step-label">Payment</div></div>
               </div>
               <div className="enrol-body">
-                <div className="enrol-section-label">Upcoming dates — March / April 2026</div>
+                <div className="enrol-section-label">Available sessions</div>
                 <div className="enrol-date-grid">
-                  <button className="enrol-date-btn disabled"><div className="enrol-date-day">Sat</div><div className="enrol-date-num">21</div></button>
-                  <button className={`enrol-date-btn ${enrolData.date === 'Sun 22 Mar' ? 'sel' : ''}`} onClick={() => setEnrolData(prev => ({ ...prev, date: 'Sun 22 Mar', time: '11:00 AM' }))}><div className="enrol-date-day">Sun</div><div className="enrol-date-num">22</div></button>
-                  <button className={`enrol-date-btn ${enrolData.date === 'Tue 24 Mar' ? 'sel' : ''}`} onClick={() => setEnrolData(prev => ({ ...prev, date: 'Tue 24 Mar', time: '11:00 AM' }))}><div className="enrol-date-day">Tue</div><div className="enrol-date-num">24</div></button>
-                  <button className={`enrol-date-btn ${enrolData.date === 'Sat 29 Mar' ? 'sel' : ''}`} onClick={() => setEnrolData(prev => ({ ...prev, date: 'Sat 29 Mar', time: '11:00 AM' }))}><div className="enrol-date-day">Sat</div><div className="enrol-date-num">29</div></button>
-                  <button className={`enrol-date-btn ${enrolData.date === 'Sun 30 Mar' ? 'sel' : ''}`} onClick={() => setEnrolData(prev => ({ ...prev, date: 'Sun 30 Mar', time: '11:00 AM' }))}><div className="enrol-date-day">Sun</div><div className="enrol-date-num">30</div></button>
-                  <button className={`enrol-date-btn ${enrolData.date === 'Tue 1 Apr' ? 'sel' : ''}`} onClick={() => setEnrolData(prev => ({ ...prev, date: 'Tue 1 Apr', time: '11:00 AM' }))}><div className="enrol-date-day">Tue</div><div className="enrol-date-num" style={{ fontSize: '13px' }}>1 Apr</div></button>
+                  {enrolData.sessions.length > 0 ? (
+                    enrolData.sessions.map((s) => {
+                      const d = new Date(s.scheduled_start);
+                      const day = d.toLocaleDateString('en-IN', { weekday: 'short' });
+                      const num = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+                      const time = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+                      const isFull = s.max_seats && s.registered_count >= s.max_seats;
+                      
+                      return (
+                        <button 
+                          key={s.id} 
+                          className={`enrol-date-btn ${enrolData.selectedSessionId === s.id ? 'sel' : ''} ${isFull ? 'disabled' : ''}`}
+                          disabled={isFull}
+                          onClick={() => setEnrolData(prev => ({ 
+                            ...prev, 
+                            selectedSessionId: s.id,
+                            date: `${day} ${num}`,
+                            time
+                          }))}
+                        >
+                          <div className="enrol-date-day">{day}</div>
+                          <div className="enrol-date-num">{num}</div>
+                          <div style={{ fontSize: '10px', marginTop: '4px', opacity: 0.8 }}>{time}</div>
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div style={{ gridColumn: '1/-1', padding: '16px 0', textAlign: 'center', color: 'var(--text-3)', fontSize: '14px' }}>
+                      No upcoming live sessions found. You can still enrol to access recordings or pick a date later.
+                    </div>
+                  )}
                 </div>
-                <div className="enrol-section-label">Available time slots — <span>{enrolData.date}</span></div>
-                <div className="enrol-time-row">
-                  <button className="enrol-time-btn full">9:00 AM &nbsp;<span style={{ fontSize: '10px' }}>Full</span></button>
-                  <button className={`enrol-time-btn ${enrolData.time === '11:00 AM' ? 'sel' : ''}`} onClick={() => setEnrolData(prev => ({ ...prev, time: '11:00 AM' }))}>11:00 AM</button>
-                  <button className={`enrol-time-btn ${enrolData.time === '2:00 PM' ? 'sel' : ''}`} onClick={() => setEnrolData(prev => ({ ...prev, time: '2:00 PM' }))}>2:00 PM</button>
-                  <button className={`enrol-time-btn ${enrolData.time === '5:00 PM' ? 'sel' : ''}`} onClick={() => setEnrolData(prev => ({ ...prev, time: '5:00 PM' }))}>5:00 PM</button>
-                </div>
-                <div className="enrol-session-info">
-                  {enrolData.date} · {enrolData.time} – {(parseInt(enrolData.time) + 2) % 12 || 12}:00 {parseInt(enrolData.time) + 2 >= 12 && !enrolData.time.includes('PM') ? 'PM' : enrolData.time.split(' ')[1]} &nbsp;·&nbsp; {enrolData.format === 'live' ? 'Online via Zoom' : 'Location TBD'} &nbsp;·&nbsp; 14 seats left
-                </div>
+                
+                {enrolData.selectedSessionId && (
+                  <>
+                    <div className="enrol-section-label">Selected slot</div>
+                    <div className="enrol-session-info">
+                      {enrolData.date} · {enrolData.time} &nbsp;·&nbsp; {enrolData.format === 'live' ? 'Online via Zoom' : 'Location TBD'}
+                    </div>
+                  </>
+                )}
+                
                 <button className="enrol-cta" onClick={() => enrolGoStep(3)}>Continue to payment →</button>
               </div>
             </div>
@@ -816,8 +1007,14 @@ export default function Home() {
                     <button key={method} className={`enrol-pay-btn ${enrolData.payMethod === method ? 'sel' : ''}`} onClick={() => setEnrolData(prev => ({ ...prev, payMethod: method }))}>{method}</button>
                   ))}
                 </div>
-                <div className="enrol-upi-field" dangerouslySetInnerHTML={{ __html: enrolData.payMethod === 'UPI' ? 'UPI ID: &nbsp;<strong>priya@okaxis</strong>' : enrolData.payMethod === 'Card' ? '<span style="color:#4B5080">Card ending in &nbsp;<strong>•••• 4242</strong> &nbsp;(Visa)</span>' : enrolData.payMethod === 'Net banking' ? '<span style="color:#4B5080">Bank: &nbsp;<strong>HDFC Bank</strong></span>' : `<span style="color:#4B5080">EMI: &nbsp;<strong>3 × ₹${Math.round(enrolData.finalPrice / 3).toLocaleString('en-IN')}/month</strong> &nbsp;at 0% interest</span>` }}></div>
-                <button className="enrol-cta coral" onClick={() => enrolGoStep(4)}>Pay ₹{enrolData.finalPrice.toLocaleString('en-IN')} securely →</button>
+                <div className="enrol-upi-field">
+                  {enrolData.payMethod === 'UPI' && <span>UPI ID: &nbsp;<strong>priya@okaxis</strong></span>}
+                  {enrolData.payMethod === 'Card' && <span style={{ color: '#4B5080' }}>Card ending in &nbsp;<strong>•••• 4242</strong> &nbsp;(Visa)</span>}
+                  {enrolData.payMethod === 'Net banking' && <span style={{ color: '#4B5080' }}>Bank: &nbsp;<strong>HDFC Bank</strong></span>}
+                </div>
+                <button className={`enrol-cta coral ${isEnrolling ? 'loading' : ''}`} onClick={handleModalEnrol} disabled={isEnrolling}>
+                   {isEnrolling ? 'Processing...' : enrolData.finalPrice === 0 ? 'Enrol for Free →' : `Pay ₹${enrolData.finalPrice.toLocaleString('en-IN')} securely →`}
+                </button>
                 <div className="enrol-fine">🔒 Secured by Razorpay &nbsp;·&nbsp; 100% refund if class is cancelled</div>
               </div>
             </div>
@@ -838,7 +1035,16 @@ export default function Home() {
                 </div>
                 <div className="enrol-success-btns">
                   <button className="enrol-success-btn" onClick={closeEnrol}>Close</button>
-                  <button className="enrol-success-btn primary" onClick={closeEnrol}>Go to dashboard →</button>
+                  <button 
+                    className="enrol-success-btn primary" 
+                    onClick={() => {
+                      closeEnrol();
+                      if (enrolData.enrolmentId) router.push(`/player/${enrolData.enrolmentId}`);
+                      else router.push('/dashboard/enrolments');
+                    }}
+                  >
+                    Start Learning →
+                  </button>
                 </div>
               </div>
             </div>

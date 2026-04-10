@@ -20,10 +20,13 @@ interface Workshop {
   live: boolean;
   isNew: boolean;
   nearby: boolean;
+  price: number;
 }
 
 interface DashboardEnrolData {
   id?: number;
+  courseId: string;
+  sessionId?: string;
   name?: string;
   meta?: string;
   price?: string;
@@ -65,6 +68,7 @@ export default function DashboardPage() {
   const [loadingCerts, setLoadingCerts] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [timeLeft, setTimeLeft] = useState<string>("");
+  const [hasMounted, setHasMounted] = useState(false);
 
   useEffect(() => {
     if (sessions.length > 0 && sessions[0].scheduledStart) {
@@ -87,114 +91,131 @@ export default function DashboardPage() {
   const [, setCState] = useState<Record<string, number>>({});
 
 
+  const [bookingSession, setBookingSession] = useState<{ courseId: string, courseName: string, regId?: string } | null>(null);
+  const [availableSessions, setAvailableSessions] = useState<any[]>([]);
+  const [isBooking, setIsBooking] = useState(false);
   const [todayDate, setTodayDate] = useState("");
 
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
+  const [loadingWorkshops, setLoadingWorkshops] = useState(true);
+
+  const loadWorkshops = async () => {
+    try {
+      const res = await fetch("/api/courses");
+      const results = await res.json();
+      if (Array.isArray(results)) {
+        const mapped = results.map(r => ({
+          id: r.id,
+          slug: r.slug,
+          icon: r.emoji || "🎓",
+          name: r.name,
+          cat: r.cat,
+          catLabel: r.catLabel,
+          g: r.g || "g-ai",
+          rating: r.rating?.toString() || "0.0",
+          dur: r.dur,
+          tags: [r.cat, r.tag].filter(Boolean),
+          live: !!r.live,
+          isNew: r.tag === 'new',
+          nearby: !!r.nearby,
+          price: r.price
+        }));
+        setWorkshops(mapped);
+      }
+    } catch (err) {
+      console.error("Failed to load initial workshops:", err);
+    } finally {
+      setLoadingWorkshops(false);
+    }
+  };
+
+  const fetchEnrolments = async () => {
+    setLoadingEnrolments(true);
+    try {
+      const res = await fetch("/api/learner/enrolments");
+      if (res.ok) {
+        const data = await res.json();
+        setEnrolments(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch enrolments:", err);
+    } finally {
+      setLoadingEnrolments(false);
+    }
+  };
+
+  const fetchUser = async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch user:", err);
+    }
+  };
+
+  const fetchSessions = async () => {
+    setLoadingSessions(true);
+    try {
+      const res = await fetch("/api/learner/sessions");
+      if (res.ok) {
+        const data = await res.json();
+        setSessions(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch sessions:", err);
+    } finally {
+      setLoadingSessions(false);
+    }
+  };
+
+  const fetchCerts = async () => {
+    setLoadingCerts(true);
+    try {
+      const res = await fetch("/api/learner/certificates");
+      if (res.ok) {
+        const data = await res.json();
+        setCerts(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch certs:", err);
+    } finally {
+      setLoadingCerts(false);
+    }
+  };
 
   useEffect(() => {
-    const loadWorkshops = async () => {
-      try {
-        const res = await fetch("/api/courses");
-        const results = await res.json();
-        if (Array.isArray(results)) {
-          const mapped = results.map(r => ({
-            id: r.id,
-            slug: r.slug,
-            icon: r.emoji || "🎓",
-            name: r.name,
-            cat: r.cat,
-            catLabel: r.catLabel,
-            g: r.g || "g-ai",
-            rating: r.rating?.toString() || "0.0",
-            dur: r.dur,
-            tags: [r.cat, r.tag].filter(Boolean),
-            live: !!r.live,
-            isNew: r.tag === 'new',
-            nearby: !!r.nearby
-          }));
-          setWorkshops(mapped);
-        }
-      } catch (err) {
-        console.error("Failed to load initial workshops:", err);
-      }
-    };
-
-    const fetchEnrolments = async () => {
-      setLoadingEnrolments(true);
-      try {
-        const res = await fetch("/api/learner/enrolments");
-        if (res.ok) {
-          const data = await res.json();
-          setEnrolments(data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch enrolments:", err);
-      } finally {
-        setLoadingEnrolments(false);
-      }
-    };
-
-    const fetchUser = async () => {
-      try {
-        const res = await fetch("/api/auth/me");
-        if (res.ok) {
-          const data = await res.json();
-          setUser(data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch user:", err);
-      }
-    };
-
-    const fetchSessions = async () => {
-      setLoadingSessions(true);
-      try {
-        const res = await fetch("/api/learner/sessions");
-        if (res.ok) {
-          const data = await res.json();
-          setSessions(data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch sessions:", err);
-      } finally {
-        setLoadingSessions(false);
-      }
-    };
-
-    const fetchCerts = async () => {
-      setLoadingCerts(true);
-      try {
-        const res = await fetch("/api/learner/certificates");
-        if (res.ok) {
-          const data = await res.json();
-          setCerts(data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch certs:", err);
-      } finally {
-        setLoadingCerts(false);
-      }
-    };
-
     loadWorkshops();
     fetchEnrolments();
     fetchUser();
     fetchSessions();
     fetchCerts();
     setTodayDate(new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }));
+    setHasMounted(true);
   }, []);
 
   const completedCount = enrolments.filter(e => e.enrolment_status === 'completed' || e.progressPct === 100).length;
 
-  const completedDisplayList = enrolments.map(e => ({
-    icon: e.emoji || "🎓",
-    bg: e.thumbBg || "g-ai",
-    name: e.name,
-    meta: e.progressPct === 100
-      ? `Completed ${new Date(e.completedAt || e.enrolledAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} · ${e.dur} hrs`
-      : `In progress · ${Math.round((e.progressPct / 100) * e.dur)} of ${e.dur} hrs done`,
-    pct: Math.round(e.progressPct)
-  }));
+  const completedDisplayList = enrolments
+    .filter(e => e.enrolment_status === 'completed' || e.progressPct === 100)
+    .map(e => ({
+      id: e.course_id,
+      icon: e.emoji || "🎓",
+      bg: e.thumbBg || "g-ai",
+      name: e.name,
+      meta: e.progressPct === 100
+        ? `Completed ${new Date(e.completedAt || e.enrolledAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} · ${e.dur} hrs`
+        : `In progress · ${Math.round((e.progressPct / 100) * e.dur)} of ${e.dur} hrs done`,
+      pct: Math.round(e.progressPct),
+      rating: e.rating,
+      dur: e.dur,
+      catLabel: e.catLabel,
+      price: e.basePrice || 1299, // Fallback price if not present
+      slug: e.slug,
+      live: e.live
+    }));
 
   const continueLearningList = enrolments.filter(e => e.progressPct > 0 && e.progressPct < 100);
 
@@ -252,6 +273,51 @@ export default function DashboardPage() {
     }, 0);
   };
 
+  const handleOpenBooking = async (courseId: string, courseName: string, regId?: string) => {
+    setBookingSession({ courseId, courseName, regId });
+    try {
+      const res = await fetch(`/api/courses/${courseId}/sessions`);
+      if (res.ok) {
+        const data = await res.json();
+        setAvailableSessions(data);
+      }
+    } catch (err) {
+      console.error("Failed to load sessions:", err);
+    }
+  };
+
+  const handleConfirmBooking = async (sessionId: string) => {
+    setIsBooking(true);
+    try {
+      const isReschedule = !!bookingSession?.regId;
+      const url = isReschedule 
+        ? `/api/session-registrations/${bookingSession!.regId}` 
+        : `/api/sessions/${sessionId}/register`;
+      const method = isReschedule ? 'PUT' : 'POST';
+      const body = isReschedule ? { newSessionId: sessionId } : {};
+
+      const res = await fetch(url, { 
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined
+      });
+      
+      if (res.ok) {
+        alert(isReschedule ? "Session rescheduled!" : "Booking confirmed! Check your email.");
+        setBookingSession(null);
+        fetchEnrolments();
+        fetchSessions();
+      } else {
+        const data = await res.json();
+        alert(data.error || "Action failed");
+      }
+    } catch (err) {
+      alert("Something went wrong");
+    } finally {
+      setIsBooking(false);
+    }
+  };
+
   const slide = (id: string, dir: number) => {
     const track = document.getElementById(id + "-track");
     if (!track) return;
@@ -276,11 +342,12 @@ export default function DashboardPage() {
 
   const openEnrol = async (w: Workshop) => {
     setEnrolData({
+      courseId: w.id,
       name: w.name,
       meta: `by Ananya Sharma · ★ ${w.rating} · ${w.dur} hrs · ${w.catLabel}`,
-      price: "₹1,299",
-      basePrice: 1299,
-      finalPrice: 1299,
+      price: `₹${w.price.toLocaleString("en-IN")}`,
+      basePrice: w.price,
+      finalPrice: w.price,
       format: "live",
       formatLabel: "live session",
       date: "",
@@ -318,23 +385,33 @@ export default function DashboardPage() {
     setEnrolModalOpen(false);
   };
 
-  const applyPromo = () => {
+  const applyPromo = async () => {
     const code = promoCode.trim().toUpperCase();
-    const valid = ["XWORKS20", "FIRST20", "WELCOME", "LEARN20"];
+    if (!code) return;
 
-    if (valid.includes(code) && !enrolData.promoApplied) {
-      const discount = Math.round((enrolData.basePrice || 0) * 0.20);
-      setEnrolData((prev: DashboardEnrolData) => ({
-        ...prev,
-        promoApplied: true,
-        finalPrice: (prev.basePrice || 0) - discount,
-        discount
-      }));
-      setPromoOk({ text: "✓ Code applied — 20% off!", color: "#16A34A", show: true });
-    } else if (enrolData.promoApplied) {
-      setPromoOk({ text: "✓ Promo already applied!", color: "#16A34A", show: true });
-    } else {
-      setPromoOk({ text: "✗ Invalid code. Try XWORKS20", color: "#D84040", show: true });
+    try {
+      const res = await fetch("/api/promo-codes/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, courseId: enrolData.courseId, format: enrolData.format })
+      });
+      
+      const data = await res.json();
+      
+      if (res.ok && data.success) {
+        const baseAdjustedPrice = enrolData.finalPrice || enrolData.basePrice || 0;
+        setEnrolData((prev: DashboardEnrolData) => ({
+          ...prev,
+          promoApplied: true,
+          finalPrice: data.discountedPrice,
+          discount: Math.abs(baseAdjustedPrice - data.discountedPrice)
+        }));
+        setPromoOk({ text: `✓ Code applied — ${data.discountPercentage}% off!`, color: "#16A34A", show: true });
+      } else {
+        setPromoOk({ text: `✗ ${data.error || "Invalid code"}`, color: "#D84040", show: true });
+      }
+    } catch (err) {
+      setPromoOk({ text: "✗ Connection error", color: "#D84040", show: true });
     }
   };
 
@@ -351,6 +428,80 @@ export default function DashboardPage() {
       console.error("Player fetch error:", err);
     } finally {
       setLoadingPlayer(false);
+    }
+  };
+
+  const initiateEnrolPayment = async () => {
+    try {
+      if (!user) {
+        alert("Please login first");
+        router.push("/Login");
+        return;
+      }
+
+      // 0. Handle Free Course / 100% Discount Case
+      if (enrolData.finalPrice === 0) {
+        const freeRes = await fetch("/api/enrolments", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            courseId: enrolData.courseId,
+            sessionId: enrolData.sessionId
+          })
+        });
+        const freeData = await freeRes.json();
+        if (freeRes.ok) {
+          setEnrolStep(4);
+          fetchEnrolments();
+          return;
+        } else {
+          throw new Error(freeData.error || "Failed to enrol in free course");
+        }
+      }
+
+      // 1. Create order
+      const res = await fetch("/api/payments/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          courseId: enrolData.courseId,
+          promoCode: promoCode || null,
+          userId: user.id,
+          format: enrolData.format,
+          sessionId: enrolData.sessionId
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to initiate payment");
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: data.amount,
+        currency: data.currency,
+        name: "XWORKS",
+        description: `Enrollment for ${enrolData.name}`,
+        order_id: data.id,
+        handler: async function (response: any) {
+          // Success! Redirect or fetch enrolments
+          setEnrolStep(4);
+          fetchEnrolments();
+          fetchSessions();
+        },
+        prefill: {
+          name: `${user.first_name} ${user.last_name}`,
+          email: user.email,
+        },
+        theme: {
+          color: "#3730A3",
+        },
+      };
+
+      const rzp = new (window as any).Razorpay(options);
+      rzp.open();
+
+    } catch (err: any) {
+      alert(err.message);
     }
   };
 
@@ -390,6 +541,9 @@ export default function DashboardPage() {
     const tagClass = w.nearby ? "tag-near" : w.live ? "tag-live" : w.isNew ? "tag-new" : "tag-rec";
     const tagLabel = w.nearby ? "📍 Nearby" : w.live ? "🔴 Live" : w.isNew ? "New" : "Recorded";
 
+    const userEnrol = enrolments.find(e => e.course_id === w.id && e.enrolment_status === 'active');
+    const userCompleted = enrolments.find(e => e.course_id === w.id && (e.enrolment_status === 'completed' || e.progressPct === 100));
+
     return (
       <div className="wcard" key={w.id} style={{ cursor: 'pointer' }} onClick={() => router.push(`/courses/${w.slug}`)}>
         <div className="wcard-thumb">
@@ -404,9 +558,19 @@ export default function DashboardPage() {
             <span className="wcard-rating">★ {w.rating}</span>
             <span>{w.dur} hrs</span>
           </div>
-          <button className="wcard-enrol-btn" onClick={(e) => { e.stopPropagation(); openEnrol(w); }}>
-            Enrol now →
-          </button>
+          {userEnrol ? (
+            <button className="wcard-enrol-btn" style={{ background: 'var(--blue)' }} onClick={(e) => { e.stopPropagation(); router.push(`/player/${userEnrol.enrolment_id}`); }}>
+              Continue →
+            </button>
+          ) : userCompleted ? (
+            <button className="wcard-enrol-btn" style={{ background: 'var(--indigo-light)', color: 'var(--indigo)' }} onClick={(e) => { e.stopPropagation(); openEnrol(w); }}>
+              Re-enrol →
+            </button>
+          ) : (
+            <button className="wcard-enrol-btn" onClick={(e) => { e.stopPropagation(); openEnrol(w); }}>
+              Enrol now →
+            </button>
+          )}
         </div>
       </div>
     );
@@ -418,25 +582,46 @@ export default function DashboardPage() {
         <div className="wcard-thumb">
           <div className={`wcard-thumb-bg ${e.thumbBg}`}></div>
           <div className="wcard-thumb-emoji">{e.emoji || "🎓"}</div>
-          <div className="wcard-tag tag-rec">In progress</div>
+          {e.live ? (
+             <div className="wcard-tag tag-live">LIVE</div>
+          ) : (
+             <div className="wcard-tag tag-rec">Recorded</div>
+          )}
         </div>
         <div className="wcard-body">
           <div className="wcard-cat">{e.catLabel}</div>
           <div className="wcard-name">{e.name}</div>
           <div className="wcard-meta">
             <span>{Math.round(e.progressPct)}% done</span>
-            {e.paymentStatus === 'refunded' && <span style={{ color: 'var(--alert-red)', fontSize: '11px', fontWeight: 600, marginLeft: '8px' }}>· Refunded</span>}
+            <span>{e.instructor}</span>
           </div>
           <div className="progress-bar-wrap" style={{ marginTop: '12px', height: '4px', background: 'var(--surface-2)', borderRadius: '2px', overflow: 'hidden' }}>
             <div className="progress-bar-fill" style={{ width: `${e.progressPct}%`, height: '100%', background: 'var(--blue)' }}></div>
           </div>
-          <button className="wcard-enrol-btn" style={{ marginTop: '16px' }} onClick={(ev) => { ev.stopPropagation(); router.push(`/player/${e.enrolment_id}`); }}>
-            Continue →
-          </button>
+          
+          {e.live && !e.userSessionRegId && (
+            <button 
+              className="wcard-enrol-btn" 
+              style={{ marginTop: '16px', background: 'var(--indigo)' }}
+              onClick={(ev) => {
+                ev.stopPropagation();
+                handleOpenBooking(e.course_id, e.name);
+              }}
+            >
+              Secure seat →
+            </button>
+          )}
+          {(!e.live || e.userSessionRegId) && (
+            <button className="wcard-enrol-btn" style={{ marginTop: '16px' }} onClick={(ev) => { ev.stopPropagation(); router.push(`/player/${e.enrolment_id}`); }}>
+              Continue →
+            </button>
+          )}
         </div>
       </div>
     );
   };
+
+  if (!hasMounted) return null;
 
   return (
     <div className="shell">
@@ -533,15 +718,24 @@ export default function DashboardPage() {
               <div className="stats-row fade-up" style={{ animationDelay: '0s' }}>
                 <div className="stat-card">
                   <div className="stat-icon" style={{ background: "var(--green-bg)" }}>✅</div>
-                  <div><div className="stat-num">{completedCount}</div><div className="stat-label">Completed</div></div>
+                  <div>
+                    <div className="stat-num">{loadingEnrolments ? <div className="skeleton" style={{ width: '30px', height: '28px' }}></div> : completedCount}</div>
+                    <div className="stat-label">Completed</div>
+                  </div>
                 </div>
                 <div className="stat-card">
                   <div className="stat-icon" style={{ background: "var(--blue-bg)" }}>📅</div>
-                  <div><div className="stat-num">{sessions.length}</div><div className="stat-label">Upcoming</div></div>
+                  <div>
+                    <div className="stat-num">{loadingSessions ? <div className="skeleton" style={{ width: '30px', height: '28px' }}></div> : sessions.length}</div>
+                    <div className="stat-label">Upcoming</div>
+                  </div>
                 </div>
                 <div className="stat-card">
                   <div className="stat-icon" style={{ background: "var(--indigo-light)" }}>⏱️</div>
-                  <div><div className="stat-num">{enrolments.reduce((sum, e) => sum + (e.dur || 0), 0)}h</div><div className="stat-label">Learning time</div></div>
+                  <div>
+                    <div className="stat-num">{loadingEnrolments ? <div className="skeleton" style={{ width: '60px', height: '28px' }}></div> : `${enrolments.reduce((sum, e) => sum + (e.dur || 0), 0)}h`}</div>
+                    <div className="stat-label">Learning time</div>
+                  </div>
                 </div>
                 <div className="stat-card">
                   <div className="stat-icon" style={{ background: "var(--purple-bg)" }}>🔥</div>
@@ -641,7 +835,11 @@ export default function DashboardPage() {
                       <button className="cbtn cbtn-l" onClick={() => slide("cont", -1)}>‹</button>
                       <div className="carousel-outer">
                         <div className="carousel-track" id="cont-track">
-                          {continueLearningList.length > 0 ? continueLearningList.map(renderEnrolledCard) : workshops.slice(0, 5).map(renderWorkshopCard)}
+                          {loadingEnrolments ? (
+                            [1,2,3].map(i => <div key={i} className="skeleton skeleton-card" style={{ flex: '0 0 240px', margin: '0 8px' }}></div>)
+                          ) : (
+                            continueLearningList.length > 0 ? continueLearningList.map(renderEnrolledCard) : workshops.slice(0, 5).map(renderWorkshopCard)
+                          )}
                         </div>
                       </div>
                       <button className="cbtn cbtn-r" onClick={() => slide("cont", 1)}>›</button>
@@ -657,32 +855,36 @@ export default function DashboardPage() {
                         </div>
                         <button className="section-pill" onClick={() => setActiveView("upcoming")}>View all sessions →</button>
                       </div>
-                      <div className="stat-card" style={{ width: '100%', padding: '24px', display: 'flex', alignItems: 'center', background: 'var(--surface)', border: '1px solid var(--border-md)', borderRadius: '16px' }}>
-                        <div className="upcoming-date-block" style={{ margin: 0, marginRight: '24px' }}>
-                          <div className="upcoming-day">{new Date(sessions[0].scheduledStart).getDate()}</div>
-                          <div className="upcoming-month">{new Date(sessions[0].scheduledStart).toLocaleDateString('en-IN', { month: 'short' }).toUpperCase()}</div>
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--ink)' }}>{sessions[0].sessionTitle}</div>
-                          <div style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            {sessions[0].courseName} · Starts at {new Date(sessions[0].scheduledStart).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                            {timeLeft && timeLeft !== 'Started' && <span style={{ color: 'var(--blue)', fontWeight: 600, padding: '2px 8px', background: 'var(--blue-bg)', borderRadius: '100px', fontSize: '11px' }}>Starting in {timeLeft}</span>}
+                      {loadingSessions ? (
+                        <div className="skeleton" style={{ width: '100%', height: '100px' }}></div>
+                      ) : (
+                        <div className="stat-card" style={{ width: '100%', padding: '24px', display: 'flex', alignItems: 'center', background: 'var(--surface)', border: '1px solid var(--border-md)', borderRadius: '16px' }}>
+                          <div className="upcoming-date-block" style={{ margin: 0, marginRight: '24px' }}>
+                            <div className="upcoming-day">{new Date(sessions[0].scheduledStart).getDate()}</div>
+                            <div className="upcoming-month">{new Date(sessions[0].scheduledStart).toLocaleDateString('en-IN', { month: 'short' }).toUpperCase()}</div>
                           </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--ink)' }}>{sessions[0].sessionTitle}</div>
+                            <div style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              {sessions[0].courseName} · Starts at {new Date(sessions[0].scheduledStart).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                              {timeLeft && timeLeft !== 'Started' && <span style={{ color: 'var(--blue)', fontWeight: 600, padding: '2px 8px', background: 'var(--blue-bg)', borderRadius: '100px', fontSize: '11px' }}>Starting in {timeLeft}</span>}
+                            </div>
+                          </div>
+                          <button 
+                            className="enrol-cta coral" 
+                            style={{ width: 'auto', padding: '12px 24px', marginTop: 0 }}
+                            onClick={() => {
+                              const joinable = new Date(sessions[0].scheduledStart).getTime() <= Date.now() + (15 * 60 * 1000);
+                              const isPast = new Date(sessions[0].scheduledStart).getTime() < Date.now();
+                              if (sessions[0].recordingAvailable && isPast) window.open(`/api/sessions/${sessions[0].sessionId}/recording`, '_blank');
+                              else if (joinable) window.open(`/api/learner/sessions/${sessions[0].sessionId}/join`, '_blank');
+                              else setActiveView("upcoming");
+                            }}
+                          >
+                            {sessions[0].recordingAvailable && new Date(sessions[0].scheduledStart).getTime() < Date.now() ? "Watch Recording ↗" : (new Date(sessions[0].scheduledStart).getTime() <= Date.now() + (15 * 60 * 1000) ? "Join Class →" : "View Details →")}
+                          </button>
                         </div>
-                        <button 
-                          className="enrol-cta coral" 
-                          style={{ width: 'auto', padding: '12px 24px', marginTop: 0 }}
-                          onClick={() => {
-                            const joinable = new Date(sessions[0].scheduledStart).getTime() <= Date.now() + (15 * 60 * 1000);
-                            const isPast = new Date(sessions[0].scheduledStart).getTime() < Date.now();
-                            if (sessions[0].recordingAvailable && isPast) window.open(`/api/sessions/${sessions[0].sessionId}/recording`, '_blank');
-                            else if (joinable) window.open(`/api/learner/sessions/${sessions[0].sessionId}/join`, '_blank');
-                            else setActiveView("upcoming");
-                          }}
-                        >
-                          {sessions[0].recordingAvailable && new Date(sessions[0].scheduledStart).getTime() < Date.now() ? "Watch Recording ↗" : (new Date(sessions[0].scheduledStart).getTime() <= Date.now() + (15 * 60 * 1000) ? "Join Class →" : "View Details →")}
-                        </button>
-                      </div>
+                      )}
                     </div>
                   )}
 
@@ -698,7 +900,11 @@ export default function DashboardPage() {
                       <button className="cbtn cbtn-l" onClick={() => slide("trend", -1)}>‹</button>
                       <div className="carousel-outer">
                         <div className="carousel-track" id="trend-track">
-                          {workshops.slice(5, 11).map(renderWorkshopCard)}
+                          {loadingWorkshops ? (
+                            [1,2,3,4].map(i => <div key={i} className="skeleton skeleton-card" style={{ flex: '0 0 240px', margin: '0 8px' }}></div>)
+                          ) : (
+                            workshops.slice(5, 11).map(renderWorkshopCard)
+                          )}
                         </div>
                       </div>
                       <button className="cbtn cbtn-r" onClick={() => slide("trend", 1)}>›</button>
@@ -731,7 +937,33 @@ export default function DashboardPage() {
                     <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
                       <div className="completed-name">{c.name}</div>
                       <div className="completed-meta">{c.meta}</div>
-                      {c.pct === 100 && <button className="cert-btn">🏆 View certificate</button>}
+                      {c.pct === 100 && (
+                        <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
+                          <button className="cert-btn">🏆 View certificate</button>
+                          <button 
+                            className="cert-btn" 
+                            style={{ background: "var(--indigo-light)", color: "var(--indigo)" }}
+                            onClick={() => openEnrol({
+                              id: c.id,
+                              name: c.name,
+                              rating: String(c.rating),
+                              dur: String(c.dur),
+                              catLabel: c.catLabel,
+                              price: Number(c.price),
+                              icon: c.icon,
+                              g: c.bg,
+                              slug: c.slug,
+                              live: !!c.live,
+                              tags: [],
+                              isNew: false,
+                              nearby: false,
+                              cat: ""
+                            })}
+                          >
+                            Pay again →
+                          </button>
+                        </div>
+                      )}
                       <div className="progress-bar-wrap">
                         <div className="progress-bar-fill" style={{ width: `${c.pct}%` }}></div>
                       </div>
@@ -783,18 +1015,29 @@ export default function DashboardPage() {
                         {s.sessionStatus === 'cancelled' ? (
                           <button className="join-btn disabled" disabled>Cancelled</button>
                         ) : (
-                          <button 
-                            className={`join-btn ${isJoinable ? "" : (s.recordingAvailable && startDate.getTime() < Date.now() ? "" : "disabled")}`}
-                            onClick={() => {
-                              if (s.recordingAvailable && startDate.getTime() < Date.now()) {
-                                window.open(`/api/sessions/${s.sessionId}/recording`, '_blank');
-                              } else if (isJoinable) {
-                                window.open(`/api/learner/sessions/${s.sessionId}/join`, '_blank');
-                              }
-                            }}
-                          >
-                            {s.recordingAvailable && startDate.getTime() < Date.now() ? "Watch Recording ↗" : (isJoinable ? "Join now →" : "Not yet")}
-                          </button>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button 
+                              className={`join-btn ${isJoinable ? "" : (s.recordingAvailable && startDate.getTime() < Date.now() ? "" : "disabled")}`}
+                              onClick={() => {
+                                if (s.recordingAvailable && startDate.getTime() < Date.now()) {
+                                  window.open(`/api/sessions/${s.sessionId}/recording`, '_blank');
+                                } else if (isJoinable) {
+                                  window.open(`/api/learner/sessions/${s.sessionId}/join`, '_blank');
+                                }
+                              }}
+                            >
+                              {s.recordingAvailable && startDate.getTime() < Date.now() ? "Watch Recording ↗" : (isJoinable ? "Join now →" : "Not yet")}
+                            </button>
+                            {startDate.getTime() > Date.now() + (2 * 60 * 60 * 1000) && (
+                              <button 
+                                className="join-btn" 
+                                style={{ background: 'var(--surface-2)', color: 'var(--indigo)', border: '0.5px solid var(--border-md)' }}
+                                onClick={() => handleOpenBooking(s.courseId, s.courseName, s.registrationId)}
+                              >
+                                Reschedule
+                              </button>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -978,11 +1221,13 @@ export default function DashboardPage() {
                     <div className="section-label">Now playing</div>
                     <div className="section-title" style={{ fontSize: '24px', marginBottom: '20px' }}>{playerContent.title}</div>
                     
-                    <div style={{ width: '100%', aspectRatio: '16/9', background: '#000', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4B5058', marginBottom: '20px' }}>
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ fontSize: '48px' }}>🎬</div>
-                        <div>Video Player Placeholder</div>
-                      </div>
+                    <div style={{ width: '100%', aspectRatio: '16/9', background: '#000', borderRadius: '16px', overflow: 'hidden', marginBottom: '20px', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
+                      <video 
+                        src={playerContent.videoUrl} 
+                        controls 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                        poster="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=2070&auto=format&fit=crop"
+                      />
                     </div>
 
                     <div className="stat-card" style={{ width: '100%', padding: '20px', display: 'flex', alignItems: 'center' }}>
@@ -1131,28 +1376,31 @@ export default function DashboardPage() {
                   <div className="enrol-section-label">Choose your format</div>
                   <div className="enrol-format-grid">
                     {[
-                      { id: "live", lbl: "Live session", icon: "🔴", sub: "Interactive · Q&A included", price: "₹1,299" },
-                      { id: "recorded", lbl: "Recorded", icon: "📹", sub: "Watch anytime · Self-paced", price: "₹999" },
-                      { id: "inperson", lbl: "In-person", icon: "📍", sub: "Nearby · Limited seats", price: "₹849" }
-                    ].map((f) => (
-                      <div
-                        key={f.id}
-                        className={`enrol-format-btn ${enrolData.format === f.id ? "selected" : ""}`}
-                        onClick={() => setEnrolData({
-                          ...enrolData,
-                          format: f.id,
-                          formatLabel: f.lbl.toLowerCase(),
-                          price: f.price,
-                          basePrice: parseInt(f.price.replace(/[^0-9]/g, "")),
-                          finalPrice: parseInt(f.price.replace(/[^0-9]/g, "")),
-                          promoApplied: false
-                        })}
-                      >
-                        <div className="enrol-format-icon">{f.icon}</div>
-                        <div className="enrol-format-name">{f.lbl}</div>
-                        <div className="enrol-format-sub">{f.sub}</div>
-                      </div>
-                    ))}
+                      { id: "live", lbl: "Live session", icon: "🔴", sub: "Interactive · Q&A included", priceCalc: (b: number) => b },
+                      { id: "recorded", lbl: "Recorded", icon: "📹", sub: "Watch anytime · Self-paced", priceCalc: (b: number) => Math.round(b * 0.8) },
+                      { id: "inperson", lbl: "In-person", icon: "📍", sub: "Nearby · Limited seats", priceCalc: (b: number) => b + 500 }
+                    ].map((f) => {
+                      const calculatedPrice = f.priceCalc(enrolData.basePrice || 0);
+                      return (
+                        <div
+                          key={f.id}
+                          className={`enrol-format-btn ${enrolData.format === f.id ? "selected" : ""}`}
+                          onClick={() => setEnrolData({
+                            ...enrolData,
+                            format: f.id,
+                            formatLabel: f.lbl.toLowerCase(),
+                            price: `₹${calculatedPrice.toLocaleString("en-IN")}`,
+                            finalPrice: calculatedPrice,
+                            promoApplied: false
+                          })}
+                        >
+                          <div className="enrol-format-icon">{f.icon}</div>
+                          <div className="enrol-format-name">{f.lbl}</div>
+                          <div className="enrol-format-sub">{f.sub}</div>
+                          <div style={{ fontSize: '12px', fontWeight: 700, marginTop: '4px', color: 'var(--indigo)' }}>₹{calculatedPrice.toLocaleString("en-IN")}</div>
+                        </div>
+                      );
+                    })}
                   </div>
                   <div className="enrol-divider"></div>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
@@ -1199,7 +1447,7 @@ export default function DashboardPage() {
                         <div
                           key={s.id}
                           className={`enrol-date-btn ${enrolData.date === fullStr && enrolData.time === timeStr ? 'sel' : ''}`}
-                          onClick={() => setEnrolData(prev => ({ ...prev, date: fullStr, time: timeStr }))}
+                          onClick={() => setEnrolData(prev => ({ ...prev, date: fullStr, time: timeStr, sessionId: s.id }))}
                           style={{ height: 'auto', padding: '12px 8px', cursor: 'pointer' }}
                         >
                           <div className="enrol-date-day">{day}</div>
@@ -1302,7 +1550,7 @@ export default function DashboardPage() {
                     {enrolData.payMethod === "Net banking" && <span style={{ color: "#4B5080" }}>Bank: &nbsp;<strong>HDFC Bank</strong></span>}
                     {enrolData.payMethod === "EMI" && <span style={{ color: "#4B5080" }}>EMI: &nbsp;<strong>3 × ₹{Math.round((enrolData.finalPrice as number) / 3).toLocaleString("en-IN")}/month</strong> &nbsp;at 0% interest</span>}
                   </div>
-                  <button className="enrol-cta coral" onClick={() => setEnrolStep(4)}>
+                  <button className="enrol-cta coral" onClick={initiateEnrolPayment}>
                     Pay ₹{(enrolData.finalPrice as number)?.toLocaleString("en-IN")} securely →
                   </button>
                   <div className="enrol-fine">🔒 Secured by Razorpay &nbsp;·&nbsp; 100% refund if class is cancelled</div>
@@ -1345,6 +1593,55 @@ export default function DashboardPage() {
             <div style={{ fontSize: '48px', marginBottom: '20px' }}>👋</div>
             <div style={{ fontSize: '24px', fontWeight: 800, marginBottom: '8px' }}>Logging you out...</div>
             <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)' }}>Successfully logged out of XWORKS. Redirecting to Login...</div>
+          </div>
+        </div>
+      )}
+      {/* ══ BOOKING MODAL ══ */}
+      {bookingSession && (
+        <div className="enrol-backdrop open" style={{ zIndex: 1000 }}>
+          <div className="enrol-modal" style={{ maxWidth: '440px' }}>
+            <div className="enrol-modal-hd">
+              <div className="enrol-modal-title">Secure your seat</div>
+              <button className="enrol-modal-close" onClick={() => setBookingSession(null)}>×</button>
+            </div>
+            <div className="enrol-body">
+              <div className="enrol-course-mini">
+                <div className="enrol-thumb" style={{ background: 'var(--indigo-light)' }}>🗓️</div>
+                <div>
+                  <div className="enrol-course-name">{bookingSession.courseName}</div>
+                  <div className="enrol-course-meta">Select a live session date</div>
+                </div>
+              </div>
+
+              <div className="enrol-section-label">Available dates</div>
+              <div className="enrol-date-grid" style={{ gridTemplateColumns: '1fr', gap: '10px' }}>
+                {availableSessions.length === 0 ? (
+                   <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-3)' }}>No upcoming sessions found for this course.</div>
+                ) : (
+                  availableSessions.map(s => (
+                    <div 
+                      key={s.id} 
+                      className={`enrol-date-btn ${isBooking ? 'disabled' : ''}`}
+                      style={{ textAlign: 'left', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '15px', border: '1.5px solid var(--border)' }}
+                      onClick={() => !isBooking && handleConfirmBooking(s.id)}
+                    >
+                      <div className="upcoming-date-block" style={{ width: '40px', height: '40px', background: 'var(--indigo-light)', borderRadius: '8px', margin: 0 }}>
+                        <div className="upcoming-day" style={{ fontSize: '14px', color: 'var(--indigo)', fontWeight: 800 }}>{new Date(s.scheduled_start).getDate()}</div>
+                        <div className="upcoming-month" style={{ fontSize: '8px', color: 'var(--indigo)', fontWeight: 700 }}>{new Date(s.scheduled_start).toLocaleDateString('en-IN', { month: 'short' }).toUpperCase()}</div>
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>{s.title || 'Live Workshop'}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>
+                          {new Date(s.scheduled_start).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} · {s.registered_count}/{s.max_seats} filled
+                        </div>
+                      </div>
+                      <div style={{ color: 'var(--indigo)', fontWeight: 800 }}>→</div>
+                    </div>
+                  ))
+                )}
+              </div>
+              {isBooking && <div className="btn-loading" style={{ margin: '20px auto' }}></div>}
+            </div>
           </div>
         </div>
       )}

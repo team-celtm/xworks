@@ -31,8 +31,8 @@ export async function GET(req: NextRequest) {
       JOIN live_sessions ls ON sr.session_id = ls.id
       JOIN enrolments e ON sr.enrolment_id = e.id
       JOIN courses c ON ls.course_id = c.id
-      LEFT JOIN payments p ON e.id = p.enrolment_id
-      WHERE e.user_id = $1 
+      LEFT JOIN payments p ON e.id = p.enrolment_id::uuid
+      WHERE e.user_id = $1::uuid 
         AND (ls.scheduled_start >= NOW() - INTERVAL '1 hour' OR ls.recording_available = true)
       ORDER BY ls.scheduled_start DESC
     `;
