@@ -13,6 +13,7 @@ export async function GET(req: NextRequest) {
     let select = `
       SELECT 
         c.id, 
+        c.slug,
         c.name, 
         c.level, 
         c.dur, 
