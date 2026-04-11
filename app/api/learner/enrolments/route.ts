@@ -132,14 +132,24 @@ export async function POST(req: NextRequest) {
       }, { status: 402 });
     }
 
-    // Check if already enrolled (actively)
-    const checkSql = "SELECT id FROM enrolments WHERE user_id = $1 AND course_id = $2 AND status = 'active'";
+    // Check if already enrolled
+    const checkSql = "SELECT id, status FROM enrolments WHERE user_id = $1 AND course_id = $2";
     const checkRes = await pool.query(checkSql, [userId, courseId]);
-
+ 
     let enrolmentId;
     if (checkRes.rows.length > 0) {
-      enrolmentId = checkRes.rows[0].id;
-      // If session provided, we might still want to register if not registered
+      const existing = checkRes.rows[0];
+      enrolmentId = existing.id;
+      
+      // If not active (e.g. completed), reset it to active for re-enrolment
+      if (existing.status !== 'active') {
+        const resetSql = `
+          UPDATE enrolments 
+          SET status = 'active', progress_pct = 0, enrolled_at = NOW(), completed_at = NULL 
+          WHERE id = $1
+        `;
+        await pool.query(resetSql, [enrolmentId]);
+      }
     } else {
       // Create enrolment
       const insertSql = `
@@ -157,15 +167,26 @@ export async function POST(req: NextRequest) {
     // Handle Session Registration if provided
     if (sessionId) {
       const { rows: sessionExists } = await pool.query(
-        'SELECT id FROM session_registrations WHERE user_id = $1 AND live_session_id = $2',
-        [userId, sessionId]
+        'SELECT id FROM session_registrations WHERE enrolment_id = $1 AND session_id = $2',
+        [enrolmentId, sessionId]
       );
       
       if (sessionExists.length === 0) {
-        await pool.query(
-          'INSERT INTO session_registrations (user_id, live_session_id, enrolment_id, registered_at) VALUES ($1, $2, $3, NOW())',
-          [userId, sessionId, enrolmentId]
-        );
+        await pool.query('BEGIN');
+        try {
+          await pool.query(
+            "INSERT INTO session_registrations (enrolment_id, session_id, status, registered_at) VALUES ($1, $2, 'registered', NOW())",
+            [enrolmentId, sessionId]
+          );
+          await pool.query(
+            'UPDATE live_sessions SET registered_count = registered_count + 1 WHERE id = $1',
+            [sessionId]
+          );
+          await pool.query('COMMIT');
+        } catch (e) {
+          await pool.query('ROLLBACK');
+          throw e;
+        }
       }
     }
 

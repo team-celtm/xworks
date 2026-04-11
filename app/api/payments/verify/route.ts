@@ -27,14 +27,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
-    // 2. Check if already enrolled (maybe webhook already did it)
+    // 2. Check if already enrolled
     const checkRes = await pool.query(
-      'SELECT id FROM enrolments WHERE user_id = $1 AND course_id = $2',
+      'SELECT id, status FROM enrolments WHERE user_id = $1 AND course_id = $2',
       [userId, courseId]
     );
-
+ 
     if (checkRes.rows.length > 0) {
-      return NextResponse.json({ success: true, enrolmentId: checkRes.rows[0].id }, { status: 200 });
+      const existing = checkRes.rows[0];
+      // If not active (e.g. completed), reset it to active for re-enrolment
+      if (existing.status !== 'active') {
+        await pool.query(
+          "UPDATE enrolments SET status = 'active', progress_pct = 0, enrolled_at = NOW(), completed_at = NULL WHERE id = $1",
+          [existing.id]
+        );
+      }
+      return NextResponse.json({ success: true, enrolmentId: existing.id }, { status: 200 });
     }
 
     // 3. Create Enrolment

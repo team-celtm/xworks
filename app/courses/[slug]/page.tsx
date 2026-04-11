@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import '../../catalogue/catalogue.css';
 
 declare global {
   interface Window {
@@ -50,6 +51,7 @@ export default function CourseDetailPage() {
 
   const [course, setCourse] = useState<CourseDetail | null>(null);
   const [sessions, setSessions] = useState<LiveSession[]>([]);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +70,9 @@ export default function CourseDetailPage() {
         if (sres.ok) {
            const sdata = await sres.json();
            setSessions(sdata);
+           if (sdata.length > 0) {
+              setSelectedSessionId(sdata[0].id);
+           }
         }
 
       } catch (err: any) {
@@ -87,6 +92,10 @@ export default function CourseDetailPage() {
 
   const handleEnrol = async () => {
     if (!course) return;
+    if (course.live && !selectedSessionId && sessions.length > 0) {
+       setError('Please select a live session first.');
+       return;
+    }
     setEnrolling(true);
     setError(null);
 
@@ -94,7 +103,7 @@ export default function CourseDetailPage() {
       const res = await fetch('/api/learner/enrolments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ courseId: course.id })
+        body: JSON.stringify({ courseId: course.id, sessionId: selectedSessionId })
       });
 
       if (res.status === 401) {
@@ -109,7 +118,7 @@ export default function CourseDetailPage() {
         const orderRes = await fetch('/api/payments/create-order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ courseId: course.id })
+          body: JSON.stringify({ courseId: course.id, sessionId: selectedSessionId })
         });
         
         if (!orderRes.ok) throw new Error('Could not create payment order');
@@ -137,7 +146,13 @@ export default function CourseDetailPage() {
             const verifyData = await verifyRes.json();
             if (verifyRes.ok) {
               setSuccess(true);
-              setTimeout(() => router.push(`/player/${verifyData.enrolmentId}`), 1000);
+              setTimeout(() => {
+                if (course.live) {
+                  router.push(`/dashboard?view=upcoming`);
+                } else {
+                  router.push(`/player/${verifyData.enrolmentId}`);
+                }
+              }, 1000);
             } else {
               setError(verifyData.error || 'Payment verification failed');
               setEnrolling(false);
@@ -159,7 +174,11 @@ export default function CourseDetailPage() {
       if (res.ok) {
         setSuccess(true);
         setTimeout(() => {
-          router.push(`/player/${data.enrolmentId}`);
+          if (course.live) {
+            router.push(`/dashboard?view=upcoming`);
+          } else {
+            router.push(`/player/${data.enrolmentId}`);
+          }
         }, 1500);
       } else {
         throw new Error(data.error || 'Failed to enrol');
@@ -188,12 +207,12 @@ export default function CourseDetailPage() {
   return (
     <div className="detail-page" style={{ background: 'var(--surface-2)', minHeight: '100vh' }}>
       <nav className="nav" style={{ background: '#fff', borderBottom: '1px solid var(--border-md)' }}>
-        <div className="nav-logo" style={{ cursor: 'pointer' }} onClick={() => router.push('/')}>
+        <div className="nav-logo" style={{ cursor: 'pointer', color: '#1E1B4B' }} onClick={() => router.push('/')}>
            <div className="nav-bars"><div className="nav-bar"></div><div className="nav-bar"></div></div>
            X<span>WORKS</span>
         </div>
         <div style={{ flex: 1 }}></div>
-        <button className="nav-back" onClick={() => router.back()}>← Back</button>
+        <button className="nav-back" style={{ color: '#1E1B4B' }} onClick={() => router.back()}>← Back</button>
       </nav>
 
       <main className="detail-main" style={{ maxWidth: '1100px', margin: '40px auto', padding: '0 24px' }}>
@@ -234,18 +253,31 @@ export default function CourseDetailPage() {
               <div className="detail-section" style={{ marginBottom: '40px' }}>
                  <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>Live Sessions</h2>
                  <div className="sessions-list" style={{ display: 'grid', gap: '12px' }}>
-                    {sessions.map(s => (
-                       <div key={s.id} style={{ background: '#fff', padding: '16px 20px', borderRadius: '16px', border: '1px solid var(--border-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    {sessions.map(s => {
+                       const isSelected = selectedSessionId === s.id;
+                       const full = s.maxSeats - s.registeredCount <= 0;
+                       return (
+                       <div key={s.id} 
+                            onClick={() => !full && setSelectedSessionId(s.id)}
+                            style={{ 
+                              background: isSelected ? 'var(--indigo-light)' : '#fff', 
+                              padding: '16px 20px', borderRadius: '16px', 
+                              border: `1px solid ${isSelected ? 'var(--indigo-mid)' : 'var(--border-md)'}`, 
+                              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                              cursor: full ? 'not-allowed' : 'pointer',
+                              opacity: full ? 0.6 : 1
+                            }}>
                           <div>
                             <div style={{ fontWeight: 700, color: 'var(--ink)' }}>{s.title}</div>
                             <div style={{ fontSize: '13px', color: 'var(--text-3)' }}>{new Date(s.scheduledStart).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })} · {new Date(s.scheduledStart).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</div>
                           </div>
                           <div style={{ textAlign: 'right' }}>
-                             <div style={{ fontSize: '12px', fontWeight: 600, color: '#16A34A' }}>{s.maxSeats - s.registeredCount} seats left</div>
+                             <div style={{ fontSize: '12px', fontWeight: 600, color: full ? '#EF4444' : '#16A34A' }}>{full ? 'Sold out' : `${s.maxSeats - s.registeredCount} seats left`}</div>
                              <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>on {s.platform}</div>
                           </div>
                        </div>
-                    ))}
+                       );
+                    })}
                  </div>
               </div>
             )}
