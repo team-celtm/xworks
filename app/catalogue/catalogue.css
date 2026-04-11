@@ -17,7 +17,7 @@
   --text-2:#4B5080;
   --text-3:#9294B8;
   --green:#16A34A; --green-bg:#DCFCE7;
-  --font-d:'Syne',sans-serif;
+  --font-d:var(--fd, 'Syne', sans-serif);
   --font-b:'DM Sans',sans-serif;
   
   font-family:var(--font-b);

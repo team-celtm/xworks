@@ -494,7 +494,7 @@ export default function Home() {
           <div className="stats-strip-divider"></div>
           <div className="stats-strip-item"><div className="hero-stat-num">40<span>k+</span></div><div className="hero-stat-label">Learners</div></div>
           <div className="stats-strip-divider"></div>
-          <div className="stats-strip-item"><div className="hero-stat-num">10<span>+</span></div><div className="hero-stat-label">Categories</div></div>
+          <div className="stats-strip-item"><div className="hero-stat-num">9<span>+</span></div><div className="hero-stat-label">Categories</div></div>
           <div className="stats-strip-divider"></div>
           <div className="stats-strip-item"><div className="hero-stat-num">4.8<span>★</span></div><div className="hero-stat-label">Avg. rating</div></div>
         </div>
