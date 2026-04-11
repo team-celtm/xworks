@@ -50,6 +50,8 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
   const [upEmail, setUpEmail] = useState(searchParams?.get('email') || '');
   const [upPhone, setUpPhone] = useState('');
   const [upProfile, setUpProfile] = useState('');
+  const [upBio, setUpBio] = useState('');
+  const [upLinkedin, setUpLinkedin] = useState('');
   const [upPwd, setUpPwd] = useState('');
   const [tcChecked, setTcChecked] = useState(false);
 
@@ -111,9 +113,9 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
       });
       const data = await res.json();
       if (res.ok) {
-        setSuccessMsg(data.message);
+        setSuccessMsg(data.message || 'Reset link sent to your email.');
       } else {
-        setErrorText(data.error || 'Failed to send reset link.');
+        setErrorText(data.error || 'Failed to send reset email.');
         setWiggleBtn(true);
         setTimeout(() => setWiggleBtn(false), 350);
       }
@@ -126,14 +128,14 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
   };
 
   const doResetPassword = async () => {
-    if (!resetPwd || resetPwd !== confirmResetPwd) {
-      setErrorText('Passwords do not match or are empty.');
+    if (!resetPwd || !confirmResetPwd) {
+      setErrorText('Please fill in all fields.');
       setWiggleBtn(true);
       setTimeout(() => setWiggleBtn(false), 350);
       return;
     }
-    if (resetPwd.length < 8) {
-      setErrorText('Password must be at least 8 characters long.');
+    if (resetPwd !== confirmResetPwd) {
+      setErrorText('Passwords do not match.');
       setWiggleBtn(true);
       setTimeout(() => setWiggleBtn(false), 350);
       return;
@@ -145,7 +147,7 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
       const res = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: resetToken, newPassword: resetPwd })
+        body: JSON.stringify({ token: resetToken, password: resetPwd })
       });
       const data = await res.json();
       if (res.ok) {
@@ -180,7 +182,15 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
       const data = await res.json();
       if (res.ok) {
         const returnUrl = searchParams?.get('returnUrl');
-        router.push(returnUrl || '/dashboard');
+        if (returnUrl) {
+          router.push(returnUrl);
+        } else if (data.user?.role === 'admin') {
+          router.push('/admin');
+        } else if (data.user?.role === 'instructor') {
+          router.push('/instructor');
+        } else {
+          router.push('/dashboard');
+        }
       } else {
         if (data.needsVerification) {
           setErrorText('Please verify your email address.');
@@ -215,7 +225,9 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
           email: upEmail,
           phone: upPhone,
           profile: upProfile,
-          password: upPwd
+          password: upPwd,
+          bio: upBio,
+          linkedin: upLinkedin
         })
       });
       const data = await res.json();
@@ -364,7 +376,6 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
                   <option value="">Choose your profile</option>
                   <option>Learner</option>
                   <option>Instructor</option>
-                  <option>Admin</option>
                 </select>
               </div>
               <div className="field">
