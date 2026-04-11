@@ -17,7 +17,7 @@ const transporter = nodemailer.createTransport({
 
 export async function POST(req: NextRequest) {
   try {
-    const { firstName, lastName, email, profile, password, phone } = await req.json();
+    const { firstName, lastName, email, profile, password, phone, bio, linkedin } = await req.json();
 
     if (!email || !password || !firstName || !phone) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -42,7 +42,8 @@ export async function POST(req: NextRequest) {
     // No expiration needed for links right now, but optional
 
     // Map the new UI roles directly to the DB roles
-    const mappedRole = profile ? profile.toLowerCase() : 'learner';
+    // If they choose Instructor, set them as Instructor so the UI natively routes them exclusively to the /instructor portal
+    const mappedRole = profile === 'Instructor' ? 'instructor' : 'learner';
 
     let userId: string;
 
@@ -78,15 +79,15 @@ export async function POST(req: NextRequest) {
         phone,
         mappedRole,
         hashedPassword,
-        false,
-        'pending_verification',
+        true, // email_verified 
+        'active', // status
         verificationToken
       ]);
       userId = rows[0].id;
     }
 
     // Send verification email using nodemailer with Link
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001';
     const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${verificationToken}`;
 
     if (process.env.SMTP_USER && process.env.SMTP_PASS) {

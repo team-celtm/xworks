@@ -121,6 +121,10 @@ export default function DashboardPage() {
         const res = await fetch("/api/auth/me");
         if (res.ok) {
           const data = await res.json();
+          if (data.role === 'instructor') {
+            router.push('/instructor');
+            return;
+          }
           setUser(data);
         }
       } catch (err) {
@@ -480,6 +484,21 @@ export default function DashboardPage() {
             <span className="sb-item-icon">⚙️</span>
             <span className="sb-item-label">Settings</span>
           </button>
+
+          {user?.role === 'instructor' && (
+            <Link href="/instructor" className="sb-item" style={{ textDecoration: 'none', background: 'var(--indigo-dark)', color: 'white' }}>
+              <span className="sb-item-icon" style={{filter: 'grayscale(0)'}}>🎬</span>
+              <span className="sb-item-label">Instructor Portal</span>
+            </Link>
+          )}
+
+          {user?.role === 'admin' && (
+            <Link href="/admin" className="sb-item" style={{ textDecoration: 'none', background: 'var(--indigo-dark)', color: 'white' }}>
+              <span className="sb-item-icon" style={{filter: 'grayscale(0)'}}>🛡️</span>
+              <span className="sb-item-label">Owner Portal</span>
+            </Link>
+          )}
+
         </nav>
 
         <div className="sb-footer">
@@ -679,6 +698,45 @@ export default function DashboardPage() {
                       </div>
                       <button className="cbtn cbtn-r" onClick={() => slide("trend", 1)}>›</button>
                     </div>
+                  </div>
+
+                  {/* ══ INSTRUCTOR PORTAL INJECTION ══ */}
+                  <div className="fade-up" style={{ animationDelay: '0.2s', marginTop: '24px' }}>
+                    <div className="section-hd">
+                      <div className="section-hd-left">
+                        <div className="section-label">Instructor Portal</div>
+                        <div className="section-title">Teach on XWORKS</div>
+                      </div>
+                    </div>
+                    {user?.role === 'instructor' ? (
+                       <div className="stat-card" style={{ width: '100%', padding: '24px', display: 'flex', alignItems: 'center', background: 'var(--surface)', border: '1px solid var(--border-md)', borderRadius: '16px' }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--ink)' }}>Go to Creator Studio</div>
+                            <div style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>Manage your courses, live sessions, and view earnings.</div>
+                          </div>
+                          <Link 
+                            className="enrol-cta coral" 
+                            style={{ width: 'auto', padding: '12px 24px', margin: 0, textDecoration: 'none', display: 'inline-block', textAlign: 'center' }}
+                            href="/instructor"
+                          >
+                            Open Instructor Portal 🚀
+                          </Link>
+                       </div>
+                    ) : (
+                       <div className="stat-card" style={{ width: '100%', padding: '24px', display: 'flex', alignItems: 'center', background: 'var(--surface)', border: '1px solid var(--border-md)', borderRadius: '16px' }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--ink)' }}>Become an Instructor</div>
+                            <div style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>Share your knowledge and earn revenue by teaching premium cyber-tech workshops.</div>
+                          </div>
+                          <Link 
+                            className="enrol-cta coral" 
+                            style={{ width: 'auto', padding: '12px 24px', margin: 0, textDecoration: 'none', display: 'inline-block', textAlign: 'center' }}
+                            href="/teach"
+                          >
+                            Apply as Instructor ✨
+                          </Link>
+                       </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -1036,6 +1094,7 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
+
         </div>
       </div>
 
