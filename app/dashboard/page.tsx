@@ -884,7 +884,10 @@ export default function DashboardPage() {
                 </div>
                 <div className="stat-card">
                   <div className="stat-icon" style={{ background: "var(--purple-bg)" }}>🔥</div>
-                  <div><div className="stat-num">14</div><div className="stat-label">Day streak</div></div>
+                  <div>
+                    <div className="stat-num">{!user ? "..." : (Math.floor((Date.now() - new Date(user?.created_at || Date.now()).getTime()) / (1000 * 60 * 60 * 24)) || 1)}</div>
+                    <div className="stat-label">Day streak</div>
+                  </div>
                 </div>
               </div>
 
@@ -1114,7 +1117,7 @@ export default function DashboardPage() {
                   Courses Completed
                 </div>
                 <div style={{ fontSize: "13px", color: "var(--text-3)" }}>
-                  You&apos;ve completed 6 workshops · 42 hours of learning
+                  You&apos;ve completed {completedDisplayList.length} workshops · {completedDisplayList.reduce((s, c) => s + (Number(c.dur) || 0), 0)} hours of learning
                 </div>
               </div>
               <div className="completed-grid fade-up" style={{ animationDelay: '0.06s' }}>
