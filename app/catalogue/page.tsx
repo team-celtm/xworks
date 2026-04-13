@@ -196,7 +196,7 @@ function CatalogueContent() {
       id: w.id,
       name: w.name,
       meta: `by ${w.instructor} · ★ ${w.rating} · ${w.dur} hrs · ${w.level}`,
-      price: `₹${w.price.toLocaleString('en-IN')}`,
+      price: `₹${(Number(w.price) || 0).toLocaleString('en-IN')}`,
       basePrice: w.price,
       finalPrice: w.price,
       format: w.nearby ? 'inperson' : 'live', // fallback init
@@ -389,16 +389,14 @@ function CatalogueContent() {
   return (
     <div className="catalogue-wrapper">
       {/* ══ NAV ══ */}
-      <nav className="nav" style={{ paddingInline: '20px' }}>
+      <nav className="nav">
         <Link href="/" className="nav-logo">
           <div className="nav-bars"><div className="nav-bar"></div><div className="nav-bar"></div></div>
           X<span>WORKS</span>
         </Link>
-        <button className="nav-back" onClick={() => router.back()}>← Back to XWORKS</button>
-        <div className="nav-right" style={{ display: 'none' }}> {/* Hidden for logged in flow */}
-          <a href="#" className="nav-link-sm">About us</a>
-          <a href="#" className="nav-link-sm">Login</a>
-          <a href="#" className="nav-cta">Sign up free →</a>
+        <div className="nav-right">
+          <Link href="/dashboard" className="nav-link-sm">Dashboard</Link>
+          <button className="nav-back" onClick={() => router.back()}>← Back</button>
         </div>
       </nav>
 
@@ -591,7 +589,7 @@ function CatalogueContent() {
                 const isNearby = w.nearby;
                 const tagClass = isNearby ? 'tag-near' : w.tag === 'live' ? 'tag-live' : w.tag === 'new' ? 'tag-new' : w.tag === 'pop' ? 'tag-pop' : 'tag-rec';
                 const tagLabel = isNearby ? '📍 Nearby' : w.tagLabel;
-                const priceStr = '₹' + w.price.toLocaleString('en-IN');
+                const priceStr = '₹' + (Number(w.price) || 0).toLocaleString('en-IN');
                 
                 return (
                   <div 

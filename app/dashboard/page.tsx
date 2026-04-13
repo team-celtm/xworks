@@ -438,9 +438,9 @@ export default function DashboardPage() {
       courseId: w.id,
       name: w.name,
       meta: `by Ananya Sharma · ★ ${w.rating} · ${w.dur} hrs · ${w.catLabel}`,
-      price: `₹${w.price.toLocaleString("en-IN")}`,
-      basePrice: w.price,
-      finalPrice: w.price,
+      price: `₹${(Number(w.price) || 0).toLocaleString("en-IN")}`,
+      basePrice: Number(w.price) || 0,
+      finalPrice: Number(w.price) || 0,
       format: "live",
       formatLabel: "live session",
       date: "",
@@ -576,10 +576,32 @@ export default function DashboardPage() {
         description: `Enrollment for ${enrolData.name}`,
         order_id: data.id,
         handler: async function (response: any) {
-          // Success! Redirect or fetch enrolments
-          setEnrolStep(4);
-          fetchEnrolments();
-          fetchSessions();
+          try {
+            const verifyRes = await fetch("/api/payments/verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                courseId: enrolData.courseId,
+                promoCode: promoCode || null,
+                sessionId: enrolData.sessionId
+              })
+            });
+            
+            if (verifyRes.ok) {
+              setEnrolStep(4);
+              fetchEnrolments();
+              fetchSessions();
+            } else {
+              const vData = await verifyRes.json();
+              alert(vData.error || "Payment verification failed");
+            }
+          } catch (vErr) {
+            console.error("Verification error:", vErr);
+            alert("Connection error during verification");
+          }
         },
         prefill: {
           name: `${user.first_name} ${user.last_name}`,
@@ -734,11 +756,13 @@ export default function DashboardPage() {
       ══════════════════════════ */}
       <aside className="sidebar">
         <div className="sb-logo">
-          <div className="sb-logo-bars">
-            <div className="sb-logo-bar"></div>
-            <div className="sb-logo-bar"></div>
-          </div>
-          <span className="sb-logo-name">X<span>WORKS</span></span>
+          <Link href="/" className="sb-logo-link" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div className="sb-logo-bars">
+              <div className="sb-logo-bar"></div>
+              <div className="sb-logo-bar"></div>
+            </div>
+            <span className="sb-logo-name" style={{ color: '#fff', fontSize: '22px', fontWeight: 800 }}>X<span style={{ color: 'var(--coral)' }}>WORKS</span></span>
+          </Link>
         </div>
 
         <div className="sb-user">
@@ -882,7 +906,7 @@ export default function DashboardPage() {
                 <div className="prompt-chips">
                   {["AI & Machine Learning", "Photography basics", "Personal finance", "Yoga & mindfulness", "Ethical hacking", "Cooking"].map((chip) => (
                     <span key={chip} className="prompt-chip" onClick={() => handleQuickSearch(chip)}>
-                      {chip.split(" ")[0]} {chip}
+                      {chip}
                     </span>
                   ))}
                 </div>
