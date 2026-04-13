@@ -203,6 +203,7 @@ export default function DashboardPage() {
             rating: r.rating?.toString() || "0.0",
             dur: r.dur,
             tags: [r.cat, r.tag].filter(Boolean),
+            price: r.price,
             live: !!r.live,
             isNew: r.tag === 'new',
             nearby: !!r.nearby
@@ -337,6 +338,7 @@ export default function DashboardPage() {
         rating: r.rating?.toString() || "0.0",
         dur: r.dur,
         tags: [r.cat, r.tag].filter(Boolean),
+        price: r.price,
         live: !!r.live,
         isNew: r.tag === 'new',
         nearby: !!r.nearby
@@ -1046,7 +1048,13 @@ export default function DashboardPage() {
                           {loadingWorkshops ? (
                             [1,2,3,4].map(i => <div key={i} className="skeleton skeleton-card" style={{ flex: '0 0 240px', margin: '0 8px' }}></div>)
                           ) : (
-                            workshops.slice(5, 11).map(renderWorkshopCard)
+                            (() => {
+                              const trending = workshops.filter(w => (w.tags?.includes('pop') || Number(w.rating) >= 4.5)).slice(0, 6);
+                              if (trending.length > 0) return trending.map(renderWorkshopCard);
+                              // Fallback to any workshops if tag-based trending is empty, ensuring we always show something
+                              const fallbackResults = workshops.length > 3 ? workshops.slice(Math.max(0, workshops.length - 6)) : workshops;
+                              return fallbackResults.map(renderWorkshopCard);
+                            })()
                           )}
                         </div>
                       </div>
