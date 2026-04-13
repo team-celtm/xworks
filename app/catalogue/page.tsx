@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { Suspense } from 'react';
 import './catalogue.css';
 
 declare global {
@@ -49,7 +50,7 @@ interface EnrolData {
   selectedSessionId?: string | null;
 }
 
-export default function CataloguePage() {
+function CatalogueContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -922,10 +923,17 @@ export default function CataloguePage() {
                 </div>
               </div>
             )}
-            
-          </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
+  );
+}
+
+export default function CataloguePage() {
+  return (
+    <Suspense fallback={<div style={{ padding: '20px', textAlign: 'center' }}>Loading catalogue...</div>}>
+      <CatalogueContent />
+    </Suspense>
   );
 }
