@@ -275,18 +275,13 @@ export default function Home() {
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
                 courseId: enrolData.id,
-                promoCode: enrolData.promoApplied ? promoCode : null
+                promoCode: enrolData.promoApplied ? promoCode : null,
+                sessionId: enrolData.selectedSessionId
               })
             });
             const verifyData = await verifyRes.json();
             if (verifyRes.ok) {
               setEnrolData(prev => ({ ...prev, enrolmentId: verifyData.enrolmentId }));
-              
-              // AUTO REGISTER FOR SESSION IF SELECTED
-              if (enrolData.format === 'live' && enrolData.selectedSessionId) {
-                await fetch(`/api/sessions/${enrolData.selectedSessionId}/register`, { method: 'POST' });
-              }
-              
               enrolGoStep(4);
             } else {
               setPromoMsg({ text: verifyData.error || 'Payment verification failed', type: 'error' });
@@ -430,7 +425,7 @@ export default function Home() {
             <div className="nav-logo-bar"></div>
             <div className="nav-logo-bar"></div>
           </div>
-          XWORKS
+          X<span>WORKS</span>
         </Link>
         <div className="nav-links">
           <div className="nav-dropdown">

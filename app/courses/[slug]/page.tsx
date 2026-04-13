@@ -206,13 +206,16 @@ export default function CourseDetailPage() {
 
   return (
     <div className="detail-page" style={{ background: 'var(--surface-2)', minHeight: '100vh' }}>
-      <nav className="nav" style={{ background: '#fff', borderBottom: '1px solid var(--border-md)' }}>
-        <div className="nav-logo" style={{ cursor: 'pointer', color: '#1E1B4B' }} onClick={() => router.push('/')}>
+      <nav className="nav">
+        <Link href="/" className="nav-logo">
            <div className="nav-bars"><div className="nav-bar"></div><div className="nav-bar"></div></div>
            X<span>WORKS</span>
+        </Link>
+        <div className="nav-right">
+          <Link href="/catalogue" className="nav-link-sm">Explore</Link>
+          <Link href="/dashboard" className="nav-link-sm">Dashboard</Link>
+          <button className="nav-back" onClick={() => router.back()}>← Back</button>
         </div>
-        <div style={{ flex: 1 }}></div>
-        <button className="nav-back" style={{ color: '#1E1B4B' }} onClick={() => router.back()}>← Back</button>
       </nav>
 
       <main className="detail-main" style={{ maxWidth: '1100px', margin: '40px auto', padding: '0 24px' }}>
