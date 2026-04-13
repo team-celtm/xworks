@@ -70,10 +70,10 @@ export async function GET(req: NextRequest) {
     // cast numbers due to node-postgres numeric/bigint parsing differences
     const payload = rows.map(r => ({
       ...r,
-      price: parseFloat(r.price),
-      dur: parseInt(r.dur, 10),
-      rating: parseFloat(r.rating),
-      tagLabel: r.tagLabel || r.tag_label
+      price: r.price ? parseFloat(r.price) : 0,
+      dur: r.dur ? parseInt(r.dur, 10) : 0,
+      rating: r.rating ? parseFloat(r.rating) : 0,
+      tagLabel: r.tagLabel || r.tag_label || ''
     }));
 
     return NextResponse.json(payload, { status: 200 });
