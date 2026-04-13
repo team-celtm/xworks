@@ -89,20 +89,28 @@ export default function AdminDashboard() {
     router.push("/");
   };
 
-  if (loading) return <div className="shell flex items-center justify-center text-white" style={{ background: "var(--page-bg)" }}>Loading secure portal...</div>;
+  if (loading) return <div className="shell flex items-center justify-center" style={{ background: "var(--bg)", color: "var(--ink)" }}>Loading secure portal...</div>;
   if (!user || user.role !== 'admin') return null;
 
   return (
     <div className="shell">
       {/* SIDEBAR */}
-      <aside className="sidebar sb-dark" style={{ background: "var(--indigo-dark)" }}>
-        <div className="sb-header">
-          <Link href="/" className="logo">
-            <div className="logo-icon"><div className="lb"></div><div className="lb"></div></div>
-            <span className="logo-text">X<span>WORKS</span></span>
-          </Link>
-          <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--coral)", marginTop: "4px", letterSpacing: "1px", textTransform: "uppercase" }}>
-            Owner Portal
+      <aside className="sidebar">
+        <Link href="/" className="sb-logo" style={{ textDecoration: 'none' }}>
+          <div className="sb-logo-bars">
+            <div className="sb-logo-bar"></div>
+            <div className="sb-logo-bar"></div>
+          </div>
+          <span className="sb-logo-name">X<span>WORKS</span></span>
+        </Link>
+
+        <div className="sb-user">
+          <div className="sb-avatar">
+            {user ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase() : "..."}
+          </div>
+          <div>
+            <div className="sb-user-name">{user ? `${user.firstName} ${user.lastName}` : "Loading..."}</div>
+            <div className="sb-user-tag">Owner Portal</div>
           </div>
         </div>
 
@@ -143,7 +151,7 @@ export default function AdminDashboard() {
       </aside>
 
       {/* MAIN */}
-      <div className="main" style={{ background: "var(--page-bg)" }}>
+      <div className="main" style={{ background: "var(--bg)" }}>
         <div className="topbar">
           <div className="topbar-greeting">
             Welcome back, Owner. 🛡️ System is running smoothly.
@@ -163,8 +171,8 @@ export default function AdminDashboard() {
               </div>
               <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)', flex: 1 }}>
                 <p style={{ color: 'var(--text-3)', marginBottom: '20px' }}>Pending applications waiting for platform access.</p>
-                {applications.length === 0 ? <p style={{color:'var(--text-4)'}}>No pending applications.</p> : (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', color: 'white', textAlign: 'left' }}>
+                {applications.length === 0 ? <p style={{color:'var(--text-3)'}}>No pending applications.</p> : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', color: 'var(--ink)', textAlign: 'left' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border-md)', color: 'var(--text-3)', fontSize: '14px' }}>
                         <th style={{ padding: '12px 8px' }}>User</th>
@@ -204,8 +212,8 @@ export default function AdminDashboard() {
               </div>
               <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)', flex: 1 }}>
                 <p style={{ color: 'var(--text-3)', marginBottom: '20px' }}>Courses submitted by instructors awaiting platform publication.</p>
-                {courses.length === 0 ? <p style={{color:'var(--text-4)'}}>No courses pending review.</p> : (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', color: 'white', textAlign: 'left' }}>
+                {courses.length === 0 ? <p style={{color:'var(--text-3)'}}>No courses pending review.</p> : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', color: 'var(--ink)', textAlign: 'left' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border-md)', color: 'var(--text-3)', fontSize: '14px' }}>
                         <th style={{ padding: '12px 8px' }}>Course Name</th>
@@ -261,8 +269,8 @@ export default function AdminDashboard() {
                   </div>
                 </form>
 
-                <h3 style={{ color: 'white', marginBottom: '16px', fontSize: '16px' }}>Active Promo Codes</h3>
-                <table style={{ width: '100%', borderCollapse: 'collapse', color: 'white', textAlign: 'left' }}>
+                <h3 style={{ color: 'var(--ink)', marginBottom: '16px', fontSize: '16px' }}>Active Promo Codes</h3>
+                <table style={{ width: '100%', borderCollapse: 'collapse', color: 'var(--ink)', textAlign: 'left' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border-md)', color: 'var(--text-3)', fontSize: '14px' }}>
                       <th style={{ padding: '12px 8px' }}>Code</th>

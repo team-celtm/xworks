@@ -135,23 +135,23 @@ export default function InstructorDashboard() {
     }
   };
 
-  if (loading) return <div className="shell flex items-center justify-center text-white" style={{ background: "var(--page-bg)" }}>Loading secure portal...</div>;
+  if (loading) return <div className="shell flex items-center justify-center" style={{ background: "var(--bg)", color: "var(--ink)" }}>Loading secure portal...</div>;
   if (!user || user.role !== 'instructor') return null;
 
   if (appStatus === 'none') {
     return (
-      <div className="shell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--page-bg)' }}>
+      <div className="shell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
         <div style={{ maxWidth: '600px', width: '100%', background: 'var(--surface)', padding: '40px', borderRadius: '24px', border: '1px solid var(--border-md)' }}>
-          <h1 style={{ fontFamily: 'var(--font-d)', fontSize: '32px', fontWeight: 800, color: 'var(--text-1)', marginBottom: '16px', letterSpacing: '-1px' }}>Apply to Teach</h1>
+          <h1 style={{ fontFamily: 'var(--font-d)', fontSize: '32px', fontWeight: 800, color: 'var(--ink)', marginBottom: '16px', letterSpacing: '-1px' }}>Apply to Teach</h1>
           <p style={{ color: 'var(--text-3)', marginBottom: '32px' }}>Complete your profile to unlock the Creator Studio and start publishing courses to 40,000+ learners.</p>
           
           <div style={{ marginBottom: '24px' }}>
-            <label style={{ display: 'block', color: 'var(--text-4)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Bio / Experience</label>
+            <label style={{ display: 'block', color: 'var(--text-2)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Bio / Experience</label>
             <textarea className="inp" style={{ width: '100%', minHeight: '120px', resize: 'vertical' }} placeholder="What makes you an expert?..." value={bio} onChange={e=>setBio(e.target.value)}></textarea>
           </div>
 
           <div style={{ marginBottom: '32px' }}>
-            <label style={{ display: 'block', color: 'var(--text-4)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>LinkedIn URL</label>
+            <label style={{ display: 'block', color: 'var(--text-2)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>LinkedIn URL</label>
             <input type="url" className="inp" style={{ width: '100%' }} placeholder="https://linkedin.com/in/..." value={linkedin} onChange={e=>setLinkedin(e.target.value)} />
           </div>
 
@@ -165,10 +165,10 @@ export default function InstructorDashboard() {
 
   if (appStatus === 'pending') {
     return (
-      <div className="shell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--page-bg)' }}>
+      <div className="shell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
         <div style={{ maxWidth: '600px', width: '100%', background: 'var(--surface)', padding: '40px', borderRadius: '24px', border: '1px solid var(--border-md)', textAlign: 'center' }}>
           <div style={{ fontSize: '48px', marginBottom: '24px' }}>⏳</div>
-          <h1 style={{ fontFamily: 'var(--font-d)', fontSize: '32px', fontWeight: 800, color: 'var(--text-1)', marginBottom: '16px', letterSpacing: '-1px' }}>Application Pending Review</h1>
+          <h1 style={{ fontFamily: 'var(--font-d)', fontSize: '32px', fontWeight: 800, color: 'var(--ink)', marginBottom: '16px', letterSpacing: '-1px' }}>Application Pending Review</h1>
           <p style={{ color: 'var(--text-3)' }}>The platform administrators are currently reviewing your application. You will gain full access to the Creator Studio once approved.</p>
           <button className="prompt-input" style={{ marginTop: '32px', border: '1px solid var(--border-md)', background: 'transparent' }} onClick={handleLogout}>Log Out</button>
         </div>
@@ -181,14 +181,22 @@ export default function InstructorDashboard() {
       {/* ══════════════════════════
            INSTRUCTOR SIDEBAR (Left)
       ══════════════════════════ */}
-      <aside className="sidebar sb-dark" style={{ background: "var(--indigo-dark)" }}>
-        <div className="sb-header">
-          <Link href="/" className="logo">
-            <div className="logo-icon"><div className="lb"></div><div className="lb"></div></div>
-            <span className="logo-text">X<span>WORKS</span></span>
-          </Link>
-          <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--coral)", marginTop: "4px", letterSpacing: "1px", textTransform: "uppercase" }}>
-            Instructor Portal
+      <aside className="sidebar">
+        <Link href="/" className="sb-logo" style={{ textDecoration: 'none' }}>
+          <div className="sb-logo-bars">
+            <div className="sb-logo-bar"></div>
+            <div className="sb-logo-bar"></div>
+          </div>
+          <span className="sb-logo-name">X<span>WORKS</span></span>
+        </Link>
+
+        <div className="sb-user">
+          <div className="sb-avatar">
+            {user ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase() : "..."}
+          </div>
+          <div>
+            <div className="sb-user-name">{user ? `${user.firstName} ${user.lastName}` : "Loading..."}</div>
+            <div className="sb-user-tag">Instructor Portal</div>
           </div>
         </div>
 
@@ -222,7 +230,7 @@ export default function InstructorDashboard() {
       {/* ══════════════════════════
            INSTRUCTOR MAIN AREA
       ══════════════════════════ */}
-      <div className="main" style={{ background: "var(--page-bg)" }}>
+      <div className="main" style={{ background: "var(--bg)" }}>
         {/* Topbar */}
         <div className="topbar">
           <div className="topbar-greeting">
@@ -285,9 +293,9 @@ export default function InstructorDashboard() {
               </div>
 
               <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>
-                <h3 style={{ color: 'white', marginBottom: '16px', fontSize: '16px' }}>Your Courses</h3>
-                {courses.length === 0 ? <p style={{color:'var(--text-4)'}}>You have not created any courses yet.</p> : (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', color: 'white', textAlign: 'left' }}>
+                <h3 style={{ color: 'var(--ink)', marginBottom: '16px', fontSize: '16px' }}>Your Courses</h3>
+                {courses.length === 0 ? <p style={{color:'var(--text-3)'}}>You have not created any courses yet.</p> : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', color: 'var(--ink)', textAlign: 'left' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border-md)', color: 'var(--text-3)', fontSize: '14px' }}>
                         <th style={{ padding: '12px 8px' }}>Course Name</th>
@@ -329,7 +337,7 @@ export default function InstructorDashboard() {
                   {sessions.map(s => (
                     <div key={s.sessionId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--surface)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-md)' }}>
                       <div>
-                        <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: 'white' }}>{s.sessionTitle}</h3>
+                        <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: 'var(--ink)' }}>{s.sessionTitle}</h3>
                         <div style={{ color: 'var(--text-3)', fontSize: '14px' }}>
                           {s.courseName} • {new Date(s.scheduledStart).toLocaleString()} • {s.registrantCount} learners registered
                         </div>
@@ -350,7 +358,7 @@ export default function InstructorDashboard() {
                             </button>
                             <button 
                               onClick={() => handleToggleRecording(s.sessionId, s.recordingAvailable)}
-                              style={{ background: 'var(--surface-2)', border: '1px solid var(--border-md)', color: 'white', padding: '10px 18px', borderRadius: '100px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
+                              style={{ background: 'var(--surface-2)', border: '1px solid var(--border-md)', color: 'var(--indigo)', padding: '10px 18px', borderRadius: '100px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
                             >
                               {s.recordingAvailable ? "Recording Live ✅" : "Share Recording 📽️"}
                             </button>
@@ -383,18 +391,18 @@ export default function InstructorDashboard() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
                 <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>
-                    <div style={{ color: 'var(--text-4)', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Total Courses</div>
-                    <div style={{ color: 'white', fontSize: '32px', fontWeight: '900' }}>0</div>
+                    <div style={{ color: 'var(--text-2)', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Total Courses</div>
+                    <div style={{ color: 'var(--ink)', fontSize: '32px', fontWeight: '900' }}>0</div>
                 </div>
                 <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>
-                    <div style={{ color: 'var(--text-4)', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Pending Payout</div>
+                    <div style={{ color: 'var(--text-2)', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Pending Payout</div>
                     <div style={{ color: 'var(--green)', fontSize: '32px', fontWeight: '900' }}>₹ 0</div>
                 </div>
               </div>
               
               <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>
                 <p style={{ color: 'var(--text-3)', marginBottom: '20px' }}>Earnings are calculated using the 80/20 XWORKS Revenue Split algorithm.</p>
-                <div style={{ padding: '16px', border: '1px dashed var(--border-md)', borderRadius: '8px', textAlign: 'center', color: 'var(--text-4)' }}>No transactions yet. Publish a course to start earning!</div>
+                <div style={{ padding: '16px', border: '1px dashed var(--border-md)', borderRadius: '8px', textAlign: 'center', color: 'var(--text-3)' }}>No transactions yet. Publish a course to start earning!</div>
               </div>
 
             </div>
