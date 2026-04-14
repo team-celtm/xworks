@@ -715,7 +715,7 @@ export default function Home() {
         <div className="footer-inner">
           <div className="footer-top">
             <div>
-              <div className="footer-brand-name" style={{ fontWeight: 800 }}>X<span style={{ color: 'var(--coral)' }}>WORKS</span></div>
+              <div className="footer-brand-name">X<span>WORKS</span></div>
               <div className="footer-brand-desc">Curated workshops for every curious mind. From school to silver — we believe learning never stops.</div>
             </div>
             <div>
