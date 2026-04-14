@@ -626,6 +626,23 @@ body {
   background: rgba(255, 255, 255, 0.14)
 }
 
+/* Light background override for instructor/stat cards */
+.stat-card .prompt-input, .inp {
+  background: var(--surface-2) !important;
+  border: 1px solid var(--border-md) !important;
+  color: var(--ink) !important;
+}
+
+.stat-card .prompt-input:focus, .inp:focus {
+  border-color: var(--indigo-mid) !important;
+  background: var(--surface) !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.stat-card .prompt-input::placeholder, .inp::placeholder {
+  color: var(--text-3) !important;
+}
+
 .prompt-btn {
   padding: 14px 28px;
   border-radius: 12px;
