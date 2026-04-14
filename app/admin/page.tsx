@@ -170,8 +170,13 @@ export default function AdminDashboard() {
                 Approve Instructors
               </div>
               <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)', flex: 1 }}>
-                <p style={{ color: 'var(--text-3)', marginBottom: '20px' }}>Pending applications waiting for platform access.</p>
-                {applications.length === 0 ? <p style={{color:'var(--text-3)'}}>No pending applications.</p> : (
+                <p style={{ color: 'var(--text-3)', marginBottom: '24px', fontSize: '14px' }}>Pending applications waiting for platform access.</p>
+                {applications.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--bg)', borderRadius: '12px', border: '1px dashed var(--border-md)' }}>
+                    <div style={{ fontSize: '32px', marginBottom: '12px' }}>✅</div>
+                    <p style={{ color: 'var(--text-3)', fontWeight: 500 }}>All caught up! No pending applications.</p>
+                  </div>
+                ) : (
                   <table style={{ width: '100%', borderCollapse: 'collapse', color: 'var(--ink)', textAlign: 'left' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border-md)', color: 'var(--text-3)', fontSize: '14px' }}>
@@ -211,8 +216,13 @@ export default function AdminDashboard() {
                 Publish Courses
               </div>
               <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)', flex: 1 }}>
-                <p style={{ color: 'var(--text-3)', marginBottom: '20px' }}>Courses submitted by instructors awaiting platform publication.</p>
-                {courses.length === 0 ? <p style={{color:'var(--text-3)'}}>No courses pending review.</p> : (
+                <p style={{ color: 'var(--text-3)', marginBottom: '24px', fontSize: '14px' }}>Courses submitted by instructors awaiting platform publication.</p>
+                {courses.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--bg)', borderRadius: '12px', border: '1px dashed var(--border-md)' }}>
+                    <div style={{ fontSize: '32px', marginBottom: '12px' }}>✨</div>
+                    <p style={{ color: 'var(--text-3)', fontWeight: 500 }}>The queue is empty. Refresh to check for new courses.</p>
+                  </div>
+                ) : (
                   <table style={{ width: '100%', borderCollapse: 'collapse', color: 'var(--ink)', textAlign: 'left' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border-md)', color: 'var(--text-3)', fontSize: '14px' }}>
@@ -255,18 +265,18 @@ export default function AdminDashboard() {
                 Promo Codes
               </div>
               <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>
-                <form onSubmit={handleCreatePromo} style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '32px' }}>
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
-                     <div style={{flex: 2}}>
-                       <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-3)', display: 'block', marginBottom: '8px' }}>Code String</label>
+                <form onSubmit={handleCreatePromo} style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', marginBottom: '40px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                       <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Code String</label>
                        <input name="code" type="text" className="prompt-input" required placeholder="e.g. DIWALI50" style={{ textTransform: 'uppercase', width: '100%' }} />
                      </div>
-                     <div style={{flex: 1}}>
-                       <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-3)', display: 'block', marginBottom: '8px' }}>Discount %</label>
+                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                       <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Discount %</label>
                        <input name="perc" type="number" className="prompt-input" required placeholder="20" style={{ width: '100%' }} />
                      </div>
-                     <button type="submit" className="enrol-cta coral" style={{ cursor: 'pointer', padding: '14px 24px', marginBottom: '2px' }}>Create Promo</button>
                   </div>
+                  <button type="submit" className="enrol-cta coral" style={{ width: 'auto', justifySelf: 'start', padding: '14px 40px' }}>Create Promo Code →</button>
                 </form>
 
                 <h3 style={{ color: 'var(--ink)', marginBottom: '16px', fontSize: '16px' }}>Active Promo Codes</h3>
@@ -335,13 +345,17 @@ export default function AdminDashboard() {
                     alert((await res.json()).message || 'Done!');
                     e.currentTarget.reset();
                   }} 
-                  style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '100%' }}
+                  style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', width: '100%' }}
                 >
-                  <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-3)' }}>Credential ID</label>
-                  <input name="credential_id" type="text" className="prompt-input" required placeholder="XW-..." />
-                  <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-3)' }}>Revocation Reason</label>
-                  <input name="reason" type="text" className="prompt-input" required placeholder="e.g. Academic misconduct" />
-                  <button type="submit" className="enrol-cta coral" style={{ width: '100%', marginTop: '8px', cursor: 'pointer', background: 'var(--indigo-dark)' }}>Revoke Access</button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Credential ID</label>
+                    <input name="credential_id" type="text" className="prompt-input" required placeholder="XW-..." style={{ width: '100%' }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Revocation Reason</label>
+                    <input name="reason" type="text" className="prompt-input" required placeholder="e.g. Academic misconduct" style={{ width: '100%' }} />
+                  </div>
+                  <button type="submit" className="enrol-cta" style={{ width: 'auto', justifySelf: 'start', padding: '14px 40px', background: 'var(--red)', marginTop: '8px' }}>Revoke Certificate Access</button>
                 </form>
               </div>
             </div>

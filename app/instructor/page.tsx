@@ -270,25 +270,28 @@ export default function InstructorDashboard() {
                       e.currentTarget.reset();
                     }
                   }} 
-                  style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+                  style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}
                 >
-                  <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-3)' }}>Course Name</label>
-                  <input name="name" type="text" className="prompt-input" required placeholder="e.g. Advanced Ethical Hacking" />
-                  <div className="stats-row" style={{ gap: '12px', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))' }}>
-                     <div>
-                       <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-3)' }}>Category Tag</label>
-                       <input name="cat" type="text" className="prompt-input" required placeholder="e.g. cyber" />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Course Name</label>
+                    <input name="name" type="text" className="prompt-input" required placeholder="e.g. Advanced Ethical Hacking" style={{ width: '100%' }} />
+                  </div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
+                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                       <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Category Tag</label>
+                       <input name="cat" type="text" className="prompt-input" required placeholder="e.g. cyber" style={{ width: '100%' }} />
                      </div>
-                     <div>
-                       <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-3)' }}>Duration (hrs)</label>
-                       <input name="dur" type="number" className="prompt-input" required placeholder="e.g. 5" />
+                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                       <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Duration (hrs)</label>
+                       <input name="dur" type="number" className="prompt-input" required placeholder="e.g. 5" style={{ width: '100%' }} />
                      </div>
-                     <div>
-                       <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-3)' }}>Price (₹)</label>
-                       <input name="price" type="number" className="prompt-input" required placeholder="e.g. 1999" />
+                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                       <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Price (₹)</label>
+                       <input name="price" type="number" className="prompt-input" required placeholder="e.g. 1999" style={{ width: '100%' }} />
                      </div>
                   </div>
-                  <button type="submit" className="enrol-cta coral" style={{ width: '100%', marginTop: '8px', cursor: 'pointer' }}>Create Draft Course</button>
+                  <button type="submit" className="enrol-cta coral" style={{ marginTop: '12px' }}>Create Draft Course</button>
                 </form>
               </div>
 
