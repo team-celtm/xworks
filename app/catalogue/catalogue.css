@@ -41,10 +41,9 @@
 
 /* ══ NAV ══ */
 .nav{
-  position:sticky;top:0;z-index:200;height:72px;
-  background:rgba(30, 27, 75, 0.72);
-  backdrop-filter:blur(20px) saturate(180%);
-  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  position:sticky;top:0;z-index:200;height:64px;
+  background:rgba(55,48,163,0.98);
+  backdrop-filter:blur(16px);
   display:flex;align-items:center;justify-content:space-between;
   padding:0 20px;
   border-bottom:1px solid rgba(255,255,255,0.08);
@@ -56,7 +55,7 @@
 .nav:hover{background:rgba(30, 27, 75, 0.85)}
 .nav-logo{
   font-family:var(--font-d);font-size:20px;font-weight:800;
-  color:#fff;text-decoration:none;letter-spacing:-0.5px;
+  color:#FFFFFF;text-decoration:none;letter-spacing:-0.5px;
   display:flex;align-items:center;gap:10px;
 }
 .nav-bars{display:flex;flex-direction:column;gap:3px}

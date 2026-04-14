@@ -56,6 +56,20 @@ export default function CourseDetailPage() {
   const [enrolling, setEnrolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data);
+        }
+      } catch (err) {}
+    };
+    fetchUser();
+  }, []);
 
   useEffect(() => {
     async function fetchDetail() {
@@ -209,11 +223,18 @@ export default function CourseDetailPage() {
       <nav className="nav">
         <Link href="/" className="nav-logo">
            <div className="nav-bars"><div className="nav-bar"></div><div className="nav-bar"></div></div>
-           X<span>WORKS</span>
+           <span style={{ color: '#fff' }}>X</span><span style={{ color: 'var(--coral)' }}>WORKS</span>
         </Link>
         <div className="nav-right">
           <Link href="/catalogue" className="nav-link-sm">Explore</Link>
-          <Link href="/dashboard" className="nav-link-sm">Dashboard</Link>
+          {user ? (
+            <Link href="/dashboard" className="nav-link-sm">Dashboard</Link>
+          ) : (
+            <>
+              <Link href="/Login" className="nav-link-sm">Login</Link>
+              <Link href="/Registration" className="nav-cta">Sign up</Link>
+            </>
+          )}
           <button className="nav-back" onClick={() => router.back()}>← Back</button>
         </div>
       </nav>
@@ -237,18 +258,18 @@ export default function CourseDetailPage() {
                 </div>
               </div>
 
-              <div className="detail-stats" style={{ display: 'flex', gap: '24px', borderTop: '1px solid var(--border-md)', paddingTop: '24px' }}>
+              <div className="detail-stats" style={{ display: 'flex', gap: '24px', borderTop: '1px solid var(--border-md)', paddingTop: '24px', flexWrap: 'wrap' }}>
                 <div className="dstat"><span>★ {course.rating}</span><label>Rating</label></div>
                 <div className="dstat"><span>⏱ {course.dur} hrs</span><label>Duration</label></div>
-                <div className="dstat"><span>{course.level}</span><label>Level</label></div>
-                <div className="dstat"><span>{course.live ? '🔴 Live' : '📹 Recorded'}</span><label>Format</label></div>
+                <div className="dstat"><span>📊 {course.level}</span><label>Level</label></div>
+                <div className="dstat"><span>📺 {course.live ? 'Live' : 'Recorded'}</span><label>Format</label></div>
               </div>
             </div>
 
             <div className="detail-section" style={{ marginBottom: '40px' }}>
               <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>What you'll learn</h2>
               <div style={{ background: '#fff', borderRadius: '20px', padding: '24px', border: '1px solid var(--border-md)', lineHeight: '1.6', color: 'var(--text-2)' }}>
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+                Master the intersection of financial markets and artificial intelligence. In this comprehensive session, we cover quantitative trading strategies using Python, risk management with neural networks, and the implementation of automated trading bots using real-time market APIs.
               </div>
             </div>
 
@@ -356,8 +377,8 @@ export default function CourseDetailPage() {
       </main>
 
       <style jsx>{`
-        .dstat { display: flex; flexDirection: column; }
-        .dstat span { font-weight: 800; color: var(--ink); font-size: 16px; }
+        .dstat { display: flex; flex-direction: column; min-width: 100px; }
+        .dstat span { font-weight: 800; color: var(--ink); font-size: 16px; white-space: nowrap; }
         .dstat label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
         .detail-emoji-box.ct-ai { background: linear-gradient(135deg,#fff,#E8F4FF); border: 1px solid #D0E8FF; }
         .detail-emoji-box.ct-py { background: linear-gradient(135deg,#fff,#F0F9FF); border: 1px solid #E0F2FE; }
