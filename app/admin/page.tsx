@@ -101,7 +101,7 @@ export default function AdminDashboard() {
             <div className="sb-logo-bar"></div>
             <div className="sb-logo-bar"></div>
           </div>
-          <span className="sb-logo-name">X<span>WORKS</span></span>
+          <span className="sb-logo-name">X<span className="works-text">WORKS</span></span>
         </Link>
 
         <div className="sb-user">
@@ -312,13 +312,15 @@ export default function AdminDashboard() {
               </div>
               <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>
                 <p style={{ color: 'var(--text-3)', marginBottom: '20px' }}>Process a refund and immediately revoke course access via Razorpay ID.</p>
-                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', width: '100%' }}>
-                  <input type="text" className="prompt-input" placeholder="Razorpay Order ID (order_...)" id="adminRefundId" style={{ flex: 1 }} />
-                  <button className="enrol-cta coral" style={{ width: 'auto', padding: '12px 24px', cursor: 'pointer', marginTop: 0 }} onClick={async () => {
-                    const orderId = (document.getElementById('adminRefundId') as HTMLInputElement).value;
-                    const res = await fetch('/api/admin/refunds', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ orderId }) });
-                    alert((await res.json()).message || 'Done!');
-                  }}>Issue Refund</button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', width: '100%' }}>
+                    <input type="text" className="prompt-input" placeholder="Razorpay Order ID (order_...)" id="adminRefundId" style={{ flex: 1 }} />
+                    <button className="enrol-cta coral" style={{ width: 'auto', padding: '12px 24px', cursor: 'pointer', marginTop: 0 }} onClick={async () => {
+                      const orderId = (document.getElementById('adminRefundId') as HTMLInputElement).value;
+                      const res = await fetch('/api/admin/refunds', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ orderId }) });
+                      alert((await res.json()).message || 'Done!');
+                    }}>Issue Refund →</button>
+                  </div>
                 </div>
               </div>
             </div>

@@ -187,7 +187,7 @@ export default function InstructorDashboard() {
             <div className="sb-logo-bar"></div>
             <div className="sb-logo-bar"></div>
           </div>
-          <span className="sb-logo-name">X<span>WORKS</span></span>
+          <span className="sb-logo-name">X<span className="works-text">WORKS</span></span>
         </Link>
 
         <div className="sb-user">
