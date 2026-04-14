@@ -71,13 +71,13 @@ body{font-family:var(--font-b);background:#F5F6FF;color:var(--ink);font-size:15p
 .sb-logo-bar:nth-child(2){width:10px}
 .sb-logo-name{
   font-family:var(--font-d);font-size:20px;font-weight:800;
-  color:#FFFFFF !important;letter-spacing:-0.5px;line-height:1;
+  color:#FFFFFF;letter-spacing:-0.5px;line-height:1;
   display: flex; align-items: center;
 }
 @media(min-width:768px){
   .sb-logo-name{font-size:24px}
 }
-.sb-logo-name span{color:#FB923C !important}
+.sb-logo-name .works-text{color:#FB923C !important}
 
 /* User card */
 .sb-user{
