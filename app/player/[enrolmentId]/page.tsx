@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Logo from "../../components/Logo";
 import "../player.css";
 
 export default function PlayerPage({ params }: { params: Promise<{ enrolmentId: string }> }) {
