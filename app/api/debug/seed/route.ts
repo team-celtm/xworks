@@ -6,6 +6,13 @@ export async function GET(req: NextRequest) {
   try {
     // Schema checks (idempotent)
     await pool.query('CREATE TABLE IF NOT EXISTS users (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), email TEXT UNIQUE NOT NULL, status TEXT DEFAULT \'active\')');
+    await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS first_name TEXT');
+    await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS last_name TEXT');
+    await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT \'learner\'');
+    await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT');
+    await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS city TEXT');
+    await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS preferences JSONB DEFAULT \'{}\'::jsonb');
+    await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()');
     await pool.query('CREATE TABLE IF NOT EXISTS categories (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), slug TEXT UNIQUE, name TEXT)');
     await pool.query('CREATE TABLE IF NOT EXISTS courses (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT, slug TEXT UNIQUE, cat TEXT, g TEXT, category_id UUID REFERENCES categories(id))');
     await pool.query('CREATE TABLE IF NOT EXISTS enrolments (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID REFERENCES users(id), course_id UUID REFERENCES courses(id), status TEXT, progress_pct NUMERIC, completed_at TIMESTAMP WITH TIME ZONE)');
