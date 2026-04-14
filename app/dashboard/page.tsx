@@ -382,22 +382,27 @@ export default function DashboardPage() {
 
   const completedDisplayList = enrolments
     .filter(e => e.enrolment_status === 'completed' || e.progressPct === 100)
-    .map(e => ({
-      id: e.course_id,
-      icon: e.emoji || "🎓",
-      bg: e.thumbBg || "g-ai",
-      name: e.name,
-      meta: e.progressPct === 100
-        ? `Completed ${new Date(e.completedAt || e.enrolledAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} · ${e.dur} hrs`
-        : `In progress · ${Math.round((e.progressPct / 100) * e.dur)} of ${e.dur} hrs done`,
-      pct: Math.round(e.progressPct),
-      rating: e.rating,
-      dur: e.dur,
-      catLabel: e.catLabel,
-      price: e.basePrice || 1299, // Fallback price if not present
-      slug: e.slug,
-      live: e.live
-    }));
+    .map(e => {
+      const cert = certs.find(c => c.courseId === e.course_id);
+      return {
+        id: e.course_id,
+        icon: e.emoji || "🎓",
+        bg: e.thumbBg || "g-ai",
+        name: e.name,
+        meta: e.progressPct === 100
+          ? `Completed ${new Date(e.completedAt || e.enrolledAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} · ${e.dur} hrs`
+          : `In progress · ${Math.round((e.progressPct / 100) * e.dur)} of ${e.dur} hrs done`,
+        pct: Math.round(e.progressPct),
+        rating: e.rating,
+        dur: e.dur,
+        catLabel: e.catLabel,
+        price: e.basePrice || 1299,
+        slug: e.slug,
+        live: e.live,
+        certId: cert?.credentialId,
+        certUrl: cert?.verificationUrl
+      };
+    });
 
   const continueLearningList = enrolments.filter(e => e.progressPct > 0 && e.progressPct < 100);
 
@@ -1226,9 +1231,9 @@ export default function DashboardPage() {
                     <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
                       <div className="completed-name">{c.name}</div>
                       <div className="completed-meta">{c.meta}</div>
-                      {c.pct === 100 && (
+                      {c.certId ? (
                         <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
-                          <button className="cert-btn">🏆 View certificate</button>
+                          <button className="cert-btn" onClick={() => window.open(`/verify/${c.certId}`, '_blank')}>🏆 View certificate</button>
                           <button 
                             className="cert-btn" 
                             style={{ background: "var(--indigo-light)", color: "var(--indigo)" }}

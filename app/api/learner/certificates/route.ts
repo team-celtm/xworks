@@ -20,7 +20,8 @@ export async function GET(req: NextRequest) {
         ce.verification_url as "verificationUrl",
         co.name as "courseName",
         co.emoji,
-        co.g as "thumbBg"
+        co.g as "thumbBg",
+        ce.course_id as "courseId"
       FROM certificates ce
       JOIN courses co ON ce.course_id = co.id
       WHERE ce.user_id = $1 AND ce.status = 'issued'
