@@ -850,8 +850,8 @@ export default function DashboardPage() {
               <div className="sb-logo-bar"></div>
               <div className="sb-logo-bar"></div>
             </div>
-            <span className="sb-logo-name" style={{ color: '#fff', fontSize: '22px', fontWeight: 800 }}>
-              <span style={{ color: '#fff' }}>X</span><span style={{ color: 'var(--coral)' }}>WORKS</span>
+            <span className="sb-logo-name">
+              <span>X</span><span className="works-text">WORKS</span>
             </span>
           </Link>
         </div>
