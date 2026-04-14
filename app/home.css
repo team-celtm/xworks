@@ -84,7 +84,7 @@
 @media(min-width:768px){
   .home-nav{padding:0 48px}
   .nav-logo{font-size:22px}
-  .nav-links{display:flex;align-items:center;gap:6px}
+  .nav-links{display:flex;align-items:center;gap:32px}
   .hamburger{display:none}
 }
 

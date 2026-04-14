@@ -174,7 +174,7 @@ body{font-family:var(--font-b);background:#F5F6FF;color:var(--ink);font-size:15p
   gap: 12px;
 }
 @media(min-width:768px){
-  .topbar{padding:0 40px; height: 72px;}
+  .topbar{padding:0 32px; height: 64px;}
 }
 .topbar:hover{background:rgba(255,255,255,0.85)}
 .topbar-greeting{font-size:13px;color:var(--text-2);letter-spacing:-0.2px; line-height: 1.3}
