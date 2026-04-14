@@ -10,6 +10,7 @@ export async function GET(req: NextRequest) {
     await pool.query('CREATE TABLE IF NOT EXISTS courses (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), name TEXT, slug TEXT UNIQUE, cat TEXT, g TEXT, category_id UUID REFERENCES categories(id))');
     await pool.query('CREATE TABLE IF NOT EXISTS enrolments (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID REFERENCES users(id), course_id UUID REFERENCES courses(id), status TEXT, progress_pct NUMERIC, completed_at TIMESTAMP WITH TIME ZONE)');
     await pool.query('CREATE TABLE IF NOT EXISTS certificates (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), credential_id TEXT UNIQUE NOT NULL, user_id UUID REFERENCES users(id), course_id UUID REFERENCES courses(id), enrolment_id UUID REFERENCES enrolments(id), status TEXT DEFAULT \'issued\', issued_at TIMESTAMP WITH TIME ZONE DEFAULT NOW())');
+    await pool.query('CREATE TABLE IF NOT EXISTS notes (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID REFERENCES users(id) ON DELETE CASCADE, workshop_id UUID REFERENCES courses(id) ON DELETE SET NULL, title TEXT, content TEXT, tags TEXT[], is_pinned BOOLEAN DEFAULT false, updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW())');
     
     // Ensure demo user exists
     const demoEmail = 'demo@xworks.com';
@@ -52,7 +53,14 @@ export async function GET(req: NextRequest) {
         ON CONFLICT DO NOTHING
       `, [credId, uId, cId, eId]);
       
+      await pool.query(`
+        INSERT INTO notes (user_id, workshop_id, title, content, tags, is_pinned)
+        VALUES ($1, $2, 'My Journey at XWORKS', 'I am excited to start my first workshop on React Native. I need to focus on state management and navigation hooks.', ARRAY['learning', 'intro'], true)
+        ON CONFLICT DO NOTHING
+      `, [uId, cId]);
+
       steps.push('Generated certificate: ' + credId);
+      steps.push('Added sample note for demo user');
     }
 
     return NextResponse.json({ message: 'Seeding successful', steps }, { status: 200 });
