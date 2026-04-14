@@ -764,7 +764,7 @@ export default function DashboardPage() {
             <span>{w.dur} hrs</span>
           </div>
           {userEnrol ? (
-            <button className="wcard-enrol-btn" style={{ background: 'var(--blue)' }} onClick={(e) => { 
+            <button className="wcard-enrol-btn blue" onClick={(e) => { 
                 e.stopPropagation(); 
                 if (w.live) {
                   if (!userEnrol.userSessionRegId) {
@@ -817,8 +817,7 @@ export default function DashboardPage() {
           
           {e.live && !e.userSessionRegId && (
             <button 
-              className="wcard-enrol-btn" 
-              style={{ marginTop: '16px', background: 'var(--indigo)' }}
+              className="wcard-enrol-btn primary" 
               onClick={(ev) => {
                 ev.stopPropagation();
                 handleOpenBooking(e.course_id, e.name);
@@ -828,7 +827,7 @@ export default function DashboardPage() {
             </button>
           )}
           {(!e.live || e.userSessionRegId) && (
-            <button className="wcard-enrol-btn" style={{ marginTop: '16px' }} onClick={(ev) => { ev.stopPropagation(); router.push(`/player/${e.enrolment_id}`); }}>
+            <button className="wcard-enrol-btn blue" onClick={(ev) => { ev.stopPropagation(); router.push(`/player/${e.enrolment_id}`); }}>
               Continue →
             </button>
           )}
