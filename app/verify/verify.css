@@ -41,7 +41,7 @@
   font-weight: 800;
   color: var(--cert-ink);
   text-decoration: none;
-  letter-spacing: -1px;
+  letter-spacing: -0.2px;
 }
 .v-logo span { color: var(--cert-orange); }
 
@@ -106,7 +106,8 @@
 .v-body-p { max-width: 85%; font-size: 13px; line-height: 1.6; color: #444; margin-bottom: 20px; text-align: left; }
 .v-wish { font-size: 14px; font-weight: 600; color: #000; margin-bottom: 40px; }
 
-.v-cert-footer-row { width: 100%; display: flex; justify-content: flex-end; margin-top: auto; padding-right: 40px; }
+.v-cert-footer-row { width: 100%; display: flex; align-items: flex-end; justify-content: space-between; margin-top: auto; padding: 0 40px; }
+.v-cert-id-badge { font-size: 11px; font-weight: 700; color: #999; letter-spacing: 0.5px; border-top: 1px dotted #ccc; padding-top: 8px; }
 .v-signature-box { border-top: 1.5px dotted #999; padding-top: 10px; min-width: 200px; text-align: center; }
 .v-sig-name { font-size: 16px; font-weight: 800; color: #000; }
 .v-sig-title { font-size: 14px; color: #666; }
