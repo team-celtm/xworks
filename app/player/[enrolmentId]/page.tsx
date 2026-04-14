@@ -54,8 +54,13 @@ export default function PlayerPage({ params }: { params: Promise<{ enrolmentId: 
   return (
     <div className="player-shell">
       <div className="player-top">
-        <button className="p-back" onClick={() => router.back()}>← Dashboard</button>
+        <div className="p-back-wrap">
+          <button className="p-back" onClick={() => router.back()}>← Dashboard</button>
+        </div>
         <div className="p-title">{content.title}</div>
+        <div style={{ visibility: 'hidden' }}>
+           <button className="p-back">← Dashboard</button>
+        </div>
       </div>
 
       <div className="player-main">
@@ -73,8 +78,8 @@ export default function PlayerPage({ params }: { params: Promise<{ enrolmentId: 
           <div className="p-controls">
             <div className="p-prog-container">
                <div className="p-prog-meta">
-                 <span>Progress</span>
-                 <span>{Math.round(content.currentProgress)}%</span>
+                 <span>Course Progress</span>
+                 <span>{Math.round(content.currentProgress)}% Completed</span>
                </div>
                <div className="p-prog-bar">
                  <div className="p-prog-fill" style={{ width: `${content.currentProgress}%` }}></div>
@@ -85,51 +90,59 @@ export default function PlayerPage({ params }: { params: Promise<{ enrolmentId: 
               onClick={() => updateProgress(Math.min(100, content.currentProgress + 10))}
               disabled={content.currentProgress >= 100}
             >
-              Next Lesson →
+              Mark Lesson as Complete →
             </button>
           </div>
         </div>
  
         <div className="p-curric">
-          <div className="p-section-title">Course Content</div>
-          <div className="p-list">
-            {content.curriculum.map((item: any) => (
-              <div className={`p-item ${item.completed ? 'done' : ''}`} key={item.id}>
-                <div className="p-item-icon">{item.completed ? '✓' : '•'}</div>
-                <div className="p-item-info">
-                   <div className="p-item-title">{item.title}</div>
-                   <div className="p-item-dur">{item.duration}</div>
-                </div>
+           <div className="p-curric-header">
+              <div className="p-section-title">Course Modules</div>
+           </div>
+           
+           <div className="p-curric-scroll">
+              <div className="p-list">
+                {content.curriculum.map((item: any, idx: number) => (
+                  <div className={`p-item ${item.completed ? 'done' : ''} ${idx === 0 ? 'active-item' : ''}`} key={item.id}>
+                    <div className="p-item-icon">{item.completed ? '✓' : idx + 1}</div>
+                    <div className="p-item-info">
+                       <div className="p-item-title">{item.title}</div>
+                       <div className="p-item-dur">{item.duration} · Video Module</div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
- 
-          <div className="p-section-title" style={{ marginTop: '32px' }}>Live Sessions & Recordings</div>
-          <div className="p-list">
-            {content.sessions && content.sessions.length > 0 ? content.sessions.map((s: any) => (
-              <div 
-                className={`p-item ${s.recordingAvailable ? 'active-item' : ''}`} 
-                key={s.id} 
-                onClick={() => {
-                  if (s.recordingAvailable) {
-                    window.open(`/api/sessions/${s.id}/recording`, '_blank');
-                  }
-                }}
-              >
-                <div className="p-item-icon">{s.recordingAvailable ? '📽' : '🕒'}</div>
-                <div className="p-item-info">
-                   <div className="p-item-title">{s.title}</div>
-                   <div className="p-item-dur" style={{ color: s.recordingAvailable ? 'var(--p-accent)' : 'inherit' }}>
-                    {s.recordingAvailable ? 'Watch Recording ↗' : `Scheduled: ${new Date(s.startTime).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`}
-                   </div>
-                </div>
+    
+              <div className="p-curric-header" style={{ marginTop: '24px', paddingLeft: 0, paddingRight: 0 }}>
+                <div className="p-section-title">Recordings & Sessions</div>
               </div>
-            )) : (
-              <div style={{ padding: '16px', fontSize: '13px', color: 'var(--p-text-dim)', textAlign: 'center', background: 'rgba(255,255,255,0.03)', borderRadius: '12px' }}>
-                No recordings available for this course.
+              
+              <div className="p-list">
+                {content.sessions && content.sessions.length > 0 ? content.sessions.map((s: any) => (
+                  <div 
+                    className={`p-item ${s.recordingAvailable ? 'active-item' : ''}`} 
+                    key={s.id} 
+                    onClick={() => {
+                      if (s.recordingAvailable) {
+                        window.open(`/api/sessions/${s.id}/recording`, '_blank');
+                      }
+                    }}
+                  >
+                    <div className="p-item-icon">{s.recordingAvailable ? '📽' : '🕒'}</div>
+                    <div className="p-item-info">
+                       <div className="p-item-title">{s.title}</div>
+                       <div className="p-item-dur">
+                        {s.recordingAvailable ? 'Watch Recording ↗' : `Scheduled for ${new Date(s.startTime).toLocaleDateString()}`}
+                       </div>
+                    </div>
+                  </div>
+                )) : (
+                  <div style={{ padding: '16px', fontSize: '11px', color: 'var(--player-text-dim)', textAlign: 'center', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px dashed var(--player-border)' }}>
+                    No bonus recordings yet.
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+           </div>
         </div>
       </div>
     </div>
