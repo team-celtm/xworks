@@ -1,0 +1,9 @@
+.logo-standard {
+  display: flex;
+  align-items: center;
+  gap: 0px;
+  font-family: var(--font-display, var(--fd, 'Syne', sans-serif));
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  user-select: none;
+}
