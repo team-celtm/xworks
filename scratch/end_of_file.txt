@@ -1,0 +1,15 @@
+  1033	                        else router.push("/dashboard/enrolments");
+  1034	                      }}
+  1035	                    >
+  1036	                      Start Learning →
+  1037	                    </button>
+  1038	                  </div>
+  1039	                </div>
+  1040	              </div>
+  1041	            )}
+  1042	          </div>
+  1043	        </div>
+  1044	      )}
+  1045	    </div>
+  1046	  );
+  1047	}
