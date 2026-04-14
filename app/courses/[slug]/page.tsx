@@ -344,56 +344,59 @@ export default function CourseDetailPage() {
                    </ul>
 
                    {userEnrol ? (
-              <button 
-                className="enrol-cta" 
-                style={{ width: '100%', padding: '18px', borderRadius: '16px', background: 'var(--blue)', color: '#fff', border: 'none', fontSize: '16px', fontWeight: 700, cursor: 'pointer' }}
-                onClick={() => {
-                  if (course.live) {
-                    router.push('/dashboard?view=upcoming');
-                  } else {
-                    router.push(`/player/${userEnrol.enrolment_id}`);
-                  }
-                }}
-              >
-                {course.live ? 'View Schedule →' : 'Continue Learning →'}
-              </button>
-            ) : (
-              <button 
-                className={`enrol-cta ${enrolling ? 'loading' : ''}`} 
-                onClick={handleEnrol} 
-                disabled={enrolling || success}
-                style={{ 
-                       width: '100%', 
-                       padding: '18px', 
-                       borderRadius: '16px', 
-                       background: success ? '#16A34A' : 'var(--indigo)', 
-                       color: '#fff', 
-                       border: 'none', 
-                       fontSize: '16px', 
-                       fontWeight: 700, 
-                       cursor: (enrolling || success) ? 'default' : 'pointer', 
-                       marginBottom: '16px',
-                       display: 'flex',
-                       alignItems: 'center',
-                       justifyContent: 'center',
-                       gap: '10px',
-                       opacity: enrolling ? 0.8 : 1
-                     }}
-                   >
-                     {enrolling ? (
-                       <div className="btn-loader"></div>
-                     ) : success ? (
-                       '✓ Enrolled Successfully'
-                     ) : (
-                       'Enrol now →'
-                     )}
-                   </button>
-                   {error && !loading && (
-                     <div style={{ color: '#EF4444', fontSize: '13px', textAlign: 'center', marginBottom: '16px', fontWeight: 500 }}>
-                       {error}
-                     </div>
-                   )}
-                   <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-3)' }}>100% money-back guarantee</div>
+                      <button 
+                        className="enrol-cta" 
+                        style={{ width: '100%', padding: '18px', borderRadius: '16px', background: 'var(--blue)', color: '#fff', border: 'none', fontSize: '16px', fontWeight: 700, cursor: 'pointer' }}
+                        onClick={() => {
+                          if (course.live) {
+                            router.push('/dashboard?view=upcoming');
+                          } else {
+                            router.push(`/player/${userEnrol.enrolment_id}`);
+                          }
+                        }}
+                      >
+                        {course.live ? 'View Schedule →' : 'Continue Learning →'}
+                      </button>
+                    ) : (
+                      <>
+                        <button 
+                          className={`enrol-cta ${enrolling ? 'loading' : ''}`} 
+                          onClick={handleEnrol} 
+                          disabled={enrolling || success}
+                          style={{ 
+                            width: '100%', 
+                            padding: '18px', 
+                            borderRadius: '16px', 
+                            background: success ? '#16A34A' : 'var(--indigo)', 
+                            color: '#fff', 
+                            border: 'none', 
+                            fontSize: '16px', 
+                            fontWeight: 700, 
+                            cursor: (enrolling || success) ? 'default' : 'pointer', 
+                            marginBottom: '16px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '10px',
+                            opacity: enrolling ? 0.8 : 1
+                          }}
+                        >
+                          {enrolling ? (
+                            <div className="btn-loader"></div>
+                          ) : success ? (
+                            '✓ Enrolled Successfully'
+                          ) : (
+                            'Enrol now →'
+                          )}
+                        </button>
+                        {error && !loading && (
+                          <div style={{ color: '#EF4444', fontSize: '13px', textAlign: 'center', marginBottom: '16px', fontWeight: 500 }}>
+                            {error}
+                          </div>
+                        )}
+                        <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-3)' }}>100% money-back guarantee</div>
+                      </>
+                    )}
                 </div>
              </div>
           </div>
