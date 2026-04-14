@@ -72,6 +72,8 @@ export default function CourseDetailPage() {
     fetchUser();
   }, []);
 
+  const [userEnrol, setUserEnrol] = useState<any>(null);
+
   useEffect(() => {
     async function fetchDetail() {
       try {
@@ -79,6 +81,14 @@ export default function CourseDetailPage() {
         if (!res.ok) throw new Error('Course not found');
         const data = await res.json();
         setCourse(data);
+
+        // Fetch user enrolments if logged in
+        const eres = await fetch('/api/learner/enrolments');
+        if (eres.ok) {
+          const edata = await eres.json();
+          const match = edata.find((e: any) => e.course_id === data.id && e.enrolment_status === 'active');
+          if (match) setUserEnrol(match);
+        }
 
         // Fetch sessions if it's a live course
         const sres = await fetch(`/api/courses/id/${data.id}/sessions`);
@@ -333,10 +343,26 @@ export default function CourseDetailPage() {
                       ))}
                    </ul>
 
-                   <button 
-                     onClick={handleEnrol}
-                     disabled={enrolling || success}
-                     style={{ 
+                   {userEnrol ? (
+              <button 
+                className="enrol-cta" 
+                style={{ width: '100%', padding: '18px', borderRadius: '16px', background: 'var(--blue)', color: '#fff', border: 'none', fontSize: '16px', fontWeight: 700, cursor: 'pointer' }}
+                onClick={() => {
+                  if (course.live) {
+                    router.push('/dashboard?view=upcoming');
+                  } else {
+                    router.push(`/player/${userEnrol.enrolment_id}`);
+                  }
+                }}
+              >
+                {course.live ? 'View Schedule →' : 'Continue Learning →'}
+              </button>
+            ) : (
+              <button 
+                className={`enrol-cta ${enrolling ? 'loading' : ''}`} 
+                onClick={handleEnrol} 
+                disabled={enrolling || success}
+                style={{ 
                        width: '100%', 
                        padding: '18px', 
                        borderRadius: '16px', 
