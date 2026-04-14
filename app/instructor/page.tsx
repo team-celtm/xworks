@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import "../dashboard/dashboard.css";
+import Logo from '../components/Logo';
 
 export default function InstructorDashboard() {
   const router = useRouter();
@@ -183,11 +184,7 @@ export default function InstructorDashboard() {
       ══════════════════════════ */}
       <aside className="sidebar">
         <Link href="/" className="sb-logo" style={{ textDecoration: 'none' }}>
-          <div className="sb-logo-bars">
-            <div className="sb-logo-bar"></div>
-            <div className="sb-logo-bar"></div>
-          </div>
-          <span className="sb-logo-name">X<span>WORKS</span></span>
+          <Logo fontSize="22px" />
         </Link>
 
         <div className="sb-user">

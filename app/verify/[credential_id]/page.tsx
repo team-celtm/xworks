@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import "../verify.css";
 import Link from "next/link";
+import Logo from "../../components/Logo";
 
 interface CertData {
   credentialId: string;
@@ -66,7 +67,9 @@ export default function VerifyPage({ params }: { params: Promise<{ credential_id
   return (
     <div className="v-shell">
       <nav className="v-nav">
-        <Link href="/" className="v-logo">X<span>WORKS</span></Link>
+        <Link href="/" className="v-logo" style={{ textDecoration: 'none' }}>
+          <Logo fontSize="22px" />
+        </Link>
         <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--cert-orange)", letterSpacing: "0.5px" }}>
           CREDENTIAL ID: {cert.credentialId}
         </div>
@@ -87,9 +90,9 @@ export default function VerifyPage({ params }: { params: Promise<{ credential_id
 
         <div className="v-cert-inner">
           <div className="v-cert-branding">
-             <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: "22px", fontWeight: 800, color: "var(--cert-ink)", letterSpacing: "-0.3px", marginBottom: "0" }}>
-                  X<span style={{ color: "var(--cert-orange)" }}>WORKS</span>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: "22px", marginBottom: "0" }}>
+                  <Logo fontSize="22px" xColor="var(--cert-ink)" worksColor="var(--cert-orange)" />
                 </div>
                 <div style={{ fontSize: "10px", color: "var(--cert-indigo)", fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", marginTop: "2px" }}>Skills for the Future</div>
              </div>
