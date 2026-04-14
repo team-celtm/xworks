@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import './catalogue.css';
-import Logo from '../components/Logo';
 
 declare global {
   interface Window {
@@ -391,8 +390,9 @@ function CatalogueContent() {
     <div className="catalogue-wrapper">
       {/* ══ NAV ══ */}
       <nav className="nav">
-        <Link href="/" className="nav-logo" style={{ textDecoration: 'none' }}>
-          <Logo fontSize="22px" />
+        <Link href="/" className="nav-logo">
+          <div className="nav-bars"><div className="nav-bar"></div><div className="nav-bar"></div></div>
+          X<span>WORKS</span>
         </Link>
         <div className="nav-right">
           <Link href="/dashboard" className="nav-link-sm">Dashboard</Link>

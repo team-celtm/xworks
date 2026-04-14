@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import '../../catalogue/catalogue.css';
-import Logo from '../../components/Logo';
 
 declare global {
   interface Window {
@@ -222,8 +221,9 @@ export default function CourseDetailPage() {
   return (
     <div className="detail-page" style={{ background: 'var(--surface-2)', minHeight: '100vh' }}>
       <nav className="nav">
-        <Link href="/" className="nav-logo" style={{ textDecoration: 'none' }}>
-           <Logo fontSize="22px" />
+        <Link href="/" className="nav-logo">
+           <div className="nav-bars"><div className="nav-bar"></div><div className="nav-bar"></div></div>
+           <span style={{ color: '#fff' }}>X</span><span style={{ color: 'var(--coral)' }}>WORKS</span>
         </Link>
         <div className="nav-right">
           <Link href="/catalogue" className="nav-link-sm">Explore</Link>
