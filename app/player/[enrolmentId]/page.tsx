@@ -33,7 +33,10 @@ export default function PlayerPage({ params }: { params: Promise<{ enrolmentId: 
     fetchContent();
   }, [enrolmentId]);
 
+  const [isUpdating, setIsUpdating] = useState(false);
+
   const updateProgress = async (newPct: number) => {
+    setIsUpdating(true);
     try {
       const res = await fetch(`/api/learner/enrolments/${enrolmentId}/progress`, {
         method: "PUT",
@@ -46,6 +49,8 @@ export default function PlayerPage({ params }: { params: Promise<{ enrolmentId: 
       }
     } catch (err) {
       console.error("Progress update failed:", err);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -90,11 +95,11 @@ export default function PlayerPage({ params }: { params: Promise<{ enrolmentId: 
                </div>
             </div>
             <button 
-              className="p-finish-btn" 
-              onClick={() => updateProgress(Math.min(100, content.currentProgress + 10))}
-              disabled={content.currentProgress >= 100}
+              className={`p-finish-btn ${isUpdating ? 'p-loading' : ''}`} 
+              onClick={() => updateProgress(Math.min(100, content.currentProgress + 15))}
+              disabled={content.currentProgress >= 100 || isUpdating}
             >
-              Mark Lesson as Complete →
+              {isUpdating ? "Updating..." : (content.currentProgress >= 100 ? "Course Completed" : "Mark Lesson as Complete →")}
             </button>
           </div>
         </div>
@@ -106,15 +111,18 @@ export default function PlayerPage({ params }: { params: Promise<{ enrolmentId: 
            
            <div className="p-curric-scroll">
               <div className="p-list">
-                {content.curriculum.map((item: any, idx: number) => (
-                  <div className={`p-item ${item.completed ? 'done' : ''} ${idx === 0 ? 'active-item' : ''}`} key={item.id}>
-                    <div className="p-item-icon">{item.completed ? '✓' : idx + 1}</div>
+                {content.curriculum.map((item: any, idx: number) => {
+                  const isItemDone = content.currentProgress >= ((idx + 1) * 33.3);
+                  return (
+                  <div className={`p-item ${isItemDone ? 'done' : ''} ${idx === 0 ? 'active-item' : ''}`} key={item.id}>
+                    <div className="p-item-icon">{isItemDone ? '✓' : idx + 1}</div>
                     <div className="p-item-info">
                        <div className="p-item-title">{item.title}</div>
                        <div className="p-item-dur">{item.duration} · Video Module</div>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
     
               <div className="p-curric-header" style={{ marginTop: '24px', paddingLeft: 0, paddingRight: 0 }}>
