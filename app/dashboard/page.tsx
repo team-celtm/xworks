@@ -845,13 +845,9 @@ export default function DashboardPage() {
            SIDEBAR
       ══════════════════════════ */}
       <aside className="sidebar">
-        <div className="sb-logo">
-          <Link href="/" className="sb-logo-link">
-            <div className="sidebar-logo">
-              <Logo fontSize="22px" />
-            </div>
-          </Link>
-        </div>
+        <Link href="/" className="sb-logo" style={{ textDecoration: 'none' }}>
+           <Logo fontSize="22px" />
+        </Link>
 
         <div className="sb-user">
           <div className="sb-avatar">

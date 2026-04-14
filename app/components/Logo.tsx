@@ -20,7 +20,7 @@ export default function Logo({
       display: "flex", 
       alignItems: "center", 
       gap: "0px",
-      fontFamily: "var(--font-display)",
+      fontFamily: "var(--font-display, var(--fd, 'Syne', sans-serif))",
       fontSize: fontSize,
       fontWeight: 900,
       letterSpacing: "-0.04em",
