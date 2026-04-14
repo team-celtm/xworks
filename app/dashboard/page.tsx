@@ -1018,7 +1018,8 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* ══ INSTRUCTOR PORTAL INJECTION ══ */}
+                  {/* ══ INSTRUCTOR PORTAL INJECTION (Temporarily Disabled) ══ */}
+                  {/* 
                   <div className="fade-up" style={{ animationDelay: '0.2s', marginTop: '24px' }}>
                     <div className="section-hd">
                       <div className="section-hd-left">
@@ -1056,6 +1057,7 @@ export default function DashboardPage() {
                        </div>
                     )}
                   </div>
+                  */}
                 </div>
               )}
             </div>
