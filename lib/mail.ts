@@ -8,7 +8,12 @@ const transporter = nodemailer.createTransport({
     user: (process.env.EMAIL_USER || "").trim(),
     pass: (process.env.EMAIL_PASS || "").trim(),
   },
+  authMethod: 'LOGIN',
+  tls: {
+    rejectUnauthorized: false
+  }
 });
+
 
 interface SendMailOptions {
   to: string;
