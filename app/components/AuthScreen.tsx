@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Logo from './Logo';
 
 interface AuthScreenProps {
   defaultTab?: 'in' | 'up';
@@ -262,9 +263,8 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
           <div className="bm" style={{ width: '160px' }}></div>
         </div>
         <div className="left-content">
-          <a href="#" className="logo">
-            <div className="logo-icon"><div className="lb"></div><div className="lb"></div></div>
-            <span className="logo-text" onClick={()=>router.push('/')}>X<span>WORKS</span></span>
+          <a href="#" className="logo" onClick={(e) => { e.preventDefault(); router.push('/'); }}>
+            <Logo fontSize="26px" />
           </a>
           <div>
             <div className="eyebrow"><div className="eyebrow-dash"></div>Where skills come alive</div>

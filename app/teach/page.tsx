@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Logo from '../components/Logo';
 
 export default function TeachPage() {
   const router = useRouter();
@@ -68,8 +69,7 @@ export default function TeachPage() {
         </div>
         <div className="left-content">
           <a href="#" className="logo" onClick={(e) => { e.preventDefault(); router.push('/'); }}>
-            <div className="logo-icon"><div className="lb"></div><div className="lb"></div></div>
-            <span className="logo-text">X<span>WORKS</span></span>
+            <Logo fontSize="26px" />
           </a>
           <div>
             <div className="eyebrow"><div className="eyebrow-dash"></div>Become an Instructor</div>

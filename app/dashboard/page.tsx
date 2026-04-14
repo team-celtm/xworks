@@ -5,6 +5,7 @@ import "./dashboard.css";
 import "./notes.css";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Logo from '../components/Logo';
 
 /* ══ DATA ══ */
 interface Workshop {
@@ -845,14 +846,10 @@ export default function DashboardPage() {
       ══════════════════════════ */}
       <aside className="sidebar">
         <div className="sb-logo">
-          <Link href="/" className="sb-logo-link" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div className="sb-logo-bars">
-              <div className="sb-logo-bar"></div>
-              <div className="sb-logo-bar"></div>
+          <Link href="/" className="sb-logo-link">
+            <div className="sidebar-logo">
+              <Logo fontSize="22px" />
             </div>
-            <span className="sb-logo-name" style={{ color: '#fff', fontSize: '22px', fontWeight: 800 }}>
-              <span style={{ color: '#fff' }}>X</span><span style={{ color: 'var(--coral)' }}>WORKS</span>
-            </span>
           </Link>
         </div>
 
