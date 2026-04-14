@@ -6,7 +6,6 @@ interface LogoProps {
   style?: React.CSSProperties;
   fontSize?: string;
   hideX?: boolean;
-}
   xColor?: string;
   worksColor?: string;
 }
