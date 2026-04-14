@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     const demoEmail = 'demo@xworks.com';
     let { rows: usr } = await pool.query("SELECT id FROM users WHERE email = $1", [demoEmail]);
     if (usr.length === 0) {
-      const { rows: newUser } = await pool.query("INSERT INTO users (email, first_name, last_name, role) VALUES ($1, 'Demo', 'User', 'learner') RETURNING id", [demoEmail]);
+      const { rows: newUser } = await pool.query("INSERT INTO users (email, first_name, last_name, role, created_at) VALUES ($1, 'Demo', 'User', 'learner', NOW()) RETURNING id", [demoEmail]);
       usr = newUser;
       steps.push('Created demo user: ' + demoEmail);
     }
