@@ -1,18 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { jwtVerify } from 'jose';
-import nodemailer from 'nodemailer';
+import { sendMail } from '@/lib/mail';
 
 const SESSION_SECRET = process.env.SESSION_SECRET || 'your-default-secret-change-me';
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.mailtrap.io',
-  port: parseInt(process.env.SMTP_PORT || '2525', 10),
-  auth: {
-    user: process.env.SMTP_USER || 'user',
-    pass: process.env.SMTP_PASS || 'pass',
-  },
-});
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -102,11 +93,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       `;
 
       emailPromises.push(
-        transporter.sendMail({
-          from: '"XWORKS Support" <support@xworks.com>',
+        sendMail({
+          from: '"XWORKS Support" <noreply@celtm.com>',
           to: reg.email,
           subject: `Canceled: ${sessionInfo.session_title}`,
           text: emailBody.trim(),
+          html: emailBody.trim().replace(/\n/g, '<br/>')
+        }).then(res => {
+          if (!res.success) throw res.error;
         }).catch(err => console.error('Failed sending cancellation email:', err))
       );
     }
