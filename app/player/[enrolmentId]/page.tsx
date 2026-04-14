@@ -69,10 +69,12 @@ export default function PlayerPage({ params }: { params: Promise<{ enrolmentId: 
         <div className="p-vid-area">
           <div className="p-video-container">
             <video 
-              src={content.videoUrl || "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4"} 
+              src={content.videoUrl || "https://vjs.zencdn.net/v/oceans.mp4"} 
               className="p-video"
               controls 
-              autoPlay
+              autoPlay 
+              muted
+              playsInline
               poster="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=2070&auto=format&fit=crop"
             />
           </div>
