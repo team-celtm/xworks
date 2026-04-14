@@ -89,6 +89,17 @@ export default function DashboardPage() {
   const [currentNote, setCurrentNote] = useState<Note | null>(null);
   const [noteSearch, setNoteSearch] = useState("");
 
+  // Settings state
+  const [settingsForm, setSettingsForm] = useState({
+    firstName: "",
+    lastName: "",
+    phone: "",
+    city: "",
+    preferences: {} as any
+  });
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [settingsStatus, setSettingsStatus] = useState("");
+
   useEffect(() => {
     if (sessions.length > 0 && sessions[0].scheduledStart) {
       const interval = setInterval(() => {
@@ -293,6 +304,55 @@ export default function DashboardPage() {
     }
   };
 
+  const fetchProfile = async () => {
+    try {
+      const res = await fetch("/api/learner/profile");
+      if (res.ok) {
+        const data = await res.json();
+        setSettingsForm({
+          firstName: data.firstName || "",
+          lastName: data.lastName || "",
+          phone: data.phone || "",
+          city: data.city || "",
+          preferences: data.preferences || {}
+        });
+      }
+    } catch (err) {}
+  };
+
+  const handleSaveSettings = async () => {
+    setIsSavingSettings(true);
+    setSettingsStatus("Saving...");
+    try {
+      const res = await fetch("/api/learner/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settingsForm)
+      });
+      if (res.ok) {
+        setSettingsStatus("Saved! ✨");
+        fetchUser(); // Refresh user header
+        setTimeout(() => setSettingsStatus(""), 3000);
+      } else {
+        setSettingsStatus("Error saving.");
+      }
+    } catch (err) {
+      setSettingsStatus("Error saving.");
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
+  const togglePreference = (key: string) => {
+    setSettingsForm(prev => ({
+      ...prev,
+      preferences: {
+        ...prev.preferences,
+        [key]: !prev.preferences[key]
+      }
+    }));
+  };
+
   useEffect(() => {
     // Using shared functions defined above to ensure consistency across the component
     const loadData = async () => {
@@ -302,7 +362,8 @@ export default function DashboardPage() {
         fetchUser(),
         fetchSessions(),
         fetchCerts(),
-        fetchNotes()
+        fetchNotes(),
+        fetchProfile()
       ]);
       setTodayDate(new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }));
       setHasMounted(true);
@@ -1345,99 +1406,84 @@ export default function DashboardPage() {
           {/* ══ VIEW: SETTINGS ══ */}
           {activeView === "settings" && (
             <div className="view active fade-up" style={{ display: 'flex' }}>
-              <div className="fade-up" style={{ animationDelay: '0s' }}>
-                <div className="section-label">Account</div>
-                <div className="section-title" style={{ fontFamily: "var(--font-d)", fontSize: "22px", fontWeight: 800, letterSpacing: "-0.5px", marginBottom: "4px" }}>
-                  Settings
+              <div className="fade-up" style={{ animationDelay: '0s', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', width: '100%' }}>
+                <div>
+                  <div className="section-label">Account</div>
+                  <div className="section-title" style={{ fontFamily: "var(--font-d)", fontSize: "22px", fontWeight: 800, letterSpacing: "-0.5px", marginBottom: "4px" }}>
+                    Settings
+                  </div>
+                  <div style={{ fontSize: "13px", color: "var(--text-3)" }}>
+                    Manage your profile and preferences
+                  </div>
                 </div>
-                <div style={{ fontSize: "13px", color: "var(--text-3)" }}>
-                  Manage your profile and preferences
-                </div>
+                {settingsStatus && <div className="fade-up" style={{ fontSize: '12px', fontWeight: 600, color: 'var(--indigo)', background: 'var(--indigo-light)', padding: '6px 14px', borderRadius: '8px' }}>{settingsStatus}</div>}
               </div>
               <div className="settings-grid fade-up" style={{ animationDelay: '0.06s' }}>
                 <div className="settings-card">
                   <div className="settings-card-title">👤 Profile</div>
                   <div className="settings-avatar-row">
                     <div className="settings-avatar-big">
-                      {user ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase() : "..."}
+                      {settingsForm.firstName?.[0] || user?.firstName?.[0] || "U"}
                     </div>
                     <div>
-                      <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--ink)" }}>{user ? `${user.firstName} ${user.lastName}` : "Loading..."}</div>
-                      <div style={{ fontSize: "11px", color: "var(--text-3)", marginTop: "2px" }}>{user?.role === 'learner' ? 'Pro Learner' : user?.role} · Member since {user ? new Date(user.created_at || Date.now()).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }) : '...'}</div>
-                      <button style={{ marginTop: "8px", fontSize: "11px", color: "var(--blue)", background: "none", border: "none", cursor: "pointer", padding: 0 }}>
-                        Change photo →
-                      </button>
+                      <div style={{ fontSize: "14px", fontWeight: 700, color: "var(--ink)" }}>{settingsForm.firstName} {settingsForm.lastName}</div>
+                      <div style={{ fontSize: "12px", color: "var(--text-3)", marginTop: "2px" }}>Learner · Member since {new Date(user?.created_at || Date.now()).toLocaleDateString('en-IN', { month: 'short', year: 'numeric' })}</div>
+                    </div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div className="settings-field">
+                      <label>First name</label>
+                      <input className="settings-input" value={settingsForm.firstName} onChange={e => setSettingsForm(p => ({ ...p, firstName: e.target.value }))} />
+                    </div>
+                    <div className="settings-field">
+                      <label>Last name</label>
+                      <input className="settings-input" value={settingsForm.lastName} onChange={e => setSettingsForm(p => ({ ...p, lastName: e.target.value }))} />
                     </div>
                   </div>
                   <div className="settings-field">
-                    <label>Full name</label>
-                    <input className="settings-input" defaultValue={user ? `${user.firstName} ${user.lastName}` : ""} key={user?.id + "_name"} />
-                  </div>
-                  <div className="settings-field">
-                    <label>Email</label>
-                    <input className="settings-input" defaultValue={user?.email || ""} key={user?.id + "_email"} />
+                    <label>Email address</label>
+                    <input className="settings-input" style={{ opacity: 0.6, cursor: 'not-allowed' }} value={user?.email || ""} readOnly />
                   </div>
                   <div className="settings-field">
                     <label>Phone</label>
-                    <input className="settings-input" defaultValue="+91 98765 43210" />
+                    <input className="settings-input" value={settingsForm.phone} onChange={e => setSettingsForm(p => ({ ...p, phone: e.target.value }))} />
                   </div>
                   <div className="settings-field">
                     <label>City</label>
-                    <input className="settings-input" defaultValue="Bengaluru, Karnataka" />
+                    <input className="settings-input" value={settingsForm.city} onChange={e => setSettingsForm(p => ({ ...p, city: e.target.value }))} />
                   </div>
-                  <button className="settings-save">Save changes</button>
+                  <button className="settings-save" onClick={handleSaveSettings} disabled={isSavingSettings}>
+                    {isSavingSettings ? "Saving..." : "Save changes"}
+                  </button>
                 </div>
                 <div>
                   <div className="settings-card" style={{ marginBottom: "16px" }}>
                     <div className="settings-card-title">🔔 Notifications</div>
-                    <div className="toggle-row">
-                      <div><div className="toggle-label">Upcoming class reminders</div><div className="toggle-sub">1 hour before class starts</div></div>
-                      <div className="toggle on" onClick={(e) => e.currentTarget.classList.toggle("on")}></div>
-                    </div>
-                    <div className="toggle-row">
-                      <div><div className="toggle-label">New workshops in your interests</div><div className="toggle-sub">Weekly digest</div></div>
-                      <div className="toggle on" onClick={(e) => e.currentTarget.classList.toggle("on")}></div>
-                    </div>
-                    <div className="toggle-row">
-                      <div><div className="toggle-label">Nearby live classes</div><div className="toggle-sub">Workshops within 5km</div></div>
-                      <div className="toggle on" onClick={(e) => e.currentTarget.classList.toggle("on")}></div>
-                    </div>
-                    <div className="toggle-row">
-                      <div><div className="toggle-label">Certificate earned</div></div>
-                      <div className="toggle on" onClick={(e) => e.currentTarget.classList.toggle("on")}></div>
-                    </div>
-                    <div className="toggle-row">
-                      <div><div className="toggle-label">Promotional offers</div></div>
-                      <div className="toggle" onClick={(e) => e.currentTarget.classList.toggle("on")}></div>
-                    </div>
+                    {[
+                      { id: 'reminders', lbl: 'Upcoming class reminders', sub: '1 hour before class starts' },
+                      { id: 'digest', lbl: 'New workshops in your interests', sub: 'Weekly digest' },
+                      { id: 'nearby', lbl: 'Nearby live classes', sub: 'Workshops within 5km' },
+                      { id: 'certs', lbl: 'Certificate earned' }
+                    ].map(n => (
+                      <div className="toggle-row" key={n.id}>
+                        <div><div className="toggle-label">{n.lbl}</div>{n.sub && <div className="toggle-sub">{n.sub}</div>}</div>
+                        <div className={`toggle ${settingsForm.preferences[n.id] ? 'on' : ''}`} onClick={() => togglePreference(n.id)}></div>
+                      </div>
+                    ))}
                   </div>
                   <div className="settings-card">
                     <div className="settings-card-title">🎯 Learning Preferences</div>
                     <div className="settings-field">
-                      <label>Interests</label>
-                      <input className="settings-input" defaultValue="AI, Python, Photography, Finance" />
+                      <label>Interests (comma separated)</label>
+                      <input className="settings-input" value={settingsForm.preferences.interests || ""} onChange={e => setSettingsForm(p => ({ ...p, preferences: { ...p.preferences, interests: e.target.value } }))} />
                     </div>
                     <div className="settings-field">
                       <label>Preferred language</label>
-                      <select className="settings-input" style={{ cursor: "pointer" }}>
-                        <option>English</option>
-                        <option>Hindi</option>
-                        <option>Tamil</option>
-                        <option>Telugu</option>
+                      <select className="settings-input" value={settingsForm.preferences.lang || "English"} onChange={e => setSettingsForm(p => ({ ...p, preferences: { ...p.preferences, lang: e.target.value } }))}>
+                        <option>English</option><option>Hindi</option><option>Tamil</option>
                       </select>
                     </div>
-                    <div className="settings-field">
-                      <label>Learning pace</label>
-                      <select className="settings-input" style={{ cursor: "pointer" }} defaultValue="Regular (3–5 hrs/week)">
-                        <option>Casual (1–2 hrs/week)</option>
-                        <option value="Regular (3–5 hrs/week)">Regular (3–5 hrs/week)</option>
-                        <option>Intensive (5+ hrs/week)</option>
-                      </select>
-                    </div>
-                    <div className="toggle-row">
-                      <div><div className="toggle-label">Show nearby classes first</div></div>
-                      <div className="toggle on" onClick={(e) => e.currentTarget.classList.toggle("on")}></div>
-                    </div>
+                    <button className="settings-save" style={{ marginTop: '16px', borderRadius: '10px' }} onClick={handleSaveSettings}>Save Preferences</button>
                   </div>
                 </div>
               </div>
