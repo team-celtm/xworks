@@ -7,9 +7,13 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
+    const resolvedParams = await params;
+    const id = resolvedParams.id;
     const userId = await getAuthId(req);
+    
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    console.log(`[DELETE] Note: ${id} | User: ${userId}`);
 
     const { rowCount } = await pool.query(
       'DELETE FROM notes WHERE id = $1 AND user_id = $2',
@@ -17,7 +21,8 @@ export async function DELETE(
     );
 
     if (rowCount === 0) {
-      return NextResponse.json({ error: 'Note not found or already deleted' }, { status: 404 });
+      console.warn(`[DELETE] Failed - Note ${id} not found for User ${userId}`);
+      return NextResponse.json({ error: 'Note not found' }, { status: 404 });
     }
 
     return NextResponse.json({ message: 'Note deleted successfully' });
