@@ -65,58 +65,73 @@ export default function VerifyPage({ params }: { params: Promise<{ credential_id
 
   return (
     <div className="v-shell">
-      {/* Dynamic Background matching course theme */}
-      <div className={`v-bg-glow ${cert.thumbBg}`}></div>
-
       <nav className="v-nav">
         <Link href="/" className="v-logo">X<span>WORKS</span></Link>
+        <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--cert-indigo)" }}>
+          Credential ID: {cert.credentialId.slice(0, 8)}...
+        </div>
       </nav>
 
-      <div className="v-main">
-        <div className="v-cert-card fade-up">
-          <div className="v-cert-header">
-            <div className="v-seal">
-              <span className="v-seal-check">✓</span>
-            </div>
-            <div className="v-status">Verified Credential</div>
+      <div className="v-cert-container fade-up">
+        {/* Background Clusters */}
+        <div className="v-shape v-s1"></div>
+        <div className="v-shape v-s2"></div>
+        <div className="v-shape v-s3"></div>
+        <div className="v-shape v-s4"></div>
+        <div className="v-shape v-s5"></div>
+        <div className="v-shape v-s6"></div>
+        <div className="v-shape v-s7"></div>
+        <div className="v-shape v-s8"></div>
+        <div className="v-shape v-s9"></div>
+        <div className="v-shape v-s10"></div>
+
+        <div className="v-cert-inner">
+          <div className="v-cert-branding">
+             <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: "24px", fontWeight: 800, color: "#2563eb", marginBottom: "0" }}>
+                  🤖 <span style={{ color: "#1e1b4b" }}>XWORKS</span>
+                </div>
+                <div style={{ fontSize: "12px", color: "#3b82f6", fontWeight: 600 }}>Skills for the Future</div>
+             </div>
           </div>
 
-          <div className="v-cert-body">
-            <p className="v-cert-label">This certifies that</p>
-            <h1 className="v-learner">{cert.learnerName}</h1>
-            <p className="v-cert-label">has successfully completed</p>
-            
-            <div className="v-course-chip">
-              <span className="v-emoji">{cert.emoji}</span>
-              <h2>{cert.courseName}</h2>
-            </div>
-            
-            <p className="v-duration">({cert.courseDuration} hours of coursework)</p>
-          </div>
+          <h1 className="v-title-main">CERTIFICATE</h1>
+          <p className="v-title-sub">of Course Completion</p>
 
-          <div className="v-cert-footer">
-            <div className="v-meta">
-              <span className="v-meta-label">Credential ID</span>
-              <span className="v-meta-val">{cert.credentialId}</span>
-            </div>
-            <div className="v-meta">
-              <span className="v-meta-label">Issued On</span>
-              <span className="v-meta-val">{new Date(cert.issuedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
+          <p className="v-presented">This certificate is proudly presented to</p>
+          <h2 className="v-learner-name">{cert.learnerName}</h2>
+
+          <p className="v-successfully">for successfully completing training as a</p>
+          <h3 className="v-course-title">{cert.courseName}</h3>
+          <p className="v-at-works">at <strong>XWORKS</strong> on {new Date(cert.issuedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+
+          <p className="v-body-p">
+            During this period, {cert.learnerName.split(' ')[0]} demonstrated exceptional creativity, technical proficiency, and a 
+            strong work ethic, making significant contributions to our organization. We commend {cert.learnerName.split(' ')[0]} 
+            for the dedication, professionalism, and outstanding performance throughout the course.
+          </p>
+
+          <p className="v-wish">We wish them continued success in all future endeavors.</p>
+
+          <div className="v-cert-footer-row">
+            <div className="v-signature-box">
+              <div className="v-sig-name">Nitesh Shetty</div>
+              <div className="v-sig-title">Founder, XWORKS</div>
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="v-actions fade-up" style={{ animationDelay: "0.2s" }}>
-          <button className="v-btn v-btn-primary" onClick={() => window.print()}>
-            Download PDF
-          </button>
-          <button className="v-btn v-btn-secondary" onClick={() => {
-            navigator.clipboard.writeText(window.location.href);
-            alert("Verification link copied!");
-          }}>
-            Share Link
-          </button>
-        </div>
+      <div className="v-actions fade-up" style={{ animationDelay: "0.2s" }}>
+        <button className="v-btn v-btn-primary" onClick={() => window.print()}>
+          Download PDF ↓
+        </button>
+        <button className="v-btn v-btn-secondary" onClick={() => {
+          navigator.clipboard.writeText(window.location.href);
+          alert("Verification link copied!");
+        }}>
+          Share Verification Link
+        </button>
       </div>
     </div>
   );

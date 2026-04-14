@@ -25,7 +25,7 @@ interface Workshop {
 
 interface DashboardEnrolData {
   id?: number;
-  courseId: string;
+  courseId?: string;
   sessionId?: string;
   name?: string;
   meta?: string;
@@ -98,6 +98,8 @@ export default function DashboardPage() {
 
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
   const [loadingWorkshops, setLoadingWorkshops] = useState(true);
+  const [trendingWorkshops, setTrendingWorkshops] = useState<Workshop[]>([]);
+  const [sessionExpired, setSessionExpired] = useState(false);
 
   const loadWorkshops = async () => {
     try {
@@ -121,78 +123,12 @@ export default function DashboardPage() {
           price: r.price
         }));
         setWorkshops(mapped);
-      }
-    } catch (err) {
-      console.error("Failed to load initial workshops:", err);
-    } finally {
-      setLoadingWorkshops(false);
-    }
-  };
 
-  const fetchEnrolments = async () => {
-    setLoadingEnrolments(true);
-    try {
-      const res = await fetch("/api/learner/enrolments");
-      if (res.ok) {
-        const data = await res.json();
-        setEnrolments(data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch enrolments:", err);
-    } finally {
-      setLoadingEnrolments(false);
-    }
-  };
-
-  const fetchUser = async () => {
-    try {
-      const res = await fetch("/api/auth/me");
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch user:", err);
-    }
-  };
-
-  const fetchSessions = async () => {
-    setLoadingSessions(true);
-    try {
-      const res = await fetch("/api/learner/sessions");
-      if (res.ok) {
-        const data = await res.json();
-        setSessions(data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch sessions:", err);
-    } finally {
-      setLoadingSessions(false);
-    }
-  };
-
-  const fetchCerts = async () => {
-    setLoadingCerts(true);
-    try {
-      const res = await fetch("/api/learner/certificates");
-      if (res.ok) {
-        const data = await res.json();
-        setCerts(data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch certs:", err);
-    } finally {
-      setLoadingCerts(false);
-    }
-  };
-
-  useEffect(() => {
-    const loadWorkshops = async () => {
-      try {
-        const res = await fetch("/api/courses");
-        const results = await res.json();
-        if (Array.isArray(results)) {
-          const mapped = results.map(r => ({
+        // Also fetch trending separately for better data coverage
+        const trendRes = await fetch("/api/courses?sort=best&limit=8");
+        if (trendRes.ok) {
+          const trendData = await trendRes.json();
+          setTrendingWorkshops(trendData.map((r: any) => ({
             id: r.id,
             slug: r.slug,
             icon: r.emoji || "🎓",
@@ -207,81 +143,91 @@ export default function DashboardPage() {
             live: !!r.live,
             isNew: r.tag === 'new',
             nearby: !!r.nearby
-          }));
-          setWorkshops(mapped);
+          })));
         }
-      } catch (err) {
-        console.error("Failed to load initial workshops:", err);
       }
-    };
+    } catch (err) {
+      console.error("Failed to load initial workshops:", err);
+    } finally {
+      setLoadingWorkshops(false);
+    }
+  };
 
-    const fetchEnrolments = async () => {
-      setLoadingEnrolments(true);
-      try {
-        const res = await fetch("/api/learner/enrolments");
-        if (res.ok) {
-          const data = await res.json();
-          setEnrolments(data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch enrolments:", err);
-      } finally {
-        setLoadingEnrolments(false);
+  const fetchEnrolments = async () => {
+    setLoadingEnrolments(true);
+    try {
+      const res = await fetch("/api/learner/enrolments");
+      if (res.status === 401) return setSessionExpired(true);
+      if (res.ok) {
+        const data = await res.json();
+        setEnrolments(data || []);
       }
-    };
+    } catch (err) {
+      console.error("Failed to fetch enrolments:", err);
+    } finally {
+      setLoadingEnrolments(false);
+    }
+  };
 
-    const fetchUser = async () => {
-      try {
-        const res = await fetch("/api/auth/me");
-        if (res.ok) {
-          const data = await res.json();
-          if (data.role === 'instructor') {
-            router.push('/instructor');
-            return;
-          }
-          setUser(data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch user:", err);
+  const fetchUser = async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.status === 401) return setSessionExpired(true);
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data);
       }
-    };
+    } catch (err) {
+      console.error("Failed to fetch user:", err);
+    }
+  };
 
-    const fetchSessions = async () => {
-      setLoadingSessions(true);
-      try {
-        const res = await fetch("/api/learner/sessions");
-        if (res.ok) {
-          const data = await res.json();
-          setSessions(data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch sessions:", err);
-      } finally {
-        setLoadingSessions(false);
+  const fetchSessions = async () => {
+    setLoadingSessions(true);
+    try {
+      const res = await fetch("/api/learner/sessions");
+      if (res.status === 401) return setSessionExpired(true);
+      if (res.ok) {
+        const data = await res.json();
+        setSessions(data || []);
       }
-    };
+    } catch (err) {
+      console.error("Failed to fetch sessions:", err);
+    } finally {
+      setLoadingSessions(false);
+    }
+  };
 
-    const fetchCerts = async () => {
-      setLoadingCerts(true);
-      try {
-        const res = await fetch("/api/learner/certificates");
-        if (res.ok) {
-          const data = await res.json();
-          setCerts(data);
-        }
-      } catch (err) {
-        console.error("Failed to fetch certs:", err);
-      } finally {
-        setLoadingCerts(false);
+  const fetchCerts = async () => {
+    setLoadingCerts(true);
+    try {
+      const res = await fetch("/api/learner/certificates");
+      if (res.status === 401) return setSessionExpired(true);
+      if (res.ok) {
+        const data = await res.json();
+        setCerts(data || []);
       }
+    } catch (err) {
+      console.error("Failed to fetch certs:", err);
+    } finally {
+      setLoadingCerts(false);
+    }
+  };
+
+  useEffect(() => {
+    // Using shared functions defined above to ensure consistency across the component
+    const loadData = async () => {
+      await Promise.all([
+        loadWorkshops(),
+        fetchEnrolments(),
+        fetchUser(),
+        fetchSessions(),
+        fetchCerts()
+      ]);
+      setTodayDate(new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }));
+      setHasMounted(true);
     };
-    loadWorkshops();
-    fetchEnrolments();
-    fetchUser();
-    fetchSessions();
-    fetchCerts();
-    setTodayDate(new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }));
-    setHasMounted(true);
+    loadData();
 
     const urlParams = new URLSearchParams(window.location.search);
     const view = urlParams.get("view");
@@ -437,7 +383,7 @@ export default function DashboardPage() {
 
   const openEnrol = async (w: Workshop) => {
     setEnrolData({
-      courseId: w.id,
+      courseId: String(w.id),
       name: w.name,
       meta: `by Ananya Sharma · ★ ${w.rating} · ${w.dur} hrs · ${w.catLabel}`,
       price: `₹${(Number(w.price) || 0).toLocaleString("en-IN")}`,
@@ -571,12 +517,12 @@ export default function DashboardPage() {
       if (!res.ok) throw new Error(data.error || "Failed to initiate payment");
 
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        key: data.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: data.amount,
-        currency: data.currency,
+        currency: 'INR',
         name: "XWORKS",
         description: `Enrollment for ${enrolData.name}`,
-        order_id: data.id,
+        order_id: data.orderId,
         handler: async function (response: any) {
           try {
             const verifyRes = await fetch("/api/payments/verify", {
@@ -1006,31 +952,38 @@ export default function DashboardPage() {
                       {loadingSessions ? (
                         <div className="skeleton" style={{ width: '100%', height: '100px' }}></div>
                       ) : (
-                        <div className="stat-card" style={{ width: '100%', padding: '24px', display: 'flex', alignItems: 'center', background: 'var(--surface)', border: '1px solid var(--border-md)', borderRadius: '16px' }}>
-                          <div className="upcoming-date-block" style={{ margin: 0, marginRight: '24px' }}>
-                            <div className="upcoming-day">{new Date(sessions[0].scheduledStart).getDate()}</div>
-                            <div className="upcoming-month">{new Date(sessions[0].scheduledStart).toLocaleDateString('en-IN', { month: 'short' }).toUpperCase()}</div>
-                          </div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--ink)' }}>{sessions[0].sessionTitle}</div>
-                            <div style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              {sessions[0].courseName} · Starts at {new Date(sessions[0].scheduledStart).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-                              {timeLeft && timeLeft !== 'Started' && <span style={{ color: 'var(--blue)', fontWeight: 600, padding: '2px 8px', background: 'var(--blue-bg)', borderRadius: '100px', fontSize: '11px' }}>Starting in {timeLeft}</span>}
+                        <div className="summary-card">
+                          <div className="summary-card-top">
+                            <div className="upcoming-date-block" style={{ margin: 0 }}>
+                              <div className="upcoming-day">{new Date(sessions[0].scheduledStart).getDate()}</div>
+                              <div className="upcoming-month">{new Date(sessions[0].scheduledStart).toLocaleDateString('en-IN', { month: 'short' }).toUpperCase()}</div>
+                            </div>
+                            <div className="summary-card-info">
+                              <div className="summary-card-title">{sessions[0].sessionTitle}</div>
+                              <div className="summary-card-meta">
+                                {sessions[0].courseName} · {new Date(sessions[0].scheduledStart).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                              </div>
                             </div>
                           </div>
-                          <button 
-                            className="enrol-cta coral" 
-                            style={{ width: 'auto', padding: '12px 24px', marginTop: 0 }}
-                            onClick={() => {
-                              const joinable = new Date(sessions[0].scheduledStart).getTime() <= Date.now() + (15 * 60 * 1000);
-                              const isPast = new Date(sessions[0].scheduledStart).getTime() < Date.now();
-                              if (sessions[0].recordingAvailable && isPast) window.open(`/api/sessions/${sessions[0].sessionId}/recording`, '_blank');
-                              else if (joinable) window.open(`/api/learner/sessions/${sessions[0].sessionId}/join`, '_blank');
-                              else setActiveView("upcoming");
-                            }}
-                          >
-                            {sessions[0].recordingAvailable && new Date(sessions[0].scheduledStart).getTime() < Date.now() ? "Watch Recording ↗" : (new Date(sessions[0].scheduledStart).getTime() <= Date.now() + (15 * 60 * 1000) ? "Join Class →" : "View Details →")}
-                          </button>
+                          
+                          <div className="summary-card-bottom">
+                            <div className="summary-card-time">
+                              Starts at {new Date(sessions[0].scheduledStart).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                              {timeLeft && timeLeft !== 'Started' && <span className="starting-pill">Starting in {timeLeft}</span>}
+                            </div>
+                            <button 
+                              className="enrol-cta coral summary-card-btn" 
+                              onClick={() => {
+                                const joinable = new Date(sessions[0].scheduledStart).getTime() <= Date.now() + (15 * 60 * 1000);
+                                const isPast = new Date(sessions[0].scheduledStart).getTime() < Date.now();
+                                if (sessions[0].recordingAvailable && isPast) window.open(`/api/sessions/${sessions[0].sessionId}/recording`, '_blank');
+                                else if (joinable) window.open(`/api/learner/sessions/${sessions[0].sessionId}/join`, '_blank');
+                                else setActiveView("upcoming");
+                              }}
+                            >
+                              {sessions[0].recordingAvailable && new Date(sessions[0].scheduledStart).getTime() < Date.now() ? "Watch Recording ↗" : (new Date(sessions[0].scheduledStart).getTime() <= Date.now() + (15 * 60 * 1000) ? "Join Class →" : "View Details →")}
+                            </button>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1074,28 +1027,28 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     {user?.role === 'instructor' ? (
-                       <div className="stat-card" style={{ width: '100%', padding: '24px', display: 'flex', alignItems: 'center', background: 'var(--surface)', border: '1px solid var(--border-md)', borderRadius: '16px' }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--ink)' }}>Go to Creator Studio</div>
-                            <div style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>Manage your courses, live sessions, and view earnings.</div>
+                       <div className="summary-card">
+                          <div className="summary-card-info">
+                            <div className="summary-card-title">Go to Creator Studio</div>
+                            <div className="summary-card-meta">Manage your courses, live sessions, and view earnings.</div>
                           </div>
                           <Link 
-                            className="enrol-cta coral" 
-                            style={{ width: 'auto', padding: '12px 24px', margin: 0, textDecoration: 'none', display: 'inline-block', textAlign: 'center' }}
+                            className="enrol-cta coral summary-card-btn" 
+                            style={{ textDecoration: 'none', textAlign: 'center' }}
                             href="/instructor"
                           >
                             Open Instructor Portal 🚀
                           </Link>
                        </div>
                     ) : (
-                       <div className="stat-card" style={{ width: '100%', padding: '24px', display: 'flex', alignItems: 'center', background: 'var(--surface)', border: '1px solid var(--border-md)', borderRadius: '16px' }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--ink)' }}>Become an Instructor</div>
-                            <div style={{ fontSize: '13px', color: 'var(--text-3)', marginTop: '4px' }}>Share your knowledge and earn revenue by teaching premium cyber-tech workshops.</div>
+                       <div className="summary-card">
+                          <div className="summary-card-info">
+                            <div className="summary-card-title">Become an Instructor</div>
+                            <div className="summary-card-meta">Share your knowledge and earn revenue by teaching premium cyber-tech workshops.</div>
                           </div>
                           <Link 
-                            className="enrol-cta coral" 
-                            style={{ width: 'auto', padding: '12px 24px', margin: 0, textDecoration: 'none', display: 'inline-block', textAlign: 'center' }}
+                            className="enrol-cta coral summary-card-btn" 
+                            style={{ textDecoration: 'none', textAlign: 'center' }}
                             href="/teach"
                           >
                             Apply as Instructor ✨
@@ -1180,7 +1133,7 @@ export default function DashboardPage() {
                   Upcoming Courses
                 </div>
                 <div style={{ fontSize: "13px", color: "var(--text-3)" }}>
-                  3 workshops you&apos;ve enrolled in — get ready!
+                  {sessions.length} workshops you&apos;ve enrolled in — get ready!
                 </div>
               </div>
               <div className="upcoming-list fade-up" style={{ animationDelay: '0.06s' }}>
@@ -1836,6 +1789,27 @@ export default function DashboardPage() {
               </div>
               {isBooking && <div className="btn-loading" style={{ margin: '20px auto' }}></div>}
             </div>
+          </div>
+        </div>
+      )}
+      {/* ══ SESSION EXPIRED MODAL ══ */}
+      {sessionExpired && (
+        <div className="enrol-backdrop open" style={{ zIndex: 9999 }}>
+          <div className="enrol-modal" style={{ maxWidth: "400px", textAlign: "center", padding: "40px" }}>
+            <div style={{ fontSize: "48px", marginBottom: "20px" }}>🔒</div>
+            <h2 style={{ fontFamily: "var(--font-d)", fontSize: "24px", fontWeight: 800, marginBottom: "12px", color: "var(--ink)" }}>
+              Session Expired
+            </h2>
+            <p style={{ color: "var(--text-3)", fontSize: "14px", lineHeight: 1.6, marginBottom: "32px" }}>
+              For your security, your session has timed out. Please log in again to continue your journey.
+            </p>
+            <button 
+              className="enrol-cta coral" 
+              style={{ width: "100%", margin: 0 }}
+              onClick={() => window.location.href = "/Login"}
+            >
+              Log in to XWORKS
+            </button>
           </div>
         </div>
       )}

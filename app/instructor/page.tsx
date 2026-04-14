@@ -274,16 +274,16 @@ export default function InstructorDashboard() {
                 >
                   <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-3)' }}>Course Name</label>
                   <input name="name" type="text" className="prompt-input" required placeholder="e.g. Advanced Ethical Hacking" />
-                  <div style={{ display: 'flex', gap: '12px' }}>
-                     <div style={{flex: 1}}>
+                  <div className="stats-row" style={{ gap: '12px', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))' }}>
+                     <div>
                        <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-3)' }}>Category Tag</label>
                        <input name="cat" type="text" className="prompt-input" required placeholder="e.g. cyber" />
                      </div>
-                     <div style={{flex: 1}}>
+                     <div>
                        <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-3)' }}>Duration (hrs)</label>
                        <input name="dur" type="number" className="prompt-input" required placeholder="e.g. 5" />
                      </div>
-                     <div style={{flex: 1}}>
+                     <div>
                        <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-3)' }}>Price (₹)</label>
                        <input name="price" type="number" className="prompt-input" required placeholder="e.g. 1999" />
                      </div>
@@ -295,7 +295,8 @@ export default function InstructorDashboard() {
               <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>
                 <h3 style={{ color: 'var(--ink)', marginBottom: '16px', fontSize: '16px' }}>Your Courses</h3>
                 {courses.length === 0 ? <p style={{color:'var(--text-3)'}}>You have not created any courses yet.</p> : (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', color: 'var(--ink)', textAlign: 'left' }}>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', color: 'var(--ink)', textAlign: 'left', minWidth: '500px' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid var(--border-md)', color: 'var(--text-3)', fontSize: '14px' }}>
                         <th style={{ padding: '12px 8px' }}>Course Name</th>
@@ -320,6 +321,7 @@ export default function InstructorDashboard() {
                       ))}
                     </tbody>
                   </table>
+                </div>
                 )}
               </div>
             </div>
@@ -389,14 +391,18 @@ export default function InstructorDashboard() {
                 Earnings Dashboard
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+              <div className="stats-row" style={{ marginBottom: '24px' }}>
                 <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>
-                    <div style={{ color: 'var(--text-2)', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Total Courses</div>
-                    <div style={{ color: 'var(--ink)', fontSize: '32px', fontWeight: '900' }}>0</div>
+                    <div>
+                      <div style={{ color: 'var(--text-2)', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Total Courses</div>
+                      <div style={{ color: 'var(--ink)', fontSize: '32px', fontWeight: '900' }}>0</div>
+                    </div>
                 </div>
                 <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>
-                    <div style={{ color: 'var(--text-2)', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Pending Payout</div>
-                    <div style={{ color: 'var(--green)', fontSize: '32px', fontWeight: '900' }}>₹ 0</div>
+                    <div>
+                      <div style={{ color: 'var(--text-2)', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Pending Payout</div>
+                      <div style={{ color: 'var(--green)', fontSize: '32px', fontWeight: '900' }}>₹ 0</div>
+                    </div>
                 </div>
               </div>
               
