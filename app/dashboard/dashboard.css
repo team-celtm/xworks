@@ -340,7 +340,7 @@ body{font-family:var(--font-b);background:#F5F6FF;color:var(--ink);font-size:15p
 .tag-new{background:rgba(216,64,64,0.9);color:#fff}
 .wcard-body{padding:12px 14px 14px; flex: 1; display: flex; flex-direction: column;}
 .wcard-cat{font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--indigo);margin-bottom:4px}
-.wcard-name{font-family:var(--font-d);font-size:14px;font-weight:700;color:var(--ink);line-height:1.4;margin-bottom:8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 39px;}
+.wcard-name{font-family:var(--font-d);font-size:14px;font-weight:700;color:var(--ink);line-height:1.4;margin-bottom:8px; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 39px;}
 .wcard-meta{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text-3); margin-bottom: 4px; }
 .wcard-rating{color:var(--indigo);font-weight:600}
 
