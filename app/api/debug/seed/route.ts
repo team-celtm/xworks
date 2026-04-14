@@ -11,9 +11,14 @@ export async function GET(req: NextRequest) {
     await pool.query('CREATE TABLE IF NOT EXISTS enrolments (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), user_id UUID REFERENCES users(id), course_id UUID REFERENCES courses(id), status TEXT, progress_pct NUMERIC, completed_at TIMESTAMP WITH TIME ZONE)');
     await pool.query('CREATE TABLE IF NOT EXISTS certificates (id UUID PRIMARY KEY DEFAULT gen_random_uuid(), credential_id TEXT UNIQUE NOT NULL, user_id UUID REFERENCES users(id), course_id UUID REFERENCES courses(id), enrolment_id UUID REFERENCES enrolments(id), status TEXT DEFAULT \'issued\', issued_at TIMESTAMP WITH TIME ZONE DEFAULT NOW())');
     
-    // Ensure one user & course exists
-    const { rows: usr } = await pool.query("SELECT id FROM users LIMIT 1");
-    if (usr.length === 0) return NextResponse.json({ error: 'No user found. Please register first.' });
+    // Ensure demo user exists
+    const demoEmail = 'demo@xworks.com';
+    let { rows: usr } = await pool.query("SELECT id FROM users WHERE email = $1", [demoEmail]);
+    if (usr.length === 0) {
+      const { rows: newUser } = await pool.query("INSERT INTO users (email, first_name, last_name, role) VALUES ($1, 'Demo', 'User', 'learner') RETURNING id", [demoEmail]);
+      usr = newUser;
+      steps.push('Created demo user: ' + demoEmail);
+    }
 
     await pool.query("INSERT INTO categories (slug, name) VALUES ('tech', 'Tech') ON CONFLICT DO NOTHING");
     const { rows: cats } = await pool.query("SELECT id FROM categories LIMIT 1");

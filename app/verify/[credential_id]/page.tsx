@@ -67,8 +67,8 @@ export default function VerifyPage({ params }: { params: Promise<{ credential_id
     <div className="v-shell">
       <nav className="v-nav">
         <Link href="/" className="v-logo">X<span>WORKS</span></Link>
-        <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--cert-indigo)" }}>
-          Credential ID: {cert.credentialId.slice(0, 8)}...
+        <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--cert-orange)", letterSpacing: "0.5px" }}>
+          CREDENTIAL ID: {cert.credentialId}
         </div>
       </nav>
 
@@ -88,10 +88,10 @@ export default function VerifyPage({ params }: { params: Promise<{ credential_id
         <div className="v-cert-inner">
           <div className="v-cert-branding">
              <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: "24px", fontWeight: 800, color: "#2563eb", marginBottom: "0" }}>
-                  🤖 <span style={{ color: "#1e1b4b" }}>XWORKS</span>
+                <div style={{ fontSize: "22px", fontWeight: 800, color: "var(--cert-ink)", letterSpacing: "-0.3px", marginBottom: "0" }}>
+                  X<span style={{ color: "var(--cert-orange)" }}>WORKS</span>
                 </div>
-                <div style={{ fontSize: "12px", color: "#3b82f6", fontWeight: 600 }}>Skills for the Future</div>
+                <div style={{ fontSize: "10px", color: "var(--cert-indigo)", fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", marginTop: "2px" }}>Skills for the Future</div>
              </div>
           </div>
 
@@ -114,6 +114,9 @@ export default function VerifyPage({ params }: { params: Promise<{ credential_id
           <p className="v-wish">We wish them continued success in all future endeavors.</p>
 
           <div className="v-cert-footer-row">
+            <div className="v-cert-id-badge">
+              Credential ID: {cert.credentialId}
+            </div>
             <div className="v-signature-box">
               <div className="v-sig-name">Nitesh Shetty</div>
               <div className="v-sig-title">Founder, XWORKS</div>
