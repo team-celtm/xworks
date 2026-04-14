@@ -715,20 +715,32 @@ export default function Home() {
         <div className="footer-inner">
           <div className="footer-top">
             <div>
-              <div className="footer-brand-name">X<span>WORKS</span></div>
+              <div className="footer-brand-name" style={{ fontWeight: 800 }}>X<span style={{ color: 'var(--coral)' }}>WORKS</span></div>
               <div className="footer-brand-desc">Curated workshops for every curious mind. From school to silver — we believe learning never stops.</div>
             </div>
             <div>
               <div className="footer-col-title">Workshops</div>
-              <a href="#" className="footer-link">Artificial Intelligence</a><a href="#" className="footer-link">Programming</a><a href="#" className="footer-link">Cybersecurity</a><a href="#" className="footer-link">Data & Analytics</a><a href="#" className="footer-link">Design</a>
+              <Link href="/catalogue?q=Artificial Intelligence" className="footer-link">Artificial Intelligence</Link>
+              <Link href="/catalogue?q=Programming" className="footer-link">Programming</Link>
+              <Link href="/catalogue?q=Cybersecurity" className="footer-link">Cybersecurity</Link>
+              <Link href="/catalogue?q=Data" className="footer-link">Data & Analytics</Link>
+              <Link href="/catalogue?q=Design" className="footer-link">Design</Link>
             </div>
             <div>
               <div className="footer-col-title">Company</div>
-              <a href="#footer" className="footer-link">About us</a><Link href="/teach" className="footer-link">Teach on XWORKS</Link><a href="#" className="footer-link">Blog</a><a href="#" className="footer-link">Careers</a><a href="#" className="footer-link">Press</a>
+              <Link href="/" className="footer-link">About us</Link>
+              <Link href="/teach" className="footer-link">Teach on XWORKS</Link>
+              <Link href="/" className="footer-link">Blog</Link>
+              <Link href="/" className="footer-link">Careers</Link>
+              <Link href="/" className="footer-link">Press</Link>
             </div>
             <div>
               <div className="footer-col-title">Support</div>
-              <a href="#footer" className="footer-link">Contact us</a><a href="#" className="footer-link">FAQs</a><a href="#" className="footer-link">Privacy Policy</a><a href="#" className="footer-link">Terms of Use</a><a href="#" className="footer-link">Refund Policy</a>
+              <Link href="/" className="footer-link">Contact us</Link>
+              <Link href="/" className="footer-link">FAQs</Link>
+              <Link href="/" className="footer-link">Privacy Policy</Link>
+              <Link href="/" className="footer-link">Terms of Use</Link>
+              <Link href="/" className="footer-link">Refund Policy</Link>
             </div>
           </div>
           <div className="footer-bottom">
