@@ -1,5 +1,6 @@
 "use client";
 import React from 'react';
+import './Logo.css';
 
 interface LogoProps {
   className?: string;
@@ -16,16 +17,7 @@ export default function Logo({
   worksColor = "var(--coral)" 
 }: LogoProps) {
   return (
-    <div className="logo-standard" style={{ 
-      display: "flex", 
-      alignItems: "center", 
-      gap: "0px",
-      fontFamily: "var(--font-display, var(--fd, 'Syne', sans-serif))",
-      fontSize: fontSize,
-      fontWeight: 900,
-      letterSpacing: "-0.04em",
-      userSelect: "none"
-    }}>
+    <div className="logo-standard" style={{ fontSize }}>
       <span style={{ color: xColor }}>X</span>
       <span style={{ color: worksColor }}>WORKS</span>
     </div>
