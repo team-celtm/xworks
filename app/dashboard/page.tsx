@@ -789,7 +789,9 @@ export default function DashboardPage() {
               <div className="sb-logo-bar"></div>
               <div className="sb-logo-bar"></div>
             </div>
-            <span className="sb-logo-name" style={{ color: '#fff', fontSize: '22px', fontWeight: 800 }}>X<span style={{ color: 'var(--coral)' }}>WORKS</span></span>
+            <span className="sb-logo-name" style={{ color: '#fff', fontSize: '22px', fontWeight: 800 }}>
+              <span style={{ color: '#fff' }}>X</span><span style={{ color: 'var(--coral)' }}>WORKS</span>
+            </span>
           </Link>
         </div>
 
@@ -1567,6 +1569,123 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {/* ══ NOTES VIEW ══ */}
+          {activeView === "notes" && (
+            <div className="view active fade-up">
+              <div className="view-hd">
+                <h2 className="view-title">My Study Notes 📝</h2>
+                <p className="view-sub">Track your insights and highlights from every session.</p>
+              </div>
+
+              <div className="notes-container">
+                <div className="notes-header">
+                  <div className="notes-search-box">
+                    <span className="notes-search-icon">🔍</span>
+                    <input 
+                      type="text" 
+                      placeholder="Search by title, content or #tags..." 
+                      value={noteSearch}
+                      onChange={(e) => setNoteSearch(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                {loadingNotes ? (
+                  <div className="notes-grid">
+                    {[1, 2, 3].map(i => <div key={i} className="skel" style={{ height: '180px', borderRadius: '16px' }}></div>)}
+                  </div>
+                ) : notes.length === 0 ? (
+                  <div className="empty-state">
+                    <div className="empty-emoji">📓</div>
+                    <div className="empty-title">Your notebook is empty</div>
+                    <div className="empty-sub">Start by pinning a note for an upcoming session!</div>
+                    <button className="enrol-cta coral" style={{ width: 'auto', marginTop: '20px' }} onClick={() => { setCurrentNote({ title: "", content: "", tags: [], is_pinned: false }); setIsNoteEditorOpen(true); }}>Create First Note</button>
+                  </div>
+                ) : (
+                  <div className="notes-grid">
+                    {notes
+                      .filter(n => n.title.toLowerCase().includes(noteSearch.toLowerCase()) || n.content.toLowerCase().includes(noteSearch.toLowerCase()) || n.tags.some(t => t.toLowerCase().includes(noteSearch.toLowerCase())))
+                      .map(note => (
+                      <div key={note.id} className={`note-card ${note.id ? '' : 'unsaved'} ${note.is_pinned ? 'pinned' : ''}`} onClick={() => { setCurrentNote(note); setIsNoteEditorOpen(true); }}>
+                        {note.is_pinned && <span className="note-card-pin">📌</span>}
+                        <div className="note-card-title">{note.title || "Untitled Note"}</div>
+                        <div className="note-card-excerpt">{note.content || "No content yet..."}</div>
+                        <div className="note-tags">
+                          {(note.tags || []).map(t => <span key={t} className="note-tag">{t.startsWith('#') ? t : `#${t}`}</span>)}
+                          {note.workshopName && <span className="note-tag" style={{ background: 'var(--blue-bg)', color: 'var(--blue)' }}>{note.workshopName}</span>}
+                        </div>
+                        <div className="note-card-footer">
+                          <span className="note-date">{note.updated_at ? new Date(note.updated_at).toLocaleDateString() : 'Just now'}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <button className="note-fab" onClick={() => { setCurrentNote({ title: "", content: "", tags: [], is_pinned: false }); setIsNoteEditorOpen(true); }}>+</button>
+            </div>
+          )}
+
+          {/* ══ NOTE EDITOR OVERLAY ══ */}
+          {isNoteEditorOpen && currentNote && (
+            <div className="note-editor-overlay" onClick={(e) => { if ((e.target as any).className === 'note-editor-overlay') setIsNoteEditorOpen(false); }}>
+              <div className="note-editor">
+                <div className="note-editor-hd">
+                  <div className="note-editor-actions">
+                    <button className="v-btn" style={{ padding: '8px 16px', background: 'var(--surface-2)', fontSize: '12px' }} onClick={() => setIsNoteEditorOpen(false)}>Close</button>
+                    <button className={`v-btn ${currentNote.is_pinned ? "v-btn-primary" : ""}`} style={{ padding: '8px 16px', fontSize: '12px', background: currentNote.is_pinned ? 'var(--coral)' : 'var(--surface-2)', color: currentNote.is_pinned ? '#fff' : 'var(--ink)' }} onClick={() => setCurrentNote(prev => prev ? ({ ...prev, is_pinned: !prev.is_pinned }) : null)}>
+                      {currentNote.is_pinned ? 'Pinned 📌' : 'Pin Note'}
+                    </button>
+                  </div>
+                  <div className="note-editor-actions">
+                    {currentNote.id && <button className="v-btn" style={{ padding: '8px 16px', fontSize: '12px', background: '#FEE2E2', color: '#B91C1C' }} onClick={() => { if (confirm("Delete this note?")) deleteNote(currentNote.id as string); }}>Delete</button>}
+                    <button className="v-btn v-btn-primary" style={{ padding: '8px 16px', fontSize: '12px' }} onClick={() => saveNote(currentNote)}>Save Note</button>
+                  </div>
+                </div>
+                
+                <div className="note-editor-body">
+                  <input 
+                    className="note-input-title" 
+                    placeholder="Note title..." 
+                    value={currentNote.title}
+                    onChange={(e) => setCurrentNote(prev => prev ? ({ ...prev, title: e.target.value }) : null)}
+                  />
+                  <div className="note-tags">
+                     <input 
+                       placeholder="Add tags (comma separated)..." 
+                       style={{ background: 'transparent', border: 'none', fontSize: '12px', outline: 'none', color: 'var(--text-3)', width: '100%' }}
+                       value={currentNote.tags.join(", ")}
+                       onChange={(e) => setCurrentNote(prev => prev ? ({ ...prev, tags: e.target.value.split(",").map(t => t.trim()).filter(Boolean) }) : null)}
+                     />
+                  </div>
+                  <textarea 
+                    className="note-input-content" 
+                    placeholder="Start writing..." 
+                    value={currentNote.content}
+                    onChange={(e) => setCurrentNote(prev => prev ? ({ ...prev, content: e.target.value }) : null)}
+                  />
+                </div>
+
+                <div className="note-editor-footer">
+                  <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>
+                    {currentNote.id ? `Last synced: ${currentNote.updated_at ? new Date(currentNote.updated_at).toLocaleTimeString() : 'Recently'}` : 'New Unsaved Note'}
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <select 
+                      style={{ background: 'var(--surface-2)', border: 'none', borderRadius: '6px', fontSize: '11px', padding: '4px 8px', outline: 'none', color: 'var(--ink)' }}
+                      value={currentNote.workshop_id || ""}
+                      onChange={(e) => setCurrentNote(prev => prev ? ({ ...prev, workshop_id: e.target.value || undefined }) : null)}
+                    >
+                      <option value="">Link to Workshop...</option>
+                      {enrolments.map(e => <option key={e.enrolment_id} value={e.courseId}>{e.courseName}</option>)}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
 
@@ -1880,123 +1999,6 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
-      {/* ══ NOTES VIEW ══ */}
-      {activeView === "notes" && (
-        <div className="view active fade-up">
-          <div className="view-hd">
-            <h2 className="view-title">My Study Notes 📝</h2>
-            <p className="view-sub">Track your insights and highlights from every session.</p>
-          </div>
-
-          <div className="notes-container">
-            <div className="notes-header">
-              <div className="notes-search-box">
-                <span className="notes-search-icon">🔍</span>
-                <input 
-                  type="text" 
-                  placeholder="Search by title, content or #tags..." 
-                  value={noteSearch}
-                  onChange={(e) => setNoteSearch(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {loadingNotes ? (
-              <div className="notes-grid">
-                {[1, 2, 3].map(i => <div key={i} className="skel" style={{ height: '180px', borderRadius: '16px' }}></div>)}
-              </div>
-            ) : notes.length === 0 ? (
-              <div className="empty-state">
-                <div className="empty-emoji">📓</div>
-                <div className="empty-title">Your notebook is empty</div>
-                <div className="empty-sub">Start by pinning a note for an upcoming session!</div>
-                <button className="enrol-cta coral" style={{ width: 'auto', marginTop: '20px' }} onClick={() => { setCurrentNote({ title: "", content: "", tags: [], is_pinned: false }); setIsNoteEditorOpen(true); }}>Create First Note</button>
-              </div>
-            ) : (
-              <div className="notes-grid">
-                {notes
-                  .filter(n => n.title.toLowerCase().includes(noteSearch.toLowerCase()) || n.content.toLowerCase().includes(noteSearch.toLowerCase()) || n.tags.some(t => t.toLowerCase().includes(noteSearch.toLowerCase())))
-                  .map(note => (
-                  <div key={note.id} className={`note-card ${note.is_pinned ? 'pinned' : ''}`} onClick={() => { setCurrentNote(note); setIsNoteEditorOpen(true); }}>
-                    {note.is_pinned && <span className="note-card-pin">📌</span>}
-                    <div className="note-card-title">{note.title || "Untitled Note"}</div>
-                    <div className="note-card-excerpt">{note.content || "No content yet..."}</div>
-                    <div className="note-tags">
-                      {(note.tags || []).map(t => <span key={t} className="note-tag">{t.startsWith('#') ? t : `#${t}`}</span>)}
-                      {note.workshopName && <span className="note-tag" style={{ background: 'var(--blue-bg)', color: 'var(--blue)' }}>{note.workshopName}</span>}
-                    </div>
-                    <div className="note-card-footer">
-                      <span className="note-date">{note.updated_at ? new Date(note.updated_at).toLocaleDateString() : 'Just now'}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <button className="note-fab" onClick={() => { setCurrentNote({ title: "", content: "", tags: [], is_pinned: false }); setIsNoteEditorOpen(true); }}>+</button>
-        </div>
-      )}
-
-      {/* ══ NOTE EDITOR OVERLAY ══ */}
-      {isNoteEditorOpen && currentNote && (
-        <div className="note-editor-overlay" onClick={(e) => { if ((e.target as any).className === 'note-editor-overlay') setIsNoteEditorOpen(false); }}>
-          <div className="note-editor">
-            <div className="note-editor-hd">
-              <div className="note-editor-actions">
-                <button className="v-btn" style={{ padding: '8px 16px', background: 'var(--surface-2)', fontSize: '12px' }} onClick={() => setIsNoteEditorOpen(false)}>Close</button>
-                <button className={`v-btn ${currentNote.is_pinned ? "v-btn-primary" : ""}`} style={{ padding: '8px 16px', fontSize: '12px', background: currentNote.is_pinned ? 'var(--coral)' : 'var(--surface-2)', color: currentNote.is_pinned ? '#fff' : 'var(--ink)' }} onClick={() => setCurrentNote(prev => prev ? ({ ...prev, is_pinned: !prev.is_pinned }) : null)}>
-                  {currentNote.is_pinned ? 'Pinned 📌' : 'Pin Note'}
-                </button>
-              </div>
-              <div className="note-editor-actions">
-                {currentNote.id && <button className="v-btn" style={{ padding: '8px 16px', fontSize: '12px', background: '#FEE2E2', color: '#B91C1C' }} onClick={() => { if (confirm("Delete this note?")) deleteNote(currentNote.id as string); }}>Delete</button>}
-                <button className="v-btn v-btn-primary" style={{ padding: '8px 16px', fontSize: '12px' }} onClick={() => saveNote(currentNote)}>Save Note</button>
-              </div>
-            </div>
-            
-            <div className="note-editor-body">
-              <input 
-                className="note-input-title" 
-                placeholder="Note title..." 
-                value={currentNote.title}
-                onChange={(e) => setCurrentNote(prev => prev ? ({ ...prev, title: e.target.value }) : null)}
-              />
-              <div className="note-tags">
-                 <input 
-                   placeholder="Add tags (comma separated)..." 
-                   style={{ background: 'transparent', border: 'none', fontSize: '12px', outline: 'none', color: 'var(--text-3)', width: '100%' }}
-                   value={currentNote.tags.join(", ")}
-                   onChange={(e) => setCurrentNote(prev => prev ? ({ ...prev, tags: e.target.value.split(",").map(t => t.trim()).filter(Boolean) }) : null)}
-                 />
-              </div>
-              <textarea 
-                className="note-input-content" 
-                placeholder="Start writing..." 
-                value={currentNote.content}
-                onChange={(e) => setCurrentNote(prev => prev ? ({ ...prev, content: e.target.value }) : null)}
-              />
-            </div>
-
-            <div className="note-editor-footer">
-              <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>
-                {currentNote.id ? `Last synced: ${currentNote.updated_at ? new Date(currentNote.updated_at).toLocaleTimeString() : 'Recently'}` : 'New Unsaved Note'}
-              </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <select 
-                  style={{ background: 'var(--surface-2)', border: 'none', borderRadius: '6px', fontSize: '11px', padding: '4px 8px', outline: 'none', color: 'var(--ink)' }}
-                  value={currentNote.workshop_id || ""}
-                  onChange={(e) => setCurrentNote(prev => prev ? ({ ...prev, workshop_id: e.target.value || undefined }) : null)}
-                >
-                  <option value="">Link to Workshop...</option>
-                  {enrolments.map(e => <option key={e.enrolment_id} value={e.courseId}>{e.courseName}</option>)}
-                </select>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ══ SESSION EXPIRED MODAL ══ */}
       {sessionExpired && (
         <div className="enrol-backdrop open" style={{ zIndex: 9999 }}>
