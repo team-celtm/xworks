@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import nodemailer from 'nodemailer';
+import { sendMail } from '@/lib/mail';
 
 export async function POST(req: NextRequest) {
   try {
@@ -46,27 +46,11 @@ export async function POST(req: NextRequest) {
       const user = userResult.rows[0];
       const course = courseResult.rows[0];
 
-      try {
-        const transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST || 'smtp.gmail.com',
-          port: parseInt(process.env.SMTP_PORT || '587'),
-          auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
-          },
-        });
-
-        await transporter.sendMail({
-          from: `"XWORKS Academy" <${process.env.SMTP_USER}>`,
+        await sendMail({
           to: user.email,
           subject: `Congratulations on completing ${course.name}!`,
-          text: `Hi ${user.first_name},\n\nYou have successfully completed the ${course.name} course! Your certificate ID is ${credentialId}.\n\nYou can view it on your dashboard.\n\nBest,\nXWORKS Team`,
           html: `<h3>Hi ${user.first_name},</h3><p>You have successfully completed the <strong>${course.name}</strong> course!</p><p>Your certificate ID is <b>${credentialId}</b>.</p><p>You can view and download it from certificates dashboard.</p><br><p>Best,<br>XWORKS Team</p>`
         });
-        console.log(`[Email] Certificate email sent to ${user.email}`);
-      } catch (err) {
-        console.error('[Email] Failed to send certificate email:', err);
-      }
     }
 
     return NextResponse.json({ 

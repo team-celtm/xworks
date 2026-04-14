@@ -1,17 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
-import nodemailer from 'nodemailer';
 import crypto from 'crypto';
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: process.env.SMTP_PORT === '465',
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+import { sendMail } from '@/lib/mail';
 
 export async function POST(req: NextRequest) {
   try {
@@ -40,26 +30,24 @@ export async function POST(req: NextRequest) {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const resetUrl = `${baseUrl}/Login?reset_token=${resetToken}`;
 
-    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-      try {
-        await transporter.sendMail({
-          from: `"XWORKS" <${process.env.SMTP_USER}>`,
-          to: email,
-          subject: 'Reset your XWORKS password',
-          html: `
-            <div style="font-family: sans-serif; padding: 20px; color: #333;">
-              <h2>Hello ${user.first_name},</h2>
-              <p>We received a request to reset your XWORKS password.</p>
-              <a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background: #000; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0;">Reset Password →</a>
-              <p>Or copy this link: ${resetUrl}</p>
-              <p>This link will expire in 1 hour.</p>
-              <br/>
-              <p>If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.</p>
-            </div>
-          `,
-        });
-      } catch (emailError) {
-        console.error('Error sending reset email:', emailError);
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      const result = await sendMail({
+        to: email,
+        subject: 'Reset your XWORKS password',
+        html: `
+          <div style="font-family: sans-serif; padding: 20px; color: #333;">
+            <h2>Hello ${user.first_name},</h2>
+            <p>We received a request to reset your XWORKS password.</p>
+            <a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background: #000; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0;">Reset Password →</a>
+            <p>Or copy this link: ${resetUrl}</p>
+            <p>This link will expire in 1 hour.</p>
+            <br/>
+            <p>If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.</p>
+          </div>
+        `,
+      });
+
+      if (!result.success) {
         console.log(`[DEV MODE] Password Reset Link for ${email}: ${resetUrl}`);
       }
     } else {

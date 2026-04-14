@@ -1,19 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { jwtVerify } from 'jose';
-import nodemailer from 'nodemailer';
+import { sendMail } from '@/lib/mail';
 
 const SESSION_SECRET = process.env.SESSION_SECRET || 'your-default-secret-change-me';
-
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: false, // true for 465, false for other ports
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
 
 export async function POST(
   req: NextRequest,
@@ -90,8 +80,7 @@ export async function POST(
     }
 
     // 6. Send confirmation email
-    const mailOptions = {
-      from: `"XWORKS" <${process.env.SMTP_USER}>`,
+    await sendMail({
       to: userEmail,
       subject: `Booking Confirmed: ${session.course_name} Live Session`,
       html: `
@@ -111,9 +100,7 @@ export async function POST(
           </p>
         </div>
       `,
-    };
-
-    await transporter.sendMail(mailOptions);
+    });
 
     return NextResponse.json({ 
       success: true, 

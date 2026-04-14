@@ -1,19 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import bcrypt from 'bcryptjs';
-import nodemailer from 'nodemailer';
 import crypto from 'crypto';
-
-// Reusable Transporter
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: process.env.SMTP_PORT === '465',
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+import { sendMail } from '@/lib/mail';
 
 export async function POST(req: NextRequest) {
   try {
@@ -90,26 +79,25 @@ export async function POST(req: NextRequest) {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001';
     const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${verificationToken}`;
 
-    if (process.env.SMTP_USER && process.env.SMTP_PASS) {
-      try {
-        await transporter.sendMail({
-          from: `"XWORKS" <${process.env.SMTP_USER}>`,
-          to: email,
-          subject: 'Verify your XWORKS account',
-          html: `
-            <div style="font-family: sans-serif; padding: 20px; color: #333;">
-              <h2>Welcome to XWORKS, ${firstName}!</h2>
-              <p>Thanks for signing up! Please click the button below to verify your email and activate your account.</p>
-              <a href="${verifyUrl}" style="display: inline-block; padding: 12px 24px; background: #000; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0;">Verify My Email →</a>
-              <p>If the button doesn't work, copy and paste this link: ${verifyUrl}</p>
-              <br/>
-              <p>If you didn't create an account, you can safely ignore this email.</p>
-            </div>
-          `,
-        });
+    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      const result = await sendMail({
+        to: email,
+        subject: 'Verify your XWORKS account',
+        html: `
+          <div style="font-family: sans-serif; padding: 20px; color: #333;">
+            <h2>Welcome to XWORKS, ${firstName}!</h2>
+            <p>Thanks for signing up! Please click the button below to verify your email and activate your account.</p>
+            <a href="${verifyUrl}" style="display: inline-block; padding: 12px 24px; background: #000; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0;">Verify My Email →</a>
+            <p>If the button doesn't work, copy and paste this link: ${verifyUrl}</p>
+            <br/>
+            <p>If you didn't create an account, you can safely ignore this email.</p>
+          </div>
+        `,
+      });
+      
+      if (result.success) {
         console.log(`Verification link sent to ${email}`);
-      } catch (emailError) {
-        console.error('Error sending verification email:', emailError);
+      } else {
         console.log(`[DEV MODE] Verification Link for ${email}: ${verifyUrl}`);
       }
     } else {
