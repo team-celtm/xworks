@@ -5,7 +5,6 @@ import Link from 'next/link';
 import './home.css';
 import { SUBJECTS, CAT_DATA } from './data';
 import Footer from './components/Footer';
-import Logo from './components/Logo';
 
 export default function Home() {
   const router = useRouter();
@@ -438,8 +437,12 @@ export default function Home() {
       
       {/* ════ NAV ════ */}
       <nav ref={navRef} className="home-nav">
-        <Link href="/" className="nav-logo" style={{ textDecoration: 'none' }}>
-          <Logo fontSize="22px" />
+        <Link href="/" className="nav-logo">
+          <div className="nav-logo-bars">
+            <div className="nav-logo-bar"></div>
+            <div className="nav-logo-bar"></div>
+          </div>
+          X<span>WORKS</span>
         </Link>
         <div className="nav-links">
           <div className="nav-dropdown">
@@ -463,9 +466,9 @@ export default function Home() {
 
       <div className={`mobile-nav ${isMobileNavOpen ? 'open' : ''}`}>
         <div className="mobile-nav-header">
-          <div className="mobile-nav-logo">
-            <Logo fontSize="22px" />
-          </div>
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 800, color: '#FFFFFF' }}>
+            X<span style={{ color: 'var(--coral)' }}>WORKS</span>
+          </span>
           <button className="mobile-nav-close" onClick={toggleMobileNav}>✕</button>
         </div>
         <a href="#" className="mobile-nav-link" onClick={(e) => { e.preventDefault(); toggleMobileNav(); openWorkshopBrowser(); }}>Workshops</a>
@@ -487,7 +490,7 @@ export default function Home() {
         <div className="hero-glow-2"></div>
         <div className="hero-inner">
           <div className="hero-left">
-            <div className="hero-wordmark"><Logo fontSize="24px" /></div>
+            <div className="hero-wordmark">X<span>WORKS</span></div>
             <div className="hero-bars">
               <div className="hero-bar-row"><div className="hero-bar-line bar-1"></div></div>
               <div style={{ height: '10px' }}></div>
