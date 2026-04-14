@@ -53,15 +53,16 @@ export default function PlayerPage({ params }: { params: Promise<{ enrolmentId: 
 
   return (
     <div className="player-shell">
-      <div className="player-top">
-        <div className="p-back-wrap">
-          <button className="p-back" onClick={() => router.back()}>← Dashboard</button>
+      <nav className="player-top">
+        <div className="p-nav-left">
+           <Logo />
+           <div className="p-nav-divider"></div>
+           <div className="p-title">{content.title}</div>
         </div>
-        <div className="p-title">{content.title}</div>
-        <div style={{ visibility: 'hidden' }}>
-           <button className="p-back">← Dashboard</button>
+        <div className="p-nav-right">
+           <button className="p-back" onClick={() => router.back()}>← Back to Dashboard</button>
         </div>
-      </div>
+      </nav>
 
       <div className="player-main">
         <div className="p-vid-area">
