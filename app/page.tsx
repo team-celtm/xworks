@@ -5,6 +5,7 @@ import Link from 'next/link';
 import './home.css';
 import { SUBJECTS, CAT_DATA } from './data';
 import Footer from './components/Footer';
+import Logo from './components/Logo';
 
 export default function Home() {
   const router = useRouter();
@@ -437,13 +438,7 @@ export default function Home() {
       
       {/* ════ NAV ════ */}
       <nav ref={navRef} className="home-nav">
-        <Link href="/" className="nav-logo">
-          <div className="nav-logo-bars">
-            <div className="nav-logo-bar"></div>
-            <div className="nav-logo-bar"></div>
-          </div>
-          X<span>WORKS</span>
-        </Link>
+        <Logo />
         <div className="nav-links">
           <div className="nav-dropdown">
             <button className="nav-link" onClick={openWorkshopBrowser}>Workshops ▾</button>
