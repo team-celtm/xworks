@@ -1231,7 +1231,7 @@ export default function DashboardPage() {
                     <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
                       <div className="completed-name">{c.name}</div>
                       <div className="completed-meta">{c.meta}</div>
-                      {c.certId ? (
+                      {c.certId && (
                         <div style={{ display: "flex", gap: "8px", marginTop: "12px" }}>
                           <button className="cert-btn" onClick={() => window.open(`/verify/${c.certId}`, '_blank')}>🏆 View certificate</button>
                           <button 
