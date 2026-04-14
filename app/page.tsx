@@ -49,6 +49,22 @@ export default function Home() {
   const [newlyAdded, setNewlyAdded] = useState<any[]>([]);
   const [hasMounted, setHasMounted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data);
+        }
+      } catch (err) {
+        // Silent error for session check
+      }
+    };
+    fetchUser();
+  }, []);
 
   useEffect(() => {
     setHasMounted(true);
@@ -431,10 +447,16 @@ export default function Home() {
           <div className="nav-dropdown">
             <button className="nav-link" onClick={openWorkshopBrowser}>Workshops ▾</button>
           </div>
-          <Link href="#" className="nav-link">About us</Link>
-          <Link href="#" className="nav-link">Contact us</Link>
-          <Link href="/Login" className="nav-link">Login</Link>
-          <Link href="/Registration" className="nav-btn">Sign up free →</Link>
+          <a href="#footer" className="nav-link">About us</a>
+          <a href="#footer" className="nav-link">Contact us</a>
+          {user ? (
+            <Link href="/dashboard" className="nav-btn">Go to Dashboard →</Link>
+          ) : (
+            <>
+              <Link href="/Login" className="nav-link">Login</Link>
+              <Link href="/Registration" className="nav-btn">Sign up free →</Link>
+            </>
+          )}
         </div>
         <div className="hamburger" onClick={toggleMobileNav}>
           <span></span><span></span><span></span>
@@ -449,10 +471,16 @@ export default function Home() {
           <button className="mobile-nav-close" onClick={toggleMobileNav}>✕</button>
         </div>
         <a href="#" className="mobile-nav-link" onClick={(e) => { e.preventDefault(); toggleMobileNav(); openWorkshopBrowser(); }}>Workshops</a>
-        <a href="#" className="mobile-nav-link">About us</a>
-        <a href="#" className="mobile-nav-link">Contact us</a>
-        <Link href="/Login" className="mobile-nav-link">Login</Link>
-        <div className="mobile-nav-cta"><Link href="/Registration" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Sign up free →</Link></div>
+        <a href="#footer" className="mobile-nav-link" onClick={() => setIsMobileNavOpen(false)}>About us</a>
+        <a href="#footer" className="mobile-nav-link" onClick={() => setIsMobileNavOpen(false)}>Contact us</a>
+        {user ? (
+          <div className="mobile-nav-cta"><Link href="/dashboard" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Go to Dashboard →</Link></div>
+        ) : (
+          <>
+            <Link href="/Login" className="mobile-nav-link">Login</Link>
+            <div className="mobile-nav-cta"><Link href="/Registration" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Sign up free →</Link></div>
+          </>
+        )}
       </div>
 
       {/* ════ HERO ════ */}
@@ -475,7 +503,11 @@ export default function Home() {
               From school students to senior citizens — XWORKS brings you live, hands-on workshops across technology, creativity, wellness and more. Learn from experts. Build real skills.
             </p>
             <div className="hero-cta-row">
-              <Link href="/Registration" className="btn-primary">Sign up for free →</Link>
+              {user ? (
+                <Link href="/dashboard" className="btn-primary">Back to Dashboard →</Link>
+              ) : (
+                <Link href="/Registration" className="btn-primary">Sign up for free →</Link>
+              )}
               <button className="btn-ghost" onClick={openWorkshopBrowser}>Browse workshops</button>
             </div>
           </div>
@@ -679,7 +711,7 @@ export default function Home() {
       </section>
 
       {/* ════ FOOTER ════ */}
-      <footer className="home-footer">
+      <footer className="home-footer" id="footer">
         <div className="footer-inner">
           <div className="footer-top">
             <div>
@@ -692,11 +724,11 @@ export default function Home() {
             </div>
             <div>
               <div className="footer-col-title">Company</div>
-              <a href="#" className="footer-link">About us</a><a href="#" className="footer-link">Teach on XWORKS</a><a href="#" className="footer-link">Blog</a><a href="#" className="footer-link">Careers</a><a href="#" className="footer-link">Press</a>
+              <a href="#footer" className="footer-link">About us</a><Link href="/teach" className="footer-link">Teach on XWORKS</Link><a href="#" className="footer-link">Blog</a><a href="#" className="footer-link">Careers</a><a href="#" className="footer-link">Press</a>
             </div>
             <div>
               <div className="footer-col-title">Support</div>
-              <a href="#" className="footer-link">Contact us</a><a href="#" className="footer-link">FAQs</a><a href="#" className="footer-link">Privacy Policy</a><a href="#" className="footer-link">Terms of Use</a><a href="#" className="footer-link">Refund Policy</a>
+              <a href="#footer" className="footer-link">Contact us</a><a href="#" className="footer-link">FAQs</a><a href="#" className="footer-link">Privacy Policy</a><a href="#" className="footer-link">Terms of Use</a><a href="#" className="footer-link">Refund Policy</a>
             </div>
           </div>
           <div className="footer-bottom">
