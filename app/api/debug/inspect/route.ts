@@ -3,10 +3,21 @@ import pool from '@/lib/db';
 
 export async function GET(req: NextRequest) {
   try {
-    const cats = await pool.query('SELECT id, name, slug FROM categories');
-    const inst = await pool.query('SELECT i.id, u.first_name, u.last_name FROM instructors i JOIN users u ON i.user_id = u.id');
-    return NextResponse.json({ categories: cats.rows, instructors: inst.rows });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message });
+    const tables = ['users', 'courses', 'categories', 'enrolments', 'payments', 'live_sessions', 'session_registrations'];
+    const results: any = {};
+
+    for (const table of tables) {
+      try {
+        const { rows } = await pool.query(`SELECT * FROM ${table} LIMIT 5`);
+        results[table] = rows;
+      } catch (e) {
+        results[table] = { error: 'Table not found or inaccessible' };
+      }
+    }
+
+    return NextResponse.json(results, { status: 200 });
+  } catch (error) {
+    console.error('Inspect Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
