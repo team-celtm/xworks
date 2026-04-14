@@ -220,7 +220,8 @@ export default function CourseDetailPage() {
   const priceStr = course.price === 0 ? 'FREE' : '₹' + course.price.toLocaleString('en-IN');
 
   return (
-    <div className="detail-page" style={{ background: 'var(--surface-2)', minHeight: '100vh' }}>
+    <div className="catalogue-wrapper">
+      <div className="detail-page" style={{ background: 'var(--surface-2)', minHeight: '100vh', overflowY: 'auto' }}>
       <nav className="nav">
         <Logo />
         <div className="nav-right">
@@ -401,6 +402,7 @@ export default function CourseDetailPage() {
           to { transform: rotate(360deg); }
         }
       `}</style>
+      </div>
     </div>
   );
 }
