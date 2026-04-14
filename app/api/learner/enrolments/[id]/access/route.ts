@@ -60,7 +60,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
         recordingAvailable: s.recordingAvailable ?? s.recording_available,
         status: s.status
       })),
-      videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4'
+      videoUrl: 'https://vjs.zencdn.net/v/oceans.mp4'
     };
 
     return NextResponse.json(content, { status: 200 });
