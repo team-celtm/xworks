@@ -8,7 +8,13 @@ import "../dashboard/dashboard.css";
 export default function InstructorDashboard() {
   const router = useRouter();
   const [activeView, setActiveView] = useState("inst_courses");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+
+  const changeView = (v: string) => {
+    setActiveView(v);
+    setIsMobileMenuOpen(false);
+  };
   const [loading, setLoading] = useState(true);
   const [appStatus, setAppStatus] = useState<string | null>(null);
 
@@ -89,7 +95,7 @@ export default function InstructorDashboard() {
         if (res.ok) {
           const data = await res.json();
           if (data.role !== 'instructor') {
-            router.push('/dashboard'); 
+            router.replace('/dashboard'); 
             return;
           }
           setUser(data);
@@ -100,10 +106,10 @@ export default function InstructorDashboard() {
             setAppStatus(statData.application_status);
           }
         } else {
-          router.push('/Login');
+          router.replace('/Login');
         }
       } catch (err) {
-        router.push('/Login');
+        router.replace('/Login');
       } finally {
         setLoading(false);
       }
@@ -181,14 +187,19 @@ export default function InstructorDashboard() {
       {/* ══════════════════════════
            INSTRUCTOR SIDEBAR (Left)
       ══════════════════════════ */}
-      <aside className="sidebar">
-        <Link href="/" className="sb-logo" style={{ textDecoration: 'none' }}>
-          <div className="sb-logo-bars">
-            <div className="sb-logo-bar"></div>
-            <div className="sb-logo-bar"></div>
-          </div>
-          <span className="sb-logo-name">X<span className="works-text">WORKS</span></span>
-        </Link>
+      <aside className={`sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
+        <div className="sb-logo">
+          <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div className="sb-logo-bars">
+              <div className="sb-logo-bar"></div>
+              <div className="sb-logo-bar"></div>
+            </div>
+            <span className="sb-logo-name">X<span className="works-text">WORKS</span></span>
+          </Link>
+          <button className="mobile-menu-btn" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+            {isMobileMenuOpen ? '✕' : '☰'}
+          </button>
+        </div>
 
         <div className="sb-user">
           <div className="sb-avatar">
@@ -202,17 +213,17 @@ export default function InstructorDashboard() {
 
         <nav className="sb-nav">
           <div className="sb-section-label">Creator Studio</div>
-          <button className={`sb-item ${activeView === "inst_courses" ? "active" : ""}`} onClick={() => setActiveView("inst_courses")}>
+          <button className={`sb-item ${activeView === "inst_courses" ? "active" : ""}`} onClick={() => changeView("inst_courses")}>
             <span className="sb-item-icon">🎬</span>
             <span className="sb-item-label">My Courses</span>
           </button>
           
-          <button className={`sb-item ${activeView === "inst_sessions" ? "active" : ""}`} onClick={() => setActiveView("inst_sessions")}>
+          <button className={`sb-item ${activeView === "inst_sessions" ? "active" : ""}`} onClick={() => changeView("inst_sessions")}>
             <span className="sb-item-icon">📅</span>
             <span className="sb-item-label">Live Sessions</span>
           </button>
           
-          <button className={`sb-item ${activeView === "inst_earnings" ? "active" : ""}`} onClick={() => setActiveView("inst_earnings")}>
+          <button className={`sb-item ${activeView === "inst_earnings" ? "active" : ""}`} onClick={() => changeView("inst_earnings")}>
             <span className="sb-item-icon">💰</span>
             <span className="sb-item-label">Earnings & Payouts</span>
           </button>

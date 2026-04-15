@@ -8,7 +8,13 @@ import "../dashboard/dashboard.css";
 export default function AdminDashboard() {
   const router = useRouter();
   const [activeView, setActiveView] = useState("admin_instructors");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+
+  const changeView = (v: string) => {
+    setActiveView(v);
+    setIsMobileMenuOpen(false);
+  };
   const [loading, setLoading] = useState(true);
 
   // Data states
@@ -23,15 +29,15 @@ export default function AdminDashboard() {
         if (res.ok) {
           const data = await res.json();
           if (data.role !== 'admin') {
-            router.push('/dashboard');
+            router.replace('/dashboard');
             return;
           }
           setUser(data);
         } else {
-          router.push('/Login');
+          router.replace('/Login');
         }
       } catch (err) {
-        router.push('/Login');
+        router.replace('/Login');
       } finally {
         setLoading(false);
       }
@@ -95,14 +101,19 @@ export default function AdminDashboard() {
   return (
     <div className="shell">
       {/* SIDEBAR */}
-      <aside className="sidebar">
-        <Link href="/" className="sb-logo" style={{ textDecoration: 'none' }}>
-          <div className="sb-logo-bars">
-            <div className="sb-logo-bar"></div>
-            <div className="sb-logo-bar"></div>
-          </div>
-          <span className="sb-logo-name">X<span className="works-text">WORKS</span></span>
-        </Link>
+      <aside className={`sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
+        <div className="sb-logo">
+          <Link href="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div className="sb-logo-bars">
+              <div className="sb-logo-bar"></div>
+              <div className="sb-logo-bar"></div>
+            </div>
+            <span className="sb-logo-name">X<span className="works-text">WORKS</span></span>
+          </Link>
+          <button className="mobile-menu-btn" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+            {isMobileMenuOpen ? '✕' : '☰'}
+          </button>
+        </div>
 
         <div className="sb-user">
           <div className="sb-avatar">
@@ -116,27 +127,27 @@ export default function AdminDashboard() {
 
         <nav className="sb-nav">
           <div className="sb-section-label">Platform Controls</div>
-          <button className={`sb-item ${activeView === "admin_instructors" ? "active" : ""}`} onClick={() => setActiveView("admin_instructors")}>
+          <button className={`sb-item ${activeView === "admin_instructors" ? "active" : ""}`} onClick={() => changeView("admin_instructors")}>
             <span className="sb-item-icon">👨‍⚖️</span>
             <span className="sb-item-label">Approve Instructors</span>
           </button>
           
-          <button className={`sb-item ${activeView === "admin_courses" ? "active" : ""}`} onClick={() => setActiveView("admin_courses")}>
+          <button className={`sb-item ${activeView === "admin_courses" ? "active" : ""}`} onClick={() => changeView("admin_courses")}>
             <span className="sb-item-icon">📢</span>
             <span className="sb-item-label">Publish Courses</span>
           </button>
           
-          <button className={`sb-item ${activeView === "admin_promos" ? "active" : ""}`} onClick={() => setActiveView("admin_promos")}>
+          <button className={`sb-item ${activeView === "admin_promos" ? "active" : ""}`} onClick={() => changeView("admin_promos")}>
             <span className="sb-item-icon">🏷️</span>
             <span className="sb-item-label">Promo Codes</span>
           </button>
           
-          <button className={`sb-item ${activeView === "admin_refunds" ? "active" : ""}`} onClick={() => setActiveView("admin_refunds")}>
+          <button className={`sb-item ${activeView === "admin_refunds" ? "active" : ""}`} onClick={() => changeView("admin_refunds")}>
             <span className="sb-item-icon">💸</span>
             <span className="sb-item-label">Process Refunds</span>
           </button>
           
-          <button className={`sb-item ${activeView === "admin_certificates" ? "active" : ""}`} onClick={() => setActiveView("admin_certificates")}>
+          <button className={`sb-item ${activeView === "admin_certificates" ? "active" : ""}`} onClick={() => changeView("admin_certificates")}>
             <span className="sb-item-icon">❌</span>
             <span className="sb-item-label">Revoke Certs</span>
           </button>

@@ -183,13 +183,13 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
       if (res.ok) {
         const returnUrl = searchParams?.get('returnUrl');
         if (returnUrl) {
-          router.push(returnUrl);
+          router.replace(returnUrl);
         } else if (data.user?.role === 'admin') {
-          router.push('/admin');
+          router.replace('/admin');
         } else if (data.user?.role === 'instructor') {
-          router.push('/instructor');
+          router.replace('/instructor');
         } else {
-          router.push('/dashboard');
+          router.replace('/dashboard');
         }
       } else {
         if (data.needsVerification) {
