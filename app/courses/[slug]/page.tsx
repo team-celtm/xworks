@@ -67,7 +67,7 @@ export default function CourseDetailPage() {
           const data = await res.json();
           setUser(data);
         }
-      } catch (err) {}
+      } catch (err) { }
     };
     fetchUser();
   }, []);
@@ -93,11 +93,11 @@ export default function CourseDetailPage() {
         // Fetch sessions if it's a live course
         const sres = await fetch(`/api/courses/id/${data.id}/sessions`);
         if (sres.ok) {
-           const sdata = await sres.json();
-           setSessions(sdata);
-           if (sdata.length > 0) {
-              setSelectedSessionId(sdata[0].id);
-           }
+          const sdata = await sres.json();
+          setSessions(sdata);
+          if (sdata.length > 0) {
+            setSelectedSessionId(sdata[0].id);
+          }
         }
 
       } catch (err: any) {
@@ -118,8 +118,8 @@ export default function CourseDetailPage() {
   const handleEnrol = async () => {
     if (!course) return;
     if (course.live && !selectedSessionId && sessions.length > 0) {
-       setError('Please select a live session first.');
-       return;
+      setError('Please select a live session first.');
+      return;
     }
     setEnrolling(true);
     setError(null);
@@ -145,7 +145,7 @@ export default function CourseDetailPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ courseId: course.id, sessionId: selectedSessionId })
         });
-        
+
         if (!orderRes.ok) throw new Error('Could not create payment order');
         const orderData = await orderRes.json();
 
@@ -232,179 +232,179 @@ export default function CourseDetailPage() {
   return (
     <div className="catalogue-wrapper">
       <div className="detail-page" style={{ background: 'var(--surface-2)', minHeight: '100vh', overflowY: 'auto' }}>
-      <nav className="nav">
-        <Logo />
-        <div className="nav-right">
-          <Link href="/catalogue" className="nav-link-sm">Explore</Link>
-          {user ? (
-            <Link href="/dashboard" className="nav-link-sm">Dashboard</Link>
-          ) : (
-            <>
-              <Link href="/Login" className="nav-link-sm">Login</Link>
-              <Link href="/Registration" className="nav-cta">Sign up</Link>
-            </>
-          )}
-          <button className="nav-back" onClick={() => router.back()}>← Back</button>
-        </div>
-      </nav>
+        <nav className="nav">
+          <Logo />
+          <div className="nav-right">
+            <Link href="/catalogue" className="nav-link-sm">Explore</Link>
+            {user ? (
+              <Link href="/dashboard" className="nav-link-sm">Dashboard</Link>
+            ) : (
+              <>
+                <Link href="/Login" className="nav-link-sm">Login</Link>
+                <Link href="/Registration" className="nav-cta">Sign up</Link>
+              </>
+            )}
+            <button className="nav-back" onClick={() => router.back()}>← Back</button>
+          </div>
+        </nav>
 
-      <main className="detail-main" style={{ maxWidth: '1100px', margin: '40px auto', padding: '0 24px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '40px' }}>
-          
-          <div className="detail-left">
-            <div className="crumb" style={{ fontSize: '13px', color: 'var(--text-3)', marginBottom: '16px' }}>
-              Workshops / <Link href={`/catalogue?cat=${course.categorySlug}`} style={{ color: 'var(--indigo)', textDecoration: 'none' }}>{course.categoryName}</Link> / {course.name}
-            </div>
+        <main className="detail-main" style={{ maxWidth: '1100px', margin: '40px auto', padding: '0 24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '40px' }}>
 
-            <div className="detail-hero-card" style={{ background: '#fff', borderRadius: '24px', padding: '40px', border: '1px solid var(--border-md)', marginBottom: '32px' }}>
-              <div style={{ display: 'flex', gap: '24px', alignItems: 'center', marginBottom: '24px' }}>
-                <div className={`detail-emoji-box ${course.g}`} style={{ width: '80px', height: '80px', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px' }}>
-                   {course.emoji}
+            <div className="detail-left">
+              <div className="crumb" style={{ fontSize: '13px', color: 'var(--text-3)', marginBottom: '16px' }}>
+                Workshops / <Link href={`/catalogue?cat=${course.categorySlug}`} style={{ color: 'var(--indigo)', textDecoration: 'none' }}>{course.categoryName}</Link> / {course.name}
+              </div>
+
+              <div className="detail-hero-card" style={{ background: '#fff', borderRadius: '24px', padding: '40px', border: '1px solid var(--border-md)', marginBottom: '32px' }}>
+                <div style={{ display: 'flex', gap: '24px', alignItems: 'center', marginBottom: '24px' }}>
+                  <div className={`detail-emoji-box ${course.g}`} style={{ width: '80px', height: '80px', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px' }}>
+                    {course.emoji}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--indigo)', marginBottom: '4px' }}>{course.tagLabel}</div>
+                    <h1 style={{ fontSize: '32px', fontFamily: 'var(--font-display)', fontWeight: 800, color: 'var(--ink)' }}>{course.name}</h1>
+                  </div>
                 </div>
-                <div>
-                   <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--indigo)', marginBottom: '4px' }}>{course.tagLabel}</div>
-                   <h1 style={{ fontSize: '32px', fontFamily: 'var(--font-display)', fontWeight: 800, color: 'var(--ink)' }}>{course.name}</h1>
+
+                <div className="detail-stats" style={{ display: 'flex', gap: '24px', borderTop: '1px solid var(--border-md)', paddingTop: '24px', flexWrap: 'wrap' }}>
+                  <div className="dstat"><span>★ {course.rating}</span><label>Rating</label></div>
+                  <div className="dstat"><span>⏱ {course.dur} hrs</span><label>Duration</label></div>
+                  <div className="dstat"><span>📊 {course.level}</span><label>Level</label></div>
+                  <div className="dstat"><span>📺 {course.live ? 'Live' : 'Recorded'}</span><label>Format</label></div>
                 </div>
               </div>
 
-              <div className="detail-stats" style={{ display: 'flex', gap: '24px', borderTop: '1px solid var(--border-md)', paddingTop: '24px', flexWrap: 'wrap' }}>
-                <div className="dstat"><span>★ {course.rating}</span><label>Rating</label></div>
-                <div className="dstat"><span>⏱ {course.dur} hrs</span><label>Duration</label></div>
-                <div className="dstat"><span>📊 {course.level}</span><label>Level</label></div>
-                <div className="dstat"><span>📺 {course.live ? 'Live' : 'Recorded'}</span><label>Format</label></div>
-              </div>
-            </div>
-
-            <div className="detail-section" style={{ marginBottom: '40px' }}>
-              <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>What you'll learn</h2>
-              <div style={{ background: '#fff', borderRadius: '20px', padding: '24px', border: '1px solid var(--border-md)', lineHeight: '1.6', color: 'var(--text-2)' }}>
-                Master the intersection of financial markets and artificial intelligence. In this comprehensive session, we cover quantitative trading strategies using Python, risk management with neural networks, and the implementation of automated trading bots using real-time market APIs.
-              </div>
-            </div>
-
-            {sessions.length > 0 && (
               <div className="detail-section" style={{ marginBottom: '40px' }}>
-                 <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>Live Sessions</h2>
-                 <div className="sessions-list" style={{ display: 'grid', gap: '12px' }}>
+                <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>What you'll learn</h2>
+                <div style={{ background: '#fff', borderRadius: '20px', padding: '24px', border: '1px solid var(--border-md)', lineHeight: '1.6', color: 'var(--text-2)' }}>
+                  Master the intersection of financial markets and artificial intelligence. In this comprehensive session, we cover quantitative trading strategies using Python, risk management with neural networks, and the implementation of automated trading bots using real-time market APIs.
+                </div>
+              </div>
+
+              {sessions.length > 0 && (
+                <div className="detail-section" style={{ marginBottom: '40px' }}>
+                  <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>Live Sessions</h2>
+                  <div className="sessions-list" style={{ display: 'grid', gap: '12px' }}>
                     {sessions.map(s => {
-                       const isSelected = selectedSessionId === s.id;
-                       const full = s.maxSeats - s.registeredCount <= 0;
-                       return (
-                       <div key={s.id} 
-                            onClick={() => !full && setSelectedSessionId(s.id)}
-                            style={{ 
-                              background: isSelected ? 'var(--indigo-light)' : '#fff', 
-                              padding: '16px 20px', borderRadius: '16px', 
-                              border: `1px solid ${isSelected ? 'var(--indigo-mid)' : 'var(--border-md)'}`, 
-                              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                              cursor: full ? 'not-allowed' : 'pointer',
-                              opacity: full ? 0.6 : 1
-                            }}>
+                      const isSelected = selectedSessionId === s.id;
+                      const full = s.maxSeats - s.registeredCount <= 0;
+                      return (
+                        <div key={s.id}
+                          onClick={() => !full && setSelectedSessionId(s.id)}
+                          style={{
+                            background: isSelected ? 'var(--indigo-light)' : '#fff',
+                            padding: '16px 20px', borderRadius: '16px',
+                            border: `1px solid ${isSelected ? 'var(--indigo-mid)' : 'var(--border-md)'}`,
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            cursor: full ? 'not-allowed' : 'pointer',
+                            opacity: full ? 0.6 : 1
+                          }}>
                           <div>
                             <div style={{ fontWeight: 700, color: 'var(--ink)' }}>{s.title}</div>
                             <div style={{ fontSize: '13px', color: 'var(--text-3)' }}>{new Date(s.scheduledStart).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })} · {new Date(s.scheduledStart).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</div>
                           </div>
                           <div style={{ textAlign: 'right' }}>
-                             <div style={{ fontSize: '12px', fontWeight: 600, color: full ? '#EF4444' : '#16A34A' }}>{full ? 'Sold out' : `${s.maxSeats - s.registeredCount} seats left`}</div>
-                             <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>on {s.platform}</div>
+                            <div style={{ fontSize: '12px', fontWeight: 600, color: full ? '#EF4444' : '#16A34A' }}>{full ? 'Sold out' : `${s.maxSeats - s.registeredCount} seats left`}</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>on {s.platform}</div>
                           </div>
-                       </div>
-                       );
+                        </div>
+                      );
                     })}
-                 </div>
-              </div>
-            )}
+                  </div>
+                </div>
+              )}
 
-            <div className="detail-section">
-              <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>About the Instructor</h2>
-              <div style={{ background: '#fff', borderRadius: '24px', padding: '32px', border: '1px solid var(--border-md)', display: 'flex', gap: '24px' }}>
-                 <div style={{ width: '80px', height: '80px', borderRadius: '50%', overflow: 'hidden', background: 'var(--surface-2)' }}>
+              <div className="detail-section">
+                <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>About the Instructor</h2>
+                <div style={{ background: '#fff', borderRadius: '24px', padding: '32px', border: '1px solid var(--border-md)', display: 'flex', gap: '24px' }}>
+                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', overflow: 'hidden', background: 'var(--surface-2)' }}>
                     {course.instructorAvatar ? <img src={course.instructorAvatar} alt={course.instructor} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', background: 'var(--indigo)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>{course.instructor[0]}</div>}
-                 </div>
-                 <div>
+                  </div>
+                  <div>
                     <div style={{ fontSize: '20px', fontWeight: 800, marginBottom: '4px' }}>{course.instructor}</div>
                     <div style={{ fontSize: '13px', color: 'var(--indigo)', fontWeight: 600, marginBottom: '12px' }}>Platform Educator · 4.9★ Average</div>
                     <div style={{ fontSize: '14px', lineHeight: '1.5', color: 'var(--text-2)' }}>{course.instructorBio || 'An experienced industry professional dedicated to sharing knowledge and helping the next generation of learners succeed in their career journey.'}</div>
-                 </div>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="detail-right">
-             <div style={{ position: 'sticky', top: '24px' }}>
+            <div className="detail-right">
+              <div style={{ position: 'sticky', top: '24px' }}>
                 <div className="price-card" style={{ background: '#fff', borderRadius: '24px', padding: '32px', border: '1px solid var(--border-md)', boxShadow: '0 20px 40px rgba(79,70,229,0.06)' }}>
-                   <div style={{ fontSize: '32px', fontWeight: 900, fontFamily: 'var(--font-display)', marginBottom: '24px' }}>{priceStr}</div>
-                   
-                   <ul style={{ padding: 0, listStyle: 'none', marginBottom: '32px' }}>
-                      {['Lifetime access to recordings', 'Certificate of completion', 'Q&A session with instructor', 'Class notes & resources PDF'].map(t => (
-                        <li key={t} style={{ display: 'flex', gap: '10px', fontSize: '14px', marginBottom: '12px', color: 'var(--text-2)' }}>
-                           <span style={{ color: '#16A34A' }}>✓</span> {t}
-                        </li>
-                      ))}
-                   </ul>
+                  <div style={{ fontSize: '32px', fontWeight: 900, fontFamily: 'var(--font-display)', marginBottom: '24px' }}>{priceStr}</div>
 
-                   {userEnrol ? (
-                      <button 
-                        className="enrol-cta" 
-                        style={{ width: '100%', padding: '18px', borderRadius: '16px', background: 'var(--blue)', color: '#fff', border: 'none', fontSize: '16px', fontWeight: 700, cursor: 'pointer' }}
-                        onClick={() => {
-                          if (course.live) {
-                            router.push('/dashboard?view=upcoming');
-                          } else {
-                            router.push(`/player/${userEnrol.enrolment_id}`);
-                          }
+                  <ul style={{ padding: 0, listStyle: 'none', marginBottom: '32px' }}>
+                    {['Lifetime access to recordings', 'Certificate of completion', 'Q&A session with instructor', 'Class notes & resources PDF'].map(t => (
+                      <li key={t} style={{ display: 'flex', gap: '10px', fontSize: '14px', marginBottom: '12px', color: 'var(--text-2)' }}>
+                        <span style={{ color: '#16A34A' }}>✓</span> {t}
+                      </li>
+                    ))}
+                  </ul>
+
+                  {userEnrol ? (
+                    <button
+                      className="enrol-cta"
+                      style={{ width: '100%', padding: '18px', borderRadius: '16px', background: 'var(--blue)', color: '#fff', border: 'none', fontSize: '16px', fontWeight: 700, cursor: 'pointer' }}
+                      onClick={() => {
+                        if (course.live) {
+                          router.push('/dashboard?view=upcoming');
+                        } else {
+                          router.push(`/player/${userEnrol.enrolment_id}`);
+                        }
+                      }}
+                    >
+                      {course.live ? 'View Schedule →' : 'Continue Learning →'}
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        className={`enrol-cta ${enrolling ? 'loading' : ''}`}
+                        onClick={handleEnrol}
+                        disabled={enrolling || success}
+                        style={{
+                          width: '100%',
+                          padding: '18px',
+                          borderRadius: '16px',
+                          background: success ? '#16A34A' : 'var(--indigo)',
+                          color: '#fff',
+                          border: 'none',
+                          fontSize: '16px',
+                          fontWeight: 700,
+                          cursor: (enrolling || success) ? 'default' : 'pointer',
+                          marginBottom: '16px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '10px',
+                          opacity: enrolling ? 0.8 : 1
                         }}
                       >
-                        {course.live ? 'View Schedule →' : 'Continue Learning →'}
-                      </button>
-                    ) : (
-                      <>
-                        <button 
-                          className={`enrol-cta ${enrolling ? 'loading' : ''}`} 
-                          onClick={handleEnrol} 
-                          disabled={enrolling || success}
-                          style={{ 
-                            width: '100%', 
-                            padding: '18px', 
-                            borderRadius: '16px', 
-                            background: success ? '#16A34A' : 'var(--indigo)', 
-                            color: '#fff', 
-                            border: 'none', 
-                            fontSize: '16px', 
-                            fontWeight: 700, 
-                            cursor: (enrolling || success) ? 'default' : 'pointer', 
-                            marginBottom: '16px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: '10px',
-                            opacity: enrolling ? 0.8 : 1
-                          }}
-                        >
-                          {enrolling ? (
-                            <div className="btn-loader"></div>
-                          ) : success ? (
-                            '✓ Enrolled Successfully'
-                          ) : (
-                            'Enrol now →'
-                          )}
-                        </button>
-                        {error && !loading && (
-                          <div style={{ color: '#EF4444', fontSize: '13px', textAlign: 'center', marginBottom: '16px', fontWeight: 500 }}>
-                            {error}
-                          </div>
+                        {enrolling ? (
+                          <div className="btn-loader"></div>
+                        ) : success ? (
+                          '✓ Enrolled Successfully'
+                        ) : (
+                          'Enrol now →'
                         )}
-                        <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-3)' }}>100% money-back guarantee</div>
-                      </>
-                    )}
+                      </button>
+                      {error && !loading && (
+                        <div style={{ color: '#EF4444', fontSize: '13px', textAlign: 'center', marginBottom: '16px', fontWeight: 500 }}>
+                          {error}
+                        </div>
+                      )}
+                      <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-3)' }}>100% money-back guarantee</div>
+                    </>
+                  )}
                 </div>
-             </div>
-          </div>
-          
-        </div>
-      </main>
+              </div>
+            </div>
 
-      <style jsx>{`
+          </div>
+        </main>
+
+        <style jsx>{`
         .dstat { display: flex; flex-direction: column; min-width: 100px; }
         .dstat span { font-weight: 800; color: var(--ink); font-size: 16px; white-space: nowrap; }
         .dstat label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
