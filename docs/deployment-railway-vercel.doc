@@ -1,0 +1,205 @@
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Deployment Guide: Backend on Railway, Frontend on Vercel</title>
+</head>
+<body>
+  <h1>Deployment Guide: Backend on Railway, Frontend on Vercel</h1>
+  <p>This guide explains how to run:</p>
+  <ul>
+    <li>Backend API on Railway</li>
+    <li>Frontend (Next.js UI) on Vercel</li>
+  </ul>
+  <p>It is written for this project and includes the environment variables used in the codebase.</p>
+
+  <h2>1) Recommended Architecture</h2>
+  <ul>
+    <li><b>frontend</b> (Vercel): serves your Next.js pages and calls backend APIs.</li>
+    <li><b>backend</b> (Railway): serves API endpoints and connects to PostgreSQL.</li>
+    <li>Shared database: Railway Postgres (or any managed Postgres).</li>
+  </ul>
+  <p>If your backend logic is still inside <code>app/api/*</code> in Next.js, move that logic to a dedicated backend service first (for example Express/Nest/Fastify) so Railway can host it independently.</p>
+
+  <h2>2) Prerequisites</h2>
+  <ul>
+    <li>GitHub repository with separate frontend and backend code (or two folders).</li>
+    <li>Railway account and project.</li>
+    <li>Vercel account and project.</li>
+    <li>PostgreSQL database URL.</li>
+    <li>Domain names (optional but recommended for production).</li>
+  </ul>
+
+  <h2>3) Environment Variables Checklist</h2>
+  <p>Use the same variable names in deployment that your code expects.</p>
+
+  <h3>Backend (Railway) variables</h3>
+  <ul>
+    <li><code>DATABASE_URL</code></li>
+    <li><code>SESSION_SECRET</code></li>
+    <li><code>JWT_SECRET</code> (if your API uses JWT in addition to session cookies)</li>
+    <li><code>SMTP_HOST</code></li>
+    <li><code>SMTP_PORT</code></li>
+    <li><code>EMAIL_USER</code></li>
+    <li><code>EMAIL_PASS</code></li>
+    <li><code>SMTP_FROM</code></li>
+    <li><code>GOOGLE_CLIENT_ID</code></li>
+    <li><code>GOOGLE_CLIENT_SECRET</code></li>
+    <li><code>RAZORPAY_KEY_ID</code></li>
+    <li><code>RAZORPAY_KEY_SECRET</code></li>
+    <li><code>RAZORPAY_WEBHOOK_SECRET</code></li>
+    <li><code>NEXT_PUBLIC_BASE_URL</code> (set to your frontend URL where needed by current auth flow)</li>
+  </ul>
+
+  <h3>Frontend (Vercel) variables</h3>
+  <ul>
+    <li><code>NEXT_PUBLIC_BASE_URL</code> = your frontend URL (for example <code>https://app.example.com</code>)</li>
+    <li><code>NEXT_PUBLIC_API_BASE_URL</code> = your backend URL (for example <code>https://api.example.com</code>)</li>
+    <li><code>NEXT_PUBLIC_GOOGLE_CLIENT_ID</code></li>
+    <li><code>NEXT_PUBLIC_RAZORPAY_KEY_ID</code></li>
+  </ul>
+
+  <p><b>Notes:</b></p>
+  <ul>
+    <li>Do not commit <code>.env</code> files to Git.</li>
+    <li>Generate new production secrets; do not reuse development secrets.</li>
+    <li>Keep <code>NEXT_PUBLIC_*</code> only for values safe to expose in browser code.</li>
+  </ul>
+
+  <h2>4) Deploy Backend to Railway</h2>
+  <ol>
+    <li>Create a new Railway project.</li>
+    <li>Add your backend service from GitHub.</li>
+    <li>Set start/build commands based on backend framework, for example:
+      <ul>
+        <li>Build: <code>npm run build</code></li>
+        <li>Start: <code>npm run start</code></li>
+      </ul>
+    </li>
+    <li>Add all backend environment variables from the checklist.</li>
+    <li>Attach PostgreSQL:
+      <ul>
+        <li>Use Railway Postgres plugin or external provider.</li>
+        <li>Set <code>DATABASE_URL</code>.</li>
+      </ul>
+    </li>
+    <li>Deploy and copy backend public URL (for example <code>https://api-production.up.railway.app</code>).</li>
+  </ol>
+
+  <h3>Backend production checks</h3>
+  <ul>
+    <li>Health endpoint returns 200 (<code>/health</code> recommended).</li>
+    <li>API endpoint test succeeds from Postman/cURL.</li>
+    <li>Database read/write works.</li>
+    <li>CORS allows frontend domain.</li>
+    <li>Cookies/sessions configured for HTTPS and cross-site usage if needed.</li>
+  </ul>
+
+  <h2>5) Deploy Frontend to Vercel</h2>
+  <ol>
+    <li>Create/import project in Vercel from GitHub.</li>
+    <li>Set root directory to frontend app.</li>
+    <li>Framework preset: Next.js.</li>
+    <li>Add frontend environment variables:
+      <ul>
+        <li><code>NEXT_PUBLIC_API_BASE_URL</code> = Railway backend URL</li>
+        <li><code>NEXT_PUBLIC_BASE_URL</code> = Vercel frontend URL</li>
+        <li>other <code>NEXT_PUBLIC_*</code> keys listed above</li>
+      </ul>
+    </li>
+    <li>Deploy.</li>
+    <li>Add custom domain if needed.</li>
+  </ol>
+
+  <h2>6) Connect Frontend to Railway Backend</h2>
+  <p>Your frontend should call backend routes using <code>NEXT_PUBLIC_API_BASE_URL</code> instead of relative <code>/api</code> paths.</p>
+  <p><b>Example:</b></p>
+  <pre>const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+const res = await fetch(`${API_BASE}/auth/login`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(payload),
+  credentials: "include",
+});</pre>
+  <p>If you are currently using Next.js Route Handlers under <code>app/api/*</code>, those routes run on Vercel by default. Move those handlers to your Railway backend service to complete the split architecture.</p>
+
+  <h2>7) CORS and Cookie Settings (Important)</h2>
+  <p>For backend hosted on Railway and frontend on Vercel:</p>
+  <ul>
+    <li>Allow frontend origin only:
+      <ul>
+        <li>Production: <code>https://your-frontend-domain</code></li>
+        <li>Preview: <code>https://*.vercel.app</code> (only if truly needed)</li>
+      </ul>
+    </li>
+    <li>Allow credentials if using session cookies.</li>
+    <li>Set cookies with:
+      <ul>
+        <li><code>secure: true</code> in production</li>
+        <li><code>sameSite: "none"</code> when cross-site cookie usage is required</li>
+        <li><code>httpOnly: true</code></li>
+      </ul>
+    </li>
+  </ul>
+
+  <h2>8) Google OAuth Configuration</h2>
+  <p>In Google Cloud Console:</p>
+  <ul>
+    <li>Authorized JavaScript origins:
+      <ul>
+        <li>Frontend domain (Vercel)</li>
+      </ul>
+    </li>
+    <li>Authorized redirect URIs:
+      <ul>
+        <li>Backend callback endpoint on Railway (for example <code>https://api.example.com/auth/google/callback</code>)</li>
+      </ul>
+    </li>
+  </ul>
+  <p>Make sure the callback URL in code matches exactly.</p>
+
+  <h2>9) Razorpay Configuration</h2>
+  <ul>
+    <li>Store secret keys only in backend (Railway).</li>
+    <li>Keep publishable/public key in frontend as <code>NEXT_PUBLIC_RAZORPAY_KEY_ID</code>.</li>
+    <li>Configure Razorpay webhook URL to Railway backend endpoint.</li>
+    <li>Set <code>RAZORPAY_WEBHOOK_SECRET</code> in Railway.</li>
+  </ul>
+
+  <h2>10) Final Go-Live Checklist</h2>
+  <ul>
+    <li>Frontend loads from Vercel domain.</li>
+    <li>Frontend can call backend Railway API.</li>
+    <li>Login/register works.</li>
+    <li>Session persists across page refresh.</li>
+    <li>Email flow works (forgot password / verification).</li>
+    <li>Payments and webhook validation work.</li>
+    <li>DB migrations/schema are up to date.</li>
+    <li>Error monitoring/logging enabled.</li>
+  </ul>
+
+  <h2>11) Suggested CI/CD Flow</h2>
+  <ul>
+    <li><code>main</code> branch:
+      <ul>
+        <li>Auto deploy backend to Railway</li>
+        <li>Auto deploy frontend to Vercel</li>
+      </ul>
+    </li>
+    <li>Pull Requests:
+      <ul>
+        <li>Vercel preview deployments for UI validation</li>
+        <li>Optional Railway staging service for API validation</li>
+      </ul>
+    </li>
+  </ul>
+
+  <h2>12) Troubleshooting</h2>
+  <ul>
+    <li><code>401/403</code> after login: Check cookie flags, domain, and CORS credentials settings.</li>
+    <li>OAuth redirect mismatch: Verify exact callback URL in Google Console and backend env.</li>
+    <li><code>500</code> on API: Check Railway logs and missing env variables.</li>
+    <li>Payment verification failure: Confirm <code>RAZORPAY_KEY_SECRET</code> and webhook secret.</li>
+    <li>DB connection issues: Verify <code>DATABASE_URL</code>, SSL requirements, and network allow rules.</li>
+  </ul>
+</body>
+</html>

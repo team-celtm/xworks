@@ -109,7 +109,7 @@ function CatalogueContent() {
         const params = new URLSearchParams();
         if (state.search.trim()) params.set('q', state.search.trim());
         if (state.cat !== 'all') params.set('category', state.cat);
-        
+
         const res = await fetch(`/api/courses?${params.toString()}`);
         if (!res.ok) throw new Error('Failed to fetch workshops');
         const data = await res.json();
@@ -140,22 +140,22 @@ function CatalogueContent() {
     if (state.format === 'live') list = list.filter(w => w.live);
     if (state.format === 'recorded') list = list.filter(w => !w.live);
     if (state.format === 'nearby') list = list.filter(w => w.nearby);
-    
+
     if (state.price === 'low') list = list.filter(w => w.price < 999);
     if (state.price === 'mid') list = list.filter(w => w.price >= 999 && w.price <= 2000);
     if (state.price === 'high') list = list.filter(w => w.price > 2000);
 
-/* search is now handled server-side */
+    /* search is now handled server-side */
 
-    if (state.sort === 'rating') list.sort((a,b) => b.rating - a.rating);
-    else if (state.sort === 'price-asc') list.sort((a,b) => a.price - b.price);
-    else if (state.sort === 'price-desc') list.sort((a,b) => b.price - a.price);
-    else if (state.sort === 'duration') list.sort((a,b) => a.dur - b.dur);
-    else if (state.sort === 'newest') list.sort((a,b) => (b.tag==='new'?1:0)-(a.tag==='new'?1:0));
-    else list.sort((a,b) => (b.tag==='pop'?1:0)-(a.tag==='pop'?1:0));
+    if (state.sort === 'rating') list.sort((a, b) => b.rating - a.rating);
+    else if (state.sort === 'price-asc') list.sort((a, b) => a.price - b.price);
+    else if (state.sort === 'price-desc') list.sort((a, b) => b.price - a.price);
+    else if (state.sort === 'duration') list.sort((a, b) => a.dur - b.dur);
+    else if (state.sort === 'newest') list.sort((a, b) => (b.tag === 'new' ? 1 : 0) - (a.tag === 'new' ? 1 : 0));
+    else list.sort((a, b) => (b.tag === 'pop' ? 1 : 0) - (a.tag === 'pop' ? 1 : 0));
 
     // Nearby always floated to top
-    list.sort((a,b) => (b.nearby?1:0)-(a.nearby?1:0));
+    list.sort((a, b) => (b.nearby ? 1 : 0) - (a.nearby ? 1 : 0));
 
     return list;
   }, [state, workshops]);
@@ -164,22 +164,22 @@ function CatalogueContent() {
   const paginated = filtered.slice((state.page - 1) * state.perPage, state.page * state.perPage);
 
   // Active filters
-  const chips: Array<{label: string, clear: () => void}> = [];
-  const catNames: Record<string, string> = {ai:'AI',programming:'Programming',cybersecurity:'Cybersecurity',data:'Data & Analytics',design:'Design',photography:'Photography',wellness:'Wellness',music:'Music & Arts',business:'Business',mindfulness:'Mindfulness'};
-  
-  if (state.cat !== 'all') chips.push({label: catNames[state.cat] || state.cat, clear: () => updateState({cat: 'all'})});
-  if (state.level !== 'all') chips.push({label: state.level, clear: () => updateState({level: 'all'})});
-  if (state.format !== 'all') chips.push({label: state.format==='live'?'Live only':state.format==='recorded'?'Recorded':state.format==='nearby'?'📍 Nearby':state.format, clear: () => updateState({format: 'all'})});
-  if (state.price !== 'all') chips.push({label: state.price==='low'?'Under ₹999':state.price==='mid'?'₹999–₹2000':'₹2000+', clear: () => updateState({price: 'all'})});
-  if (state.search) chips.push({label: `"${state.search}"`, clear: () => updateState({search: ''})});
+  const chips: Array<{ label: string, clear: () => void }> = [];
+  const catNames: Record<string, string> = { ai: 'AI', programming: 'Programming', cybersecurity: 'Cybersecurity', data: 'Data & Analytics', design: 'Design', photography: 'Photography', wellness: 'Wellness', music: 'Music & Arts', business: 'Business', mindfulness: 'Mindfulness' };
 
-  const resetAll = () => updateState({ cat:'all', level:'all', format:'all', price:'all', search:'', page:1 });
+  if (state.cat !== 'all') chips.push({ label: catNames[state.cat] || state.cat, clear: () => updateState({ cat: 'all' }) });
+  if (state.level !== 'all') chips.push({ label: state.level, clear: () => updateState({ level: 'all' }) });
+  if (state.format !== 'all') chips.push({ label: state.format === 'live' ? 'Live only' : state.format === 'recorded' ? 'Recorded' : state.format === 'nearby' ? '📍 Nearby' : state.format, clear: () => updateState({ format: 'all' }) });
+  if (state.price !== 'all') chips.push({ label: state.price === 'low' ? 'Under ₹999' : state.price === 'mid' ? '₹999–₹2000' : '₹2000+', clear: () => updateState({ price: 'all' }) });
+  if (state.search) chips.push({ label: `"${state.search}"`, clear: () => updateState({ search: '' }) });
+
+  const resetAll = () => updateState({ cat: 'all', level: 'all', format: 'all', price: 'all', search: '', page: 1 });
 
   // Page texts
-  const catNamesFull: Record<string, string> = {all:'All Workshops',ai:'Artificial Intelligence',programming:'Programming',cybersecurity:'Cybersecurity',data:'Data & Analytics',design:'Design & Creativity',photography:'Photography',wellness:'Lifestyle & Wellness',music:'Music & Arts',business:'Business & Finance',mindfulness:'Mindfulness'};
+  const catNamesFull: Record<string, string> = { all: 'All Workshops', ai: 'Artificial Intelligence', programming: 'Programming', cybersecurity: 'Cybersecurity', data: 'Data & Analytics', design: 'Design & Creativity', photography: 'Photography', wellness: 'Lifestyle & Wellness', music: 'Music & Arts', business: 'Business & Finance', mindfulness: 'Mindfulness' };
   const pageTitleText = catNamesFull[state.cat] || 'All Workshops';
-  const startIdx = (state.page-1)*state.perPage + 1;
-  const endIdx = Math.min(state.page*state.perPage, filtered.length);
+  const startIdx = (state.page - 1) * state.perPage + 1;
+  const endIdx = Math.min(state.page * state.perPage, filtered.length);
   const subtitleText = filtered.length > 0 ? `Showing ${startIdx}–${endIdx} of ${filtered.length} workshops` : 'No workshops match your filters';
 
   // --- Modal Logic ---
@@ -219,13 +219,13 @@ function CatalogueContent() {
         const data = await res.json();
         setModalSessions(data);
         if (data.length > 0) {
-           const first = data[0];
-           setEnrolData(prev => ({
-             ...prev, 
-             selectedSessionId: first.id,
-             date: new Date(first.scheduled_start).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }),
-             time: new Date(first.scheduled_start).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
-           }));
+          const first = data[0];
+          setEnrolData(prev => ({
+            ...prev,
+            selectedSessionId: first.id,
+            date: new Date(first.scheduled_start).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }),
+            time: new Date(first.scheduled_start).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+          }));
         }
       }
     } catch (err) {
@@ -241,7 +241,7 @@ function CatalogueContent() {
 
   const handleModalEnrol = async () => {
     if (!enrolData.id) return;
-    
+
     setLoading(true);
     try {
       // If it's a paid course, start Razorpay flow
@@ -249,22 +249,22 @@ function CatalogueContent() {
         const orderRes = await fetch('/api/payments/create-order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
+          body: JSON.stringify({
             courseId: enrolData.id,
             promoCode: promoApplied ? promoCode : null
-           })
+          })
         });
-        
+
         const orderData = await orderRes.json();
-        
+
         if (!orderRes.ok) {
-           if (orderRes.status === 401) {
-             router.push(`/Login?returnUrl=/catalogue`);
-             return;
-           }
-           setPromoError(orderData.error || 'Could not create payment order');
-           setLoading(false);
-           return;
+          if (orderRes.status === 401) {
+            router.push(`/Login?returnUrl=/catalogue`);
+            return;
+          }
+          setPromoError(orderData.error || 'Could not create payment order');
+          setLoading(false);
+          return;
         }
 
         const options = {
@@ -287,15 +287,15 @@ function CatalogueContent() {
                 promoCode: promoApplied ? promoCode : null
               })
             });
-             const verifyData = await verifyRes.json();
+            const verifyData = await verifyRes.json();
             if (verifyRes.ok) {
               setModalEnrolmentId(verifyData.enrolmentId);
-              
+
               // NEW: Session Registration
               if (enrolData.format === 'live' && enrolData.selectedSessionId) {
                 await fetch(`/api/sessions/${enrolData.selectedSessionId}/register`, { method: 'POST' });
               }
-              
+
               setEnrolStep(4);
             } else {
               alert(verifyData.error || 'Payment verification failed');
@@ -318,7 +318,7 @@ function CatalogueContent() {
       const res = await fetch('/api/learner/enrolments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           courseId: enrolData.id,
           sessionId: enrolData.selectedSessionId
         })
@@ -332,12 +332,12 @@ function CatalogueContent() {
       const data = await res.json();
       if (res.ok) {
         setModalEnrolmentId(data.enrolmentId);
-        
+
         // NEW: Session Registration
         if (enrolData.format === 'live' && enrolData.selectedSessionId) {
           await fetch(`/api/sessions/${enrolData.selectedSessionId}/register`, { method: 'POST' });
         }
-        
+
         setEnrolStep(4);
       } else {
         alert(data.error || 'Failed to enrol');
@@ -363,10 +363,10 @@ function CatalogueContent() {
       if (res.ok) {
         setPromoApplied(true);
         const discount = Math.round((enrolData.basePrice || 0) * (data.discountPercentage / 100));
-        setEnrolData((prev: EnrolData) => ({ 
-          ...prev, 
-          finalPrice: (prev.basePrice || 0) - discount, 
-          discountAmt: discount 
+        setEnrolData((prev: EnrolData) => ({
+          ...prev,
+          finalPrice: (prev.basePrice || 0) - discount,
+          discountAmt: discount
         }));
         setPromoError('');
       } else {
@@ -409,10 +409,10 @@ function CatalogueContent() {
         <div className="filter-bar">
           <div className="search-wrap">
             <span className="search-icon">🔍</span>
-            <input 
-              className="search-input" 
-              type="text" 
-              placeholder="Search workshops, topics, instructors…" 
+            <input
+              className="search-input"
+              type="text"
+              placeholder="Search workshops, topics, instructors…"
               value={state.search}
               onChange={(e) => updateState({ search: e.target.value })}
             />
@@ -421,8 +421,8 @@ function CatalogueContent() {
             {['All levels', 'Beginner', 'Intermediate', 'Advanced'].map(lbl => {
               const val = lbl === 'All levels' ? 'all' : lbl;
               return (
-                <button 
-                  key={lbl} 
+                <button
+                  key={lbl}
                   className={`level-btn ${state.level === val ? 'active' : ''}`}
                   onClick={() => handleLevelChange(val)}
                 >
@@ -431,9 +431,9 @@ function CatalogueContent() {
               );
             })}
           </div>
-          <select 
-            className="filter-select" 
-            value={state.format} 
+          <select
+            className="filter-select"
+            value={state.format}
             onChange={(e) => updateState({ format: e.target.value })}
           >
             <option value="all">Any format</option>
@@ -441,9 +441,9 @@ function CatalogueContent() {
             <option value="recorded">Recorded only</option>
             <option value="nearby">📍 Nearby</option>
           </select>
-          <select 
-            className="filter-select" 
-            value={state.price} 
+          <select
+            className="filter-select"
+            value={state.price}
             onChange={(e) => updateState({ price: e.target.value })}
           >
             <option value="all">Any price</option>
@@ -456,8 +456,8 @@ function CatalogueContent() {
         {subCategories.length > 0 && (
           <div className="subcat-row" style={{ display: 'flex', gap: '8px', marginTop: '16px', flexWrap: 'wrap' }}>
             {[{ slug: state.cat, name: 'All ' + pageTitleText }, ...subCategories].map(sc => (
-              <button 
-                key={sc.slug} 
+              <button
+                key={sc.slug}
                 className={`subcat-chip ${state.cat === sc.slug ? 'active' : ''}`}
                 onClick={() => handleCatChange(sc.slug)}
                 style={{
@@ -484,7 +484,7 @@ function CatalogueContent() {
           <div className="sidebar-section">
             <div className="sidebar-label">Category</div>
             {[
-              { id:'all', icon:'🗂️', name:'All categories', count:176 },
+              { id: 'all', icon: '🗂️', name: 'All categories', count: 176 },
               ...dbCategories.map((c: any) => ({
                 id: c.slug,
                 icon: c.icon || '🎓',
@@ -492,8 +492,8 @@ function CatalogueContent() {
                 count: c.course_count
               }))
             ].map((c: any) => (
-              <div 
-                key={c.id} 
+              <div
+                key={c.id}
                 className={`cat-item ${state.cat === c.id ? 'active' : ''}`}
                 onClick={() => handleCatChange(c.id)}
               >
@@ -538,9 +538,9 @@ function CatalogueContent() {
             </div>
             <div className="sort-row">
               Sort by
-              <select 
-                className="sort-select-main" 
-                value={state.sort} 
+              <select
+                className="sort-select-main"
+                value={state.sort}
                 onChange={(e) => updateState({ sort: e.target.value })}
               >
                 <option value="popular">Most popular</option>
@@ -590,12 +590,12 @@ function CatalogueContent() {
                 const tagClass = isNearby ? 'tag-near' : w.tag === 'live' ? 'tag-live' : w.tag === 'new' ? 'tag-new' : w.tag === 'pop' ? 'tag-pop' : 'tag-rec';
                 const tagLabel = isNearby ? '📍 Nearby' : w.tagLabel;
                 const priceStr = '₹' + (Number(w.price) || 0).toLocaleString('en-IN');
-                
+
                 return (
-                  <div 
-                    key={w.id} 
-                    className={`wcard ${isNearby ? 'nearby' : ''}`} 
-                    style={{ animationDelay: `${i*0.04}s`, cursor: 'pointer' }}
+                  <div
+                    key={w.id}
+                    className={`wcard ${isNearby ? 'nearby' : ''}`}
+                    style={{ animationDelay: `${i * 0.04}s`, cursor: 'pointer' }}
                     onClick={() => router.push(`/courses/${w.slug}`)}
                   >
                     <div className="wcard-thumb">
@@ -615,8 +615,8 @@ function CatalogueContent() {
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                         <span className="wcard-price">{priceStr}</span>
                       </div>
-                      <button 
-                        className={`wcard-enrol ${isNearby ? 'nearby-btn' : ''}`} 
+                      <button
+                        className={`wcard-enrol ${isNearby ? 'nearby-btn' : ''}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           openEnrol(w);
@@ -633,23 +633,23 @@ function CatalogueContent() {
 
           {totalPages > 1 && (
             <div className="pagination">
-              <button 
-                className="pag-btn arrow" 
+              <button
+                className="pag-btn arrow"
                 onClick={() => updateState({ page: state.page - 1 })}
                 disabled={state.page === 1}
                 style={{ opacity: state.page === 1 ? 0.3 : 1 }}
               >‹</button>
-              
+
               {Array.from({ length: totalPages }).map((_, i) => {
                 const p = i + 1;
-                if (totalPages > 7 && p > 3 && p < totalPages-1 && Math.abs(p-state.page) > 1) {
-                  if (p === 4 || p === totalPages-2) return <span key={p} className="pag-dots">…</span>;
+                if (totalPages > 7 && p > 3 && p < totalPages - 1 && Math.abs(p - state.page) > 1) {
+                  if (p === 4 || p === totalPages - 2) return <span key={p} className="pag-dots">…</span>;
                   return null;
                 }
                 return (
-                  <button 
-                    key={p} 
-                    className={`pag-btn ${p === state.page ? 'active' : ''}`} 
+                  <button
+                    key={p}
+                    className={`pag-btn ${p === state.page ? 'active' : ''}`}
                     onClick={() => updateState({ page: p })}
                   >
                     {p}
@@ -657,8 +657,8 @@ function CatalogueContent() {
                 );
               })}
 
-              <button 
-                className="pag-btn arrow" 
+              <button
+                className="pag-btn arrow"
                 onClick={() => updateState({ page: state.page + 1 })}
                 disabled={state.page === totalPages}
                 style={{ opacity: state.page === totalPages ? 0.3 : 1 }}
@@ -672,7 +672,7 @@ function CatalogueContent() {
       {showEnrol && (
         <div className="enrol-backdrop open" onClick={(e) => { if ((e.target as HTMLElement).classList.contains('enrol-backdrop')) closeEnrol(); }}>
           <div className="enrol-modal">
-            
+
             {/* STEP 1: FORMAT */}
             {enrolStep === 1 && (
               <div>
@@ -713,13 +713,13 @@ function CatalogueContent() {
                       { id: 'recorded', icon: '📹', name: 'Recorded', sub: 'Watch anytime · Self-paced', p: '₹999' },
                       { id: 'inperson', icon: '📍', name: 'In-person', sub: 'Nearby · Limited seats', p: '₹849' }
                     ].map(f => (
-                      <div 
-                        key={f.id} 
+                      <div
+                        key={f.id}
                         className={`enrol-format-btn ${enrolData.format === f.id ? 'selected' : ''}`}
                         onClick={() => {
                           setEnrolData((prev: EnrolData) => ({
-                            ...prev, 
-                            format: f.id, 
+                            ...prev,
+                            format: f.id,
                             formatLabel: f.name.toLowerCase(),
                             price: f.p,
                             basePrice: parseInt(f.p.replace(/[^0-9]/g, '')),
@@ -763,51 +763,51 @@ function CatalogueContent() {
                   <div className="enrol-step-item"><div className="enrol-step-dot pending">3</div><div className="enrol-step-label">Payment</div></div>
                 </div>
                 <div className="enrol-body">
-                <div className="enrol-date-grid">
-                  {modalSessions.length > 0 ? (
-                    modalSessions.map((s: any) => {
-                      const d = new Date(s.scheduled_start);
-                      const day = d.toLocaleDateString('en-IN', { weekday: 'short' });
-                      const num = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-                      const time = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
-                      const isFull = s.max_seats && s.registered_count >= s.max_seats;
-                      
-                      return (
-                        <button 
-                          key={s.id} 
-                          className={`enrol-date-btn ${enrolData.selectedSessionId === s.id ? 'sel' : ''} ${isFull ? 'disabled' : ''}`}
-                          disabled={isFull}
-                          style={{ height: 'auto', padding: '12px 8px' }}
-                          onClick={() => setEnrolData((prev: EnrolData) => ({ 
-                            ...prev, 
-                            selectedSessionId: s.id,
-                            date: `${day} ${num}`,
-                            time
-                          }))}
-                        >
-                          <div className="enrol-date-day">{day}</div>
-                          <div className="enrol-date-num">{num}</div>
-                          <div style={{ fontSize: '10px', marginTop: '4px', opacity: 0.8 }}>{time}</div>
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <div style={{ gridColumn: '1/-1', padding: '16px 0', textAlign: 'center', color: 'var(--text-3)', fontSize: '14px' }}>
-                      No upcoming live sessions found.
-                    </div>
+                  <div className="enrol-date-grid">
+                    {modalSessions.length > 0 ? (
+                      modalSessions.map((s: any) => {
+                        const d = new Date(s.scheduled_start);
+                        const day = d.toLocaleDateString('en-IN', { weekday: 'short' });
+                        const num = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+                        const time = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+                        const isFull = s.max_seats && s.registered_count >= s.max_seats;
+
+                        return (
+                          <button
+                            key={s.id}
+                            className={`enrol-date-btn ${enrolData.selectedSessionId === s.id ? 'sel' : ''} ${isFull ? 'disabled' : ''}`}
+                            disabled={isFull}
+                            style={{ height: 'auto', padding: '12px 8px' }}
+                            onClick={() => setEnrolData((prev: EnrolData) => ({
+                              ...prev,
+                              selectedSessionId: s.id,
+                              date: `${day} ${num}`,
+                              time
+                            }))}
+                          >
+                            <div className="enrol-date-day">{day}</div>
+                            <div className="enrol-date-num">{num}</div>
+                            <div style={{ fontSize: '10px', marginTop: '4px', opacity: 0.8 }}>{time}</div>
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <div style={{ gridColumn: '1/-1', padding: '16px 0', textAlign: 'center', color: 'var(--text-3)', fontSize: '14px' }}>
+                        No upcoming live sessions found.
+                      </div>
+                    )}
+                  </div>
+
+                  {enrolData.selectedSessionId && (
+                    <>
+                      <div className="enrol-section-label">Selected slot</div>
+                      <div className="enrol-session-info">
+                        {enrolData.date as string} · {enrolData.time as string} &nbsp;·&nbsp; {enrolData.format === 'live' ? 'Online via Zoom' : 'Location TBD'}
+                      </div>
+                    </>
                   )}
-                </div>
-                
-                {enrolData.selectedSessionId && (
-                  <>
-                    <div className="enrol-section-label">Selected slot</div>
-                    <div className="enrol-session-info">
-                      {enrolData.date as string} · {enrolData.time as string} &nbsp;·&nbsp; {enrolData.format === 'live' ? 'Online via Zoom' : 'Location TBD'}
-                    </div>
-                  </>
-                )}
-                
-                <button className="enrol-cta" onClick={() => setEnrolStep(3)}>Continue to payment →</button>
+
+                  <button className="enrol-cta" onClick={() => setEnrolStep(3)}>Continue to payment →</button>
                 </div>
               </div>
             )}
@@ -830,38 +830,38 @@ function CatalogueContent() {
                 <div className="enrol-body">
                   <div className="enrol-order-row"><span className="enrol-order-label">Workshop</span><span className="enrol-order-val">{enrolData.name}</span></div>
                   <div className="enrol-order-row"><span className="enrol-order-label">Platform fee</span><span className="enrol-order-val">₹0</span></div>
-                  
+
                   {promoApplied && (
                     <div className="enrol-order-row">
                       <span className="enrol-order-label" style={{ color: '#16A34A' }}>Promo discount</span>
                       <span className="enrol-order-val" style={{ color: '#16A34A' }}>−₹{(enrolData.discountAmt || 0).toLocaleString('en-IN')}</span>
                     </div>
                   )}
-                  
+
                   <div className="enrol-divider"></div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                     <span className="enrol-total">Total</span>
                     <span className="enrol-total">₹{(enrolData.finalPrice || 0).toLocaleString('en-IN')}</span>
                   </div>
                   <div className="enrol-promo-row">
-                    <input 
-                      className="enrol-promo-input" 
-                      type="text" 
+                    <input
+                      className="enrol-promo-input"
+                      type="text"
                       placeholder="Promo code (try XWORKS20)"
                       value={promoCode}
                       onChange={(e) => setPromoCode(e.target.value)}
                     />
                     <button className="enrol-promo-apply" onClick={applyPromo}>Apply</button>
                   </div>
-                  
+
                   {promoApplied && <div className="enrol-promo-ok" style={{ display: 'flex' }}>✓ Code applied — 20% off!</div>}
                   {promoError && <div className="enrol-promo-ok" style={{ display: 'flex', color: promoError.includes('!') ? '#1E1B4B' : '#D84040' }}>{promoError}</div>}
-                  
+
                   <div className="enrol-section-label">Pay with</div>
                   <div className="enrol-pay-methods">
                     {['UPI', 'Card', 'Net banking', 'EMI'].map(m => (
-                      <div 
-                        key={m} 
+                      <div
+                        key={m}
                         className={`enrol-pay-btn ${enrolData.payMethod === m ? 'sel' : ''}`}
                         onClick={() => setEnrolData((prev: EnrolData) => ({ ...prev, payMethod: m }))}
                       >
@@ -873,10 +873,10 @@ function CatalogueContent() {
                     {enrolData.payMethod === 'UPI' && <span>UPI ID: &nbsp;<strong>priya@okaxis</strong></span>}
                     {enrolData.payMethod === 'Card' && <span style={{ color: '#4B5080' }}>Card ending in &nbsp;<strong>•••• 4242</strong> &nbsp;(Visa)</span>}
                     {enrolData.payMethod === 'Net banking' && <span style={{ color: '#4B5080' }}>Bank: &nbsp;<strong>HDFC Bank</strong></span>}
-                    {enrolData.payMethod === 'EMI' && <span style={{ color: '#4B5080' }}>EMI: &nbsp;<strong>3 × ₹{(Math.round((enrolData.finalPrice || 0)/3)).toLocaleString('en-IN')}/month</strong> &nbsp;at 0% interest</span>}
+                    {enrolData.payMethod === 'EMI' && <span style={{ color: '#4B5080' }}>EMI: &nbsp;<strong>3 × ₹{(Math.round((enrolData.finalPrice || 0) / 3)).toLocaleString('en-IN')}/month</strong> &nbsp;at 0% interest</span>}
                   </div>
-                  <button 
-                    className={`enrol-cta coral ${loading ? 'btn-loading' : ''}`} 
+                  <button
+                    className={`enrol-cta coral ${loading ? 'btn-loading' : ''}`}
                     onClick={handleModalEnrol}
                     disabled={loading}
                   >
@@ -908,12 +908,12 @@ function CatalogueContent() {
                 </div>
                 <div className="enrol-success-btns">
                   <button className="enrol-success-btn" onClick={closeEnrol}>Close</button>
-                  <button 
-                    className="enrol-success-btn primary" 
-                    onClick={() => { 
-                      closeEnrol(); 
+                  <button
+                    className="enrol-success-btn primary"
+                    onClick={() => {
+                      closeEnrol();
                       if (modalEnrolmentId) router.push(`/player/${modalEnrolmentId}`);
-                      else router.push('/dashboard/enrolments'); 
+                      else router.push('/dashboard/enrolments');
                     }}
                   >
                     {modalEnrolmentId ? 'Start Learning →' : 'Go to dashboard →'}
@@ -921,7 +921,7 @@ function CatalogueContent() {
                 </div>
               </div>
             )}
-            
+
           </div>
         </div>
       )}

@@ -65,6 +65,9 @@ export default function DashboardPage() {
   const [searchResults, setSearchResults] = useState<{ query: string; recorded: Workshop[]; live: Workshop[] } | null>(null);
   const [enrolments, setEnrolments] = useState<any[]>([]);
   const [loadingEnrolments, setLoadingEnrolments] = useState(true);
+  const [hasMounted, setHasMounted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
 
   // Enrol modal state
@@ -81,7 +84,6 @@ export default function DashboardPage() {
   const [loadingCerts, setLoadingCerts] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [timeLeft, setTimeLeft] = useState<string>("");
-  const [hasMounted, setHasMounted] = useState(false);
 
   // Notes state
   const [notes, setNotes] = useState<Note[]>([]);
@@ -844,22 +846,25 @@ export default function DashboardPage() {
   if (!hasMounted) return null;
 
   return (
-    <div className="shell">
+    <div className={`shell ${isMobileMenuOpen ? 'menu-open' : ''}`}>
       {/* ══════════════════════════
            SIDEBAR
       ══════════════════════════ */}
-      <aside className="sidebar">
-        <div className="sb-logo">
-          <Logo />
-        </div>
-
-        <div className="sb-user">
-          <div className="sb-avatar">
-            {user ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase() : "..."}
+      <aside className={`sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
+        <div className="sb-mobile-hd">
+          <button className="sb-menu-btn" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+            {isMobileMenuOpen ? '✕' : '☰'}
+          </button>
+          <div className="sb-logo">
+            <Logo />
           </div>
-          <div>
-            <div className="sb-user-name">{user ? `${user.firstName} ${user.lastName}` : "Loading..."}</div>
-            <div className="sb-user-tag">{user?.role === 'learner' ? 'Pro Learner' : user?.role || 'Guest'}</div>
+          <div className="sb-user">
+            <div className="sb-avatar">
+              {user ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase() : "..."}
+            </div>
+            <div className="sb-user-info-mob">
+              <div className="sb-user-name">{user ? `${user.firstName} ${user.lastName}` : "Loading..."}</div>
+            </div>
           </div>
         </div>
 
