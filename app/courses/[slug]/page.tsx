@@ -58,6 +58,13 @@ export default function CourseDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+
+  useEffect(() => {
+    if (course) {
+      document.title = `XWORKS — ${course.name}`;
+    }
+  }, [course]);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -234,19 +241,27 @@ export default function CourseDetailPage() {
       <div className="detail-page" style={{ background: 'var(--surface-2)', minHeight: '100vh', overflowY: 'auto' }}>
         <nav className="nav">
           <Logo />
-          <div className="nav-right">
-            <Link href="/catalogue" className="nav-link-sm">Explore</Link>
-            {user ? (
-              <Link href="/dashboard" className="nav-link-sm">Dashboard</Link>
-            ) : (
-              <>
-                <Link href="/Login" className="nav-link-sm">Login</Link>
-                <Link href="/Registration" className="nav-cta">Sign up</Link>
-              </>
-            )}
-            <button className="nav-back" onClick={() => router.back()}>← Back</button>
-          </div>
-        </nav>
+        {/* Mobile Toggle */}
+        <button className="mob-menu-toggle" onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}>
+          {isMobileNavOpen ? '✕' : '☰'}
+        </button>
+
+        <div className={`nav-right ${isMobileNavOpen ? 'open' : ''}`}>
+          <Link href="/catalogue" className="nav-link-sm" onClick={() => setIsMobileNavOpen(false)}>Explore</Link>
+          {user ? (
+            <Link href="/dashboard" className="nav-link-sm" onClick={() => setIsMobileNavOpen(false)}>Dashboard</Link>
+          ) : (
+            <>
+              <Link href="/Login" className="nav-link-sm" onClick={() => setIsMobileNavOpen(false)}>Login</Link>
+              <Link href="/Registration" className="nav-cta" onClick={() => setIsMobileNavOpen(false)}>Sign up</Link>
+            </>
+          )}
+          <button className="nav-back" onClick={() => {
+            if (window.history.length > 1) router.back();
+            else router.push('/catalogue');
+          }}>← Back</button>
+        </div>
+      </nav>
 
         <main className="detail-main" style={{ maxWidth: '1100px', margin: '40px auto', padding: '0 24px' }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '40px' }}>

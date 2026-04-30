@@ -43,7 +43,9 @@
 html,
 body {
   height: auto;
-  min-height: 100%
+  min-height: 100%;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 body {
@@ -455,22 +457,28 @@ body {
   background: rgba(30, 27, 75, 0.85)
 }
 
+
+/* Prevent persisting global nav from other pages from pushing dashboard content */
+.nav:not(.sb-nav) {
+  display: none !important;
+}
+
 /* Top bar */
 .topbar {
   height: auto;
-  min-height: 72px;
+  min-height: 64px;
   flex-shrink: 0;
   padding: 12px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  position: sticky;
-  top: 64px; /* Account for mobile navy header */
-  z-index: 100;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 110;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   gap: 12px;
 }
@@ -479,7 +487,7 @@ body {
   .topbar {
     padding: 0 32px;
     height: 64px;
-    top: 0;
+    top: 0 !important;
   }
 }
 
@@ -2458,4 +2466,22 @@ body {
 
 .wcard-enrol-btn.primary:hover {
   background: var(--indigo-mid) !important;
+}
+/* ══ SKELETON LOADING ══ */
+.skeleton {
+  background: linear-gradient(90deg, #F0F2FF 25%, #E0E7FF 50%, #F0F2FF 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  border-radius: 8px;
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-card {
+  height: 280px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
 }

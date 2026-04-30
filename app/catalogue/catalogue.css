@@ -570,3 +570,67 @@
 .enrol-success-btn.primary{background:#3730A3;color:#fff;border-color:#3730A3}
 .enrol-success-btn.primary:hover{background:#4F46E5;border-color:#4F46E5}
 
+
+/* ── Course Detail Responsive Fixes ── */
+.mob-menu-toggle { display: none; }
+
+@media (max-width: 768px) {
+  .mob-menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 24px;
+    cursor: pointer;
+    z-index: 1001;
+  }
+
+  .nav-right {
+    position: fixed;
+    top: 64px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(30, 27, 75, 0.98);
+    display: none;
+    flex-direction: column;
+    padding: 40px 20px;
+    gap: 20px;
+    z-index: 1000;
+  }
+
+  .nav-right.open {
+    display: flex;
+  }
+
+  .nav-link-sm {
+    font-size: 18px;
+    width: 100%;
+    text-align: center;
+    padding: 15px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .nav-cta {
+    width: 100%;
+    text-align: center;
+    padding: 15px;
+    font-size: 18px;
+    background: var(--coral);
+    border-radius: 12px;
+  }
+
+  .nav-back {
+    width: 100%;
+    text-align: center;
+    padding: 15px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 12px;
+    border: none;
+    color: #fff;
+  }
+}
