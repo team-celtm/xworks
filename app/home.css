@@ -1653,12 +1653,14 @@ html {
 }
 
 .cat-hero {
-  padding: 56px 48px 40px;
+  padding: 80px 48px 60px;
   max-width: 1200px;
   margin: 0 auto;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
+  background: radial-gradient(circle at 0% 0%, var(--indigo-light), transparent 40%);
+  position: relative;
   gap: 32px;
   flex-wrap: wrap;
 }
@@ -1680,10 +1682,13 @@ html {
 }
 
 .cat-hero-title mark {
-  background: var(--indigo-light);
-  padding: 0 6px;
-  border-radius: 4px;
-  color: var(--ink)
+  background: var(--coral-glow);
+  padding: 4px 16px;
+  margin-left: -8px;
+  border-radius: 10px;
+  color: var(--coral-dark);
+  display: inline-block;
+  line-height: 1.2;
 }
 
 .cat-hero-desc {

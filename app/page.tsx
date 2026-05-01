@@ -666,8 +666,12 @@ export default function Home() {
             <div className="cta-sub">Thousands of curious minds are already learning something new today. Your first workshop is waiting.</div>
           </div>
           <div className="cta-right">
-            <Link href="/Registration" className="btn-primary" style={{ fontSize: '16px', padding: '16px 40px' }}>Sign up today — it's free →</Link>
-            <div className="cta-fine">No credit card required · Cancel anytime</div>
+            {user ? (
+              <Link href="/catalogue" className="btn-primary" style={{ fontSize: '16px', padding: '16px 40px' }}>Explore Workshops →</Link>
+            ) : (
+              <Link href="/Registration" className="btn-primary" style={{ fontSize: '16px', padding: '16px 40px' }}>Sign up today — it's free →</Link>
+            )}
+            <div className="cta-fine">{user ? "Pick up where you left off · Keep learning" : "No credit card required · Cancel anytime"}</div>
           </div>
         </div>
       </section>
