@@ -68,6 +68,7 @@ export default function DashboardPage() {
   const [hasMounted, setHasMounted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
 
   // Enrol modal state
@@ -945,8 +946,45 @@ export default function DashboardPage() {
           <div className="topbar-greeting">
             Good morning, <strong>{user?.firstName || "Learner"}</strong> 👋 Ready to learn something great today?
           </div>
-          <div className="topbar-right">
-            <div className="topbar-notif">🔔<div className="notif-dot"></div></div>
+          <div className="topbar-right" style={{ position: 'relative' }}>
+            <div className="topbar-notif" onClick={() => setIsNotifOpen(!isNotifOpen)}>
+              🔔<div className="notif-dot"></div>
+            </div>
+            
+            {isNotifOpen && (
+              <div className="notif-dropdown" style={{
+                position: 'absolute', top: '50px', right: '0', width: '320px', 
+                background: '#fff', borderRadius: '16px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
+                border: '1px solid var(--border-md)', zIndex: 300, overflow: 'hidden'
+              }}>
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', fontWeight: 700, display: 'flex', justifyContent: 'space-between' }}>
+                  Notifications
+                  <span style={{ fontSize: '12px', color: 'var(--indigo)', cursor: 'pointer', fontWeight: 600 }} onClick={() => setIsNotifOpen(false)}>Close</span>
+                </div>
+                <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+                  <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', gap: '12px', cursor: 'pointer' }}>
+                    <div style={{ fontSize: '20px' }}>🎉</div>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>Welcome to XWORKS!</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: '2px' }}>We're excited to have you on board. Start learning today.</div>
+                      <div style={{ fontSize: '10px', color: 'var(--text-3)', marginTop: '6px' }}>Just now</div>
+                    </div>
+                  </div>
+                  <div style={{ padding: '16px 20px', display: 'flex', gap: '12px', cursor: 'pointer', background: 'var(--surface-2)' }}>
+                    <div style={{ fontSize: '20px' }}>📅</div>
+                    <div>
+                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>Upcoming session reminder</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: '2px' }}>Your next live session starts in 2 hours.</div>
+                      <div style={{ fontSize: '10px', color: 'var(--text-3)', marginTop: '6px' }}>2 hrs ago</div>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ padding: '12px', textAlign: 'center', borderTop: '1px solid var(--border)', fontSize: '12px', color: 'var(--text-3)', cursor: 'pointer', background: 'var(--surface)' }} onClick={() => setIsNotifOpen(false)}>
+                  Mark all as read
+                </div>
+              </div>
+            )}
+
             <div className="topbar-date">{todayDate}</div>
           </div>
         </div>
