@@ -1746,14 +1746,19 @@ export default function DashboardPage() {
               <div className="note-editor">
                 <div className="note-editor-hd">
                   <div className="note-editor-actions">
-                    <button className="v-btn" style={{ padding: '8px 16px', background: 'var(--surface-2)', fontSize: '12px' }} onClick={() => setIsNoteEditorOpen(false)}>Close</button>
-                    <button className={`v-btn ${currentNote.is_pinned ? "v-btn-primary" : ""}`} style={{ padding: '8px 16px', fontSize: '12px', background: currentNote.is_pinned ? 'var(--coral)' : 'var(--surface-2)', color: currentNote.is_pinned ? '#fff' : 'var(--ink)' }} onClick={() => setCurrentNote(prev => prev ? ({ ...prev, is_pinned: !prev.is_pinned }) : null)}>
+                    <button className="v-btn v-btn-secondary" onClick={() => setIsNoteEditorOpen(false)}>Close</button>
+                    <button 
+                      className={`v-btn ${currentNote.is_pinned ? "v-btn-coral" : "v-btn-secondary"}`}
+                      onClick={() => setCurrentNote(prev => prev ? ({ ...prev, is_pinned: !prev.is_pinned }) : null)}
+                    >
                       {currentNote.is_pinned ? 'Pinned 📌' : 'Pin Note'}
                     </button>
                   </div>
                   <div className="note-editor-actions">
-                    {currentNote.id && <button className="v-btn" style={{ padding: '8px 16px', fontSize: '12px', background: '#FEE2E2', color: '#B91C1C' }} onClick={() => { if (confirm("Delete this note?")) deleteNote(currentNote.id as string); }}>Delete</button>}
-                    <button className="v-btn v-btn-primary" style={{ padding: '8px 16px', fontSize: '12px' }} onClick={() => saveNote(currentNote)}>Save Note</button>
+                    {currentNote.id && (
+                      <button className="v-btn v-btn-danger" onClick={() => { if (confirm("Delete this note?")) deleteNote(currentNote.id as string); }}>Delete</button>
+                    )}
+                    <button className="v-btn v-btn-primary" onClick={() => saveNote(currentNote)}>Save Note</button>
                   </div>
                 </div>
                 

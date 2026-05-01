@@ -265,6 +265,73 @@
   background: var(--coral-dark);
 }
 
+/* ══ BUTTONS ══ */
+.v-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 20px;
+  border-radius: 12px;
+  font-family: var(--font-d);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  gap: 8px;
+  outline: none;
+}
+
+.v-btn:active {
+  transform: scale(0.96);
+}
+
+.v-btn-primary {
+  background: var(--indigo);
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(55, 48, 163, 0.2);
+}
+
+.v-btn-primary:hover {
+  background: var(--indigo-mid);
+  box-shadow: 0 6px 16px rgba(55, 48, 163, 0.3);
+  transform: translateY(-1px);
+}
+
+.v-btn-secondary {
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 1px solid var(--border-md);
+}
+
+.v-btn-secondary:hover {
+  background: var(--surface-3);
+  border-color: var(--indigo-mid);
+  transform: translateY(-1px);
+}
+
+.v-btn-danger {
+  background: #FEE2E2;
+  color: #B91C1C;
+}
+
+.v-btn-danger:hover {
+  background: #FECACA;
+  transform: translateY(-1px);
+}
+
+.v-btn-coral {
+  background: var(--coral);
+  color: #FFFFFF;
+  box-shadow: 0 4px 12px rgba(251, 146, 60, 0.2);
+}
+
+.v-btn-coral:hover {
+  background: var(--coral-dark);
+  box-shadow: 0 6px 16px rgba(251, 146, 60, 0.3);
+  transform: translateY(-1px);
+}
+
 @media (min-width: 1024px) {
   /* For desktop, we could do split-view, but for MVP overlay is stable and clean */
   .note-editor {
