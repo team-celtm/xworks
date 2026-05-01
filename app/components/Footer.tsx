@@ -1,6 +1,7 @@
 "use client";
 import React from 'react';
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 
 export default function Footer() {
   return (
@@ -21,7 +22,7 @@ export default function Footer() {
           </div>
           <div>
             <div className="footer-col-title">Company</div>
-            <Link href="/" className="footer-link">About us</Link>
+            <Link href="/#about" className="footer-link" suppressHydrationWarning>About us</Link>
             <Link href="/teach" className="footer-link">Teach on XWORKS</Link>
             <Link href="/" className="footer-link">Blog</Link>
             <Link href="/" className="footer-link">Careers</Link>
@@ -29,7 +30,7 @@ export default function Footer() {
           </div>
           <div>
             <div className="footer-col-title">Support</div>
-            <Link href="/" className="footer-link">Contact us</Link>
+            <Link href="/#footer" className="footer-link" suppressHydrationWarning>Contact us</Link>
             <Link href="/" className="footer-link">FAQs</Link>
             <Link href="/" className="footer-link">Privacy Policy</Link>
             <Link href="/" className="footer-link">Terms of Use</Link>

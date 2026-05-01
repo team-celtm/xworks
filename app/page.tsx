@@ -443,8 +443,8 @@ export default function Home() {
           <div className="nav-dropdown">
             <button className="nav-link" onClick={openWorkshopBrowser}>Workshops ▾</button>
           </div>
-          <a href="#footer" className="nav-link">About us</a>
-          <a href="#footer" className="nav-link">Contact us</a>
+          <a href="#about" className="nav-link" suppressHydrationWarning>About us</a>
+          <a href="#footer" className="nav-link" suppressHydrationWarning>Contact us</a>
           {user ? (
             <Link href="/dashboard" className="nav-btn">Go to Dashboard →</Link>
           ) : (
@@ -467,8 +467,8 @@ export default function Home() {
           <button className="mobile-nav-close" onClick={toggleMobileNav}>✕</button>
         </div>
         <a href="#" className="mobile-nav-link" onClick={(e) => { e.preventDefault(); toggleMobileNav(); openWorkshopBrowser(); }}>Workshops</a>
-        <a href="#footer" className="mobile-nav-link" onClick={() => setIsMobileNavOpen(false)}>About us</a>
-        <a href="#footer" className="mobile-nav-link" onClick={() => setIsMobileNavOpen(false)}>Contact us</a>
+        <a href="#about" className="mobile-nav-link" onClick={() => setIsMobileNavOpen(false)} suppressHydrationWarning>About us</a>
+        <a href="#footer" className="mobile-nav-link" onClick={() => setIsMobileNavOpen(false)} suppressHydrationWarning>Contact us</a>
         {user ? (
           <div className="mobile-nav-cta"><Link href="/dashboard" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Go to Dashboard →</Link></div>
         ) : (
@@ -629,7 +629,7 @@ export default function Home() {
       </section>
 
       {/* ════ WHO IS XWORKS FOR ════ */}
-      <div className="audience-section">
+      <div className="audience-section" id="about" suppressHydrationWarning>
         <div className="section-inner">
           <div className="section-eyebrow">Open to everyone</div>
           <div className="section-title" style={{ color: '#FFFFFF' }}>XWORKS is for <em style={{ color: 'var(--coral)', fontStyle: 'normal' }}>every stage of life</em></div>

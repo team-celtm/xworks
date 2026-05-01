@@ -1,3 +1,7 @@
+html {
+  scroll-behavior: smooth;
+}
+
 .home-container {
   --bg: #FFFFFF;
   --surface: #FFFFFF;
