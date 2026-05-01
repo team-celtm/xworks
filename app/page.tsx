@@ -467,7 +467,7 @@ export default function Home() {
             </button>
           </div>
           <a href="#about" className="nav-link" suppressHydrationWarning onClick={(e) => scrollToId(e, 'about')}>About us</a>
-          <a href="#footer" className="nav-link" suppressHydrationWarning onClick={(e) => scrollToId(e, 'footer')}>Contact us</a>
+          <Link href="/contact" className="nav-link">Contact us</Link>
           {user ? (
             <Link href="/dashboard" className="nav-btn" onClick={() => setIsNavigating(true)}>
               {isNavigating ? <div className="btn-loader"></div> : 'Go to Dashboard →'}
@@ -493,7 +493,7 @@ export default function Home() {
         </div>
         <a href="#" className="mobile-nav-link" onClick={(e) => { e.preventDefault(); toggleMobileNav(); openWorkshopBrowser(); }}>Workshops</a>
         <a href="#about" className="mobile-nav-link" onClick={(e) => scrollToId(e, 'about')} suppressHydrationWarning>About us</a>
-        <a href="#footer" className="mobile-nav-link" onClick={(e) => scrollToId(e, 'footer')} suppressHydrationWarning>Contact us</a>
+        <Link href="/contact" className="mobile-nav-link">Contact us</Link>
         {user ? (
           <div className="mobile-nav-cta">
             <Link href="/dashboard" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setIsNavigating(true)}>

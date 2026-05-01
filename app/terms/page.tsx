@@ -94,7 +94,8 @@ export default function TermsPage() {
 
           <section>
             <h2><span>1.7</span> Community Participation</h2>
-            <p>Users may optionally engage with XWORKS communities (WhatsApp, Discord). XWORKS reserves the right to remove users from communities without refund or notice in cases of harassment, spam, or disruptive conduct.</p>
+            <p>Users may optionally engage with XWORKS communities (WhatsApp, Discord). All community interactions are governed by our <Link href="/guidelines" style={{ color: 'var(--indigo)', fontWeight: 600 }}>Community Guidelines</Link>.</p>
+            <p>XWORKS reserves the right to remove users from communities without refund or notice in cases of harassment, spam, or disruptive conduct as outlined in the guidelines.</p>
           </section>
 
           <section>
