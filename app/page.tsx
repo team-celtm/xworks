@@ -128,6 +128,26 @@ export default function Home() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Lock body scroll when overlay/modal is open
+  useEffect(() => {
+    if (catOverlay.isOpen || enrolData.isOpen || isWorkshopModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [catOverlay.isOpen, enrolData.isOpen, isWorkshopModalOpen]);
+
+  const scrollToId = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+    e.preventDefault();
+    setIsMobileNavOpen(false); // Close mobile nav if open
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+      window.history.pushState(null, '', `/#${id}`);
+    }
+  };
+
   useEffect(() => {
     if (enrolData.isOpen && enrolData.step === 2 && enrolData.id) {
       const fetchSessions = async () => {
@@ -443,8 +463,8 @@ export default function Home() {
           <div className="nav-dropdown">
             <button className="nav-link" onClick={openWorkshopBrowser}>Workshops ▾</button>
           </div>
-          <a href="#about" className="nav-link" suppressHydrationWarning>About us</a>
-          <a href="#footer" className="nav-link" suppressHydrationWarning>Contact us</a>
+          <a href="#about" className="nav-link" suppressHydrationWarning onClick={(e) => scrollToId(e, 'about')}>About us</a>
+          <a href="#footer" className="nav-link" suppressHydrationWarning onClick={(e) => scrollToId(e, 'footer')}>Contact us</a>
           {user ? (
             <Link href="/dashboard" className="nav-btn">Go to Dashboard →</Link>
           ) : (
@@ -467,8 +487,8 @@ export default function Home() {
           <button className="mobile-nav-close" onClick={toggleMobileNav}>✕</button>
         </div>
         <a href="#" className="mobile-nav-link" onClick={(e) => { e.preventDefault(); toggleMobileNav(); openWorkshopBrowser(); }}>Workshops</a>
-        <a href="#about" className="mobile-nav-link" onClick={() => setIsMobileNavOpen(false)} suppressHydrationWarning>About us</a>
-        <a href="#footer" className="mobile-nav-link" onClick={() => setIsMobileNavOpen(false)} suppressHydrationWarning>Contact us</a>
+        <a href="#about" className="mobile-nav-link" onClick={(e) => scrollToId(e, 'about')} suppressHydrationWarning>About us</a>
+        <a href="#footer" className="mobile-nav-link" onClick={(e) => scrollToId(e, 'footer')} suppressHydrationWarning>Contact us</a>
         {user ? (
           <div className="mobile-nav-cta"><Link href="/dashboard" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Go to Dashboard →</Link></div>
         ) : (
