@@ -32,7 +32,7 @@ export default function Footer() {
           <div>
             <div className="footer-col-title">Support</div>
             <Link href="/contact" className="footer-link">Contact us</Link>
-            <Link href="/" className="footer-link">FAQs</Link>
+            <Link href="/faqs" className="footer-link">FAQs</Link>
             <Link href="/guidelines" className="footer-link">Community Guidelines</Link>
             <Link href="/privacy" className="footer-link">Privacy Policy</Link>
             <Link href="/terms" className="footer-link">Terms of Use</Link>
