@@ -9,7 +9,7 @@ interface LogoProps {
 
 export default function Logo({ className = "", href = "/" }: LogoProps) {
   return (
-    <Link href={href} className={`logo-wrap ${className}`} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <Link href={href} suppressHydrationWarning className={`logo-wrap ${className}`} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
       <div className="logo-bars" style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
         <div className="logo-bar" style={{ height: '2px', background: 'var(--coral)', borderRadius: '1px', width: '16px' }}></div>
         <div className="logo-bar" style={{ height: '2px', background: 'var(--coral)', borderRadius: '1px', width: '10px', opacity: 0.5 }}></div>

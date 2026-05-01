@@ -848,14 +848,14 @@ export default function DashboardPage() {
 
   if (!hasMounted || isLoading) {
     return (
-      <div style={{ 
+      <div suppressHydrationWarning style={{ 
         height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center', background: 'var(--surface-2)',
+        alignItems: 'center', justifyContent: 'center', background: 'var(--indigo-dark)',
         gap: '24px'
       }}>
-        <Logo color="var(--indigo)" />
-        <div className="dashboard-loader"></div>
-        <div style={{ color: 'var(--text-3)', fontSize: '14px', fontWeight: 500 }}>Preparing your workspace...</div>
+        <Logo />
+        <div className="dashboard-loader" style={{ borderTopColor: 'var(--coral)' }}></div>
+        <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px', fontWeight: 500 }}>Preparing your workspace...</div>
         <style jsx>{`
           .dashboard-loader {
             width: 40px;
