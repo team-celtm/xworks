@@ -2,6 +2,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import Logo from './Logo';
 
 export default function Footer() {
   return (
@@ -9,7 +10,7 @@ export default function Footer() {
       <div className="footer-inner">
         <div className="footer-top">
           <div>
-            <div className="footer-brand-name">X<span>WORKS</span></div>
+            <Logo />
             <div className="footer-brand-desc">Curated workshops for every curious mind. From school to silver — we believe learning never stops.</div>
           </div>
           <div>
