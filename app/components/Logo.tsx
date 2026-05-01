@@ -10,15 +10,15 @@ interface LogoProps {
 export default function Logo({ className = "", href = "/" }: LogoProps) {
   return (
     <Link href={href} suppressHydrationWarning className={`logo-wrap ${className}`} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
-      <div className="logo-bars" style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-        <div className="logo-bar" style={{ height: '2px', background: 'var(--coral)', borderRadius: '1px', width: '16px' }}></div>
-        <div className="logo-bar" style={{ height: '2px', background: 'var(--coral)', borderRadius: '1px', width: '10px', opacity: 0.5 }}></div>
+      <div suppressHydrationWarning className="logo-bars" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <div suppressHydrationWarning className="logo-bar" style={{ height: '3px', background: 'var(--coral)', borderRadius: '2px', width: '18px', boxShadow: '0 0 10px var(--coral)' }}></div>
+        <div suppressHydrationWarning className="logo-bar" style={{ height: '3px', background: 'var(--coral)', borderRadius: '2px', width: '12px', opacity: 0.8 }}></div>
       </div>
       <span className="logo-name" style={{
         fontFamily: 'var(--font-display, Syne, sans-serif)',
         fontSize: '22px',
         fontWeight: 800,
-        color: '#FFFFFF',
+        color: 'var(--logo-x-color, #FFFFFF)',
         letterSpacing: '-0.5px',
         lineHeight: 1,
         display: 'flex',

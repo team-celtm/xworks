@@ -33,9 +33,10 @@ export default function Footer() {
             <div className="footer-col-title">Support</div>
             <Link href="/#footer" className="footer-link" suppressHydrationWarning>Contact us</Link>
             <Link href="/" className="footer-link">FAQs</Link>
-            <Link href="/" className="footer-link">Privacy Policy</Link>
-            <Link href="/" className="footer-link">Terms of Use</Link>
-            <Link href="/" className="footer-link">Refund Policy</Link>
+            <Link href="/privacy" className="footer-link">Privacy Policy</Link>
+            <Link href="/terms" className="footer-link">Terms of Use</Link>
+            <Link href="/refund" className="footer-link">Refund Policy</Link>
+            <Link href="/data-policy" className="footer-link">Data Policy (DPDP)</Link>
           </div>
         </div>
         <div className="footer-bottom">

@@ -1,0 +1,133 @@
+.legal-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 160px 24px 120px;
+  line-height: 1.8;
+  color: #374151;
+  font-family: var(--font-body);
+  background: radial-gradient(circle at top right, rgba(255, 110, 80, 0.05), transparent 400px),
+              radial-gradient(circle at bottom left, rgba(79, 70, 229, 0.05), transparent 400px);
+  border-radius: 32px;
+}
+
+.legal-header {
+  margin-bottom: 60px;
+  text-align: center;
+}
+
+.legal-title {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 5vw, 48px);
+  color: #1E1B4B;
+  margin-bottom: 12px;
+  letter-spacing: -1px;
+}
+
+.legal-updated {
+  font-size: 14px;
+  color: #9CA3AF;
+  font-weight: 500;
+}
+
+.legal-content section {
+  margin-bottom: 48px;
+}
+
+.legal-content h2 {
+  font-family: var(--font-display);
+  font-size: 24px;
+  color: #1E1B4B;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  letter-spacing: -0.5px;
+}
+
+.legal-content h2 span {
+  color: var(--indigo);
+  font-size: 13px;
+  font-family: var(--font-body);
+  font-weight: 800;
+  background: rgba(79, 70, 229, 0.1);
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(79, 70, 229, 0.2);
+}
+
+.legal-content p {
+  margin-bottom: 16px;
+}
+
+.legal-content ul {
+  margin-bottom: 24px;
+  padding-left: 0;
+  list-style: none;
+}
+
+.legal-content li {
+  margin-bottom: 12px;
+  padding-left: 24px;
+  position: relative;
+}
+
+.legal-content li::before {
+  content: "→";
+  position: absolute;
+  left: 0;
+  color: var(--coral);
+  font-weight: bold;
+}
+
+.legal-content strong {
+  color: #111827;
+  font-weight: 600;
+}
+
+.legal-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: var(--indigo-dark);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 2px solid var(--coral);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 60px;
+  z-index: 1000;
+  --logo-x-color: #FFFFFF;
+}
+
+.legal-nav .nav-link-sm {
+  color: rgba(255, 255, 255, 0.8) !important;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: 0.2s;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.legal-nav .nav-link-sm:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #FFFFFF !important;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.legal-wrapper {
+  background: #F8FAFC;
+  min-height: 100vh;
+}
+
+@media (max-width: 768px) {
+  .legal-container {
+    padding: 100px 20px 60px;
+  }
+  .legal-nav {
+    padding: 0 20px;
+  }
+}
