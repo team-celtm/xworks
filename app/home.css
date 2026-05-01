@@ -1616,29 +1616,40 @@ html {
 .cat-back-btn {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--text-2);
-  background: none;
-  border: none;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  padding: 8px 16px;
+  border-radius: 8px;
   cursor: pointer;
   font-family: var(--font-body);
-  transition: color 0.15s;
-  padding: 0;
+  transition: all 0.2s;
 }
 
 .cat-back-btn:hover {
-  color: var(--ink)
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
-.cat-page-crumb {
-  font-size: 13px;
-  color: var(--text-3)
-}
 
-.cat-page-crumb span {
-  color: var(--ink);
-  font-weight: 500
+@media (max-width: 768px) {
+  .cat-page-nav {
+    padding: 0 12px;
+    height: 64px;
+  }
+
+  .cat-back-btn span {
+    display: none;
+  }
+  .cat-back-btn {
+    font-size: 20px;
+    padding: 8px 12px;
+    background: none;
+    border: none;
+  }
 }
 
 .cat-hero {

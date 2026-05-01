@@ -793,8 +793,8 @@ export default function Home() {
           {activeCat && (
             <>
               <div className="cat-page-nav">
-                <button className="cat-back-btn" onClick={closeCatPage}>← Back to XWORKS</button>
-                <div className="cat-page-crumb">Workshops / <span>{activeCat.label}</span></div>
+                <Logo />
+                <button className="cat-back-btn" onClick={closeCatPage}>← <span>Back to Home</span></button>
               </div>
               <div className="cat-hero">
                 <div className="cat-hero-left">
