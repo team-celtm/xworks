@@ -107,46 +107,49 @@ export default function AdminDashboard() {
   if (!user || user.role !== 'admin') return null;
 
   return (
-    <div className="shell">
+    <div className={`shell ${isMobileMenuOpen ? 'menu-open' : ''}`}>
       {/* SIDEBAR */}
-      <aside className="sidebar">
-        <div className="sb-logo">
-          <Logo />
-        </div>
-
-        <div className="sb-user">
-          <div className="sb-avatar">
-            {user ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase() : "..."}
+      <aside className={`sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
+        <div className="sb-mobile-hd">
+          <button className="sb-menu-btn" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+            {isMobileMenuOpen ? '✕' : '☰'}
+          </button>
+          <div className="sb-logo">
+            <Logo />
           </div>
-          <div>
-            <div className="sb-user-name">{user ? `${user.firstName} ${user.lastName}` : "Loading..."}</div>
-            <div className="sb-user-tag">Platform Owner</div>
+          <div className="sb-user">
+            <div className="sb-avatar">
+              {user ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase() : "..."}
+            </div>
+            <div className="sb-user-info-mob">
+              <div className="sb-user-name">{user ? `${user.firstName} ${user.lastName}` : "Loading..."}</div>
+            </div>
           </div>
         </div>
 
         <nav className="sb-nav">
           <div className="sb-section-label">Platform Controls</div>
-          <button className={`sb-item ${activeView === "admin_instructors" ? "active" : ""}`} onClick={() => setActiveView("admin_instructors")}>
+          <button className={`sb-item ${activeView === "admin_instructors" ? "active" : ""}`} onClick={() => { setActiveView("admin_instructors"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">👨‍⚖️</span>
             <span className="sb-item-label">Approve Instructors</span>
           </button>
           
-          <button className={`sb-item ${activeView === "admin_courses" ? "active" : ""}`} onClick={() => setActiveView("admin_courses")}>
+          <button className={`sb-item ${activeView === "admin_courses" ? "active" : ""}`} onClick={() => { setActiveView("admin_courses"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">📢</span>
             <span className="sb-item-label">Publish Courses</span>
           </button>
           
-          <button className={`sb-item ${activeView === "admin_promos" ? "active" : ""}`} onClick={() => setActiveView("admin_promos")}>
+          <button className={`sb-item ${activeView === "admin_promos" ? "active" : ""}`} onClick={() => { setActiveView("admin_promos"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">🏷️</span>
             <span className="sb-item-label">Promo Codes</span>
           </button>
           
-          <button className={`sb-item ${activeView === "admin_refunds" ? "active" : ""}`} onClick={() => setActiveView("admin_refunds")}>
+          <button className={`sb-item ${activeView === "admin_refunds" ? "active" : ""}`} onClick={() => { setActiveView("admin_refunds"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">💸</span>
             <span className="sb-item-label">Process Refunds</span>
           </button>
           
-          <button className={`sb-item ${activeView === "admin_certificates" ? "active" : ""}`} onClick={() => setActiveView("admin_certificates")}>
+          <button className={`sb-item ${activeView === "admin_certificates" ? "active" : ""}`} onClick={() => { setActiveView("admin_certificates"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">❌</span>
             <span className="sb-item-label">Revoke Certs</span>
           </button>
