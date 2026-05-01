@@ -871,56 +871,56 @@ export default function DashboardPage() {
         <nav className="sb-nav">
           <div className="sb-section-label">Main</div>
 
-          <button className={`sb-item ${activeView === "home" ? "active" : ""}`} onClick={() => setActiveView("home")}>
+          <button className={`sb-item ${activeView === "home" ? "active" : ""}`} onClick={() => { setActiveView("home"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">🏠</span>
             <span className="sb-item-label">Home</span>
           </button>
 
-          <button className={`sb-item ${activeView === "completed" ? "active" : ""}`} onClick={() => setActiveView("completed")}>
+          <button className={`sb-item ${activeView === "completed" ? "active" : ""}`} onClick={() => { setActiveView("completed"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">✅</span>
             <span className="sb-item-label">Courses Completed</span>
             <span className="sb-badge">{completedCount}</span>
           </button>
 
-          <button className={`sb-item ${activeView === "certificates" ? "active" : ""}`} onClick={() => setActiveView("certificates")}>
+          <button className={`sb-item ${activeView === "certificates" ? "active" : ""}`} onClick={() => { setActiveView("certificates"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">📜</span>
             <span className="sb-item-label">My Certificates</span>
             <span className="sb-badge">{certs.length}</span>
           </button>
 
-          <button className={`sb-item ${activeView === "upcoming" ? "active" : ""}`} onClick={() => setActiveView("upcoming")}>
+          <button className={`sb-item ${activeView === "upcoming" ? "active" : ""}`} onClick={() => { setActiveView("upcoming"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">📅</span>
             <span className="sb-item-label">Upcoming Courses</span>
             <span className="sb-badge">{sessions.length}</span>
           </button>
 
-          <button className={`sb-item ${activeView === "notes" ? "active" : ""}`} onClick={() => setActiveView("notes")}>
+          <button className={`sb-item ${activeView === "notes" ? "active" : ""}`} onClick={() => { setActiveView("notes"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">📝</span>
             <span className="sb-item-label">My Notes</span>
             <span className="sb-badge">{notes.length}</span>
           </button>
 
-          <button className={`sb-item ${activeView === "curious" ? "active" : ""}`} onClick={() => setActiveView("curious")}>
+          <button className={`sb-item ${activeView === "curious" ? "active" : ""}`} onClick={() => { setActiveView("curious"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">🔮</span>
             <span className="sb-item-label">Sounds Curious</span>
           </button>
 
           <div className="sb-section-label">Account</div>
 
-          <button className={`sb-item ${activeView === "settings" ? "active" : ""}`} onClick={() => setActiveView("settings")}>
+          <button className={`sb-item ${activeView === "settings" ? "active" : ""}`} onClick={() => { setActiveView("settings"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">⚙️</span>
             <span className="sb-item-label">Settings</span>
           </button>
 
           {user?.role === 'instructor' && (
-            <Link href="/instructor" className="sb-item" style={{ textDecoration: 'none', background: 'var(--indigo-dark)', color: 'white' }}>
+            <Link href="/instructor" className="sb-item" onClick={() => setIsMobileMenuOpen(false)} style={{ textDecoration: 'none', background: 'var(--indigo-dark)', color: 'white' }}>
               <span className="sb-item-icon" style={{filter: 'grayscale(0)'}}>🎬</span>
               <span className="sb-item-label">Instructor Portal</span>
             </Link>
           )}
 
           {user?.role === 'admin' && (
-            <Link href="/admin" className="sb-item" style={{ textDecoration: 'none', background: 'var(--indigo-dark)', color: 'white' }}>
+            <Link href="/admin" className="sb-item" onClick={() => setIsMobileMenuOpen(false)} style={{ textDecoration: 'none', background: 'var(--indigo-dark)', color: 'white' }}>
               <span className="sb-item-icon" style={{filter: 'grayscale(0)'}}>🛡️</span>
               <span className="sb-item-label">Owner Portal</span>
             </Link>

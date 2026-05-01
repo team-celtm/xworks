@@ -264,7 +264,7 @@ export default function CourseDetailPage() {
       </nav>
 
         <main className="detail-main" style={{ maxWidth: '1100px', margin: '40px auto', padding: '0 24px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '40px' }}>
+          <div className="detail-grid">
 
             <div className="detail-left">
               <div className="crumb" style={{ fontSize: '13px', color: 'var(--text-3)', marginBottom: '16px' }}>
@@ -420,6 +420,8 @@ export default function CourseDetailPage() {
         </main>
 
         <style jsx>{`
+        .detail-grid { display: grid; grid-template-columns: 1fr 380px; gap: 40px; }
+        @media (max-width: 900px) { .detail-grid { grid-template-columns: 1fr; gap: 24px; } }
         .dstat { display: flex; flex-direction: column; min-width: 100px; }
         .dstat span { font-weight: 800; color: var(--ink); font-size: 16px; white-space: nowrap; }
         .dstat label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
