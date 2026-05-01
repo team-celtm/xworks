@@ -92,7 +92,7 @@
   height: 80px;
   background: var(--indigo);
   backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 2px solid var(--coral);
+  border-bottom: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
