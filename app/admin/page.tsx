@@ -4,6 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import "../dashboard/dashboard.css";
+import "./admin.css";
+import Logo from "../components/Logo";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -89,20 +91,28 @@ export default function AdminDashboard() {
     router.push("/");
   };
 
-  if (loading) return <div className="shell flex items-center justify-center" style={{ background: "var(--bg)", color: "var(--ink)" }}>Loading secure portal...</div>;
+  if (loading) return (
+    <div className="shell" style={{ alignItems: 'center', justifyContent: 'center', background: 'var(--indigo-dark)' }}>
+      <div className="dashboard-loader" style={{ borderTopColor: 'var(--coral)' }}></div>
+      <style jsx>{`
+        .dashboard-loader {
+          width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1);
+          border-top-color: var(--indigo); border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
+    </div>
+  );
   if (!user || user.role !== 'admin') return null;
 
   return (
     <div className="shell">
       {/* SIDEBAR */}
       <aside className="sidebar">
-        <Link href="/" className="sb-logo" style={{ textDecoration: 'none' }}>
-          <div className="sb-logo-bars">
-            <div className="sb-logo-bar"></div>
-            <div className="sb-logo-bar"></div>
-          </div>
-          <span className="sb-logo-name">X<span className="works-text">WORKS</span></span>
-        </Link>
+        <div className="sb-logo">
+          <Logo />
+        </div>
 
         <div className="sb-user">
           <div className="sb-avatar">
@@ -110,7 +120,7 @@ export default function AdminDashboard() {
           </div>
           <div>
             <div className="sb-user-name">{user ? `${user.firstName} ${user.lastName}` : "Loading..."}</div>
-            <div className="sb-user-tag">Owner Portal</div>
+            <div className="sb-user-tag">Platform Owner</div>
           </div>
         </div>
 
@@ -151,10 +161,10 @@ export default function AdminDashboard() {
       </aside>
 
       {/* MAIN */}
-      <div className="main" style={{ background: "var(--bg)" }}>
+      <div className="main">
         <div className="topbar">
           <div className="topbar-greeting">
-            Welcome back, Owner. 🛡️ System is running smoothly.
+            Welcome back, <strong>Admin</strong>. 🛡️ System is running smoothly.
           </div>
           <div className="topbar-right">
             <div className="topbar-notif">🔔<div className="notif-dot"></div></div>
@@ -164,45 +174,52 @@ export default function AdminDashboard() {
         <div className="content">
           {/* ---- INSTRUCTORS ---- */}
           {activeView === "admin_instructors" && (
-            <div className="view active fade-up" style={{ display: 'flex' }}>
-              <div className="section-label">Owner Operations</div>
-              <div className="section-title" style={{ fontFamily: "var(--font-d)", fontSize: "22px", fontWeight: 800, letterSpacing: "-0.5px", marginBottom: "24px" }}>
-                Approve Instructors
+            <div className="view active fade-up">
+              <div className="section-hd">
+                <div>
+                  <div className="section-label">Owner Operations</div>
+                  <div className="section-title">Approve Instructors</div>
+                </div>
               </div>
-              <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)', flex: 1 }}>
+              
+              <div className="admin-card">
                 <p style={{ color: 'var(--text-3)', marginBottom: '24px', fontSize: '14px' }}>Pending applications waiting for platform access.</p>
                 {applications.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--bg)', borderRadius: '12px', border: '1px dashed var(--border-md)' }}>
-                    <div style={{ fontSize: '32px', marginBottom: '12px' }}>✅</div>
-                    <p style={{ color: 'var(--text-3)', fontWeight: 500 }}>All caught up! No pending applications.</p>
+                  <div className="admin-empty-state">
+                    <div className="admin-empty-icon">✅</div>
+                    <p className="admin-empty-text">All caught up! No pending applications.</p>
                   </div>
                 ) : (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', color: 'var(--ink)', textAlign: 'left' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid var(--border-md)', color: 'var(--text-3)', fontSize: '14px' }}>
-                        <th style={{ padding: '12px 8px' }}>User</th>
-                        <th style={{ padding: '12px 8px' }}>LinkedIn</th>
-                        <th style={{ padding: '12px 8px' }}>Bio</th>
-                        <th style={{ padding: '12px 8px' }}>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {applications.map(app => (
-                        <tr key={app.id} style={{ borderBottom: '1px solid var(--border-sm)' }}>
-                          <td style={{ padding: '16px 8px' }}>
-                            <div style={{fontWeight: 'bold'}}>{app.first_name} {app.last_name}</div>
-                            <div style={{fontSize: '12px', color: 'var(--text-3)'}}>{app.email}</div>
-                          </td>
-                          <td style={{ padding: '16px 8px' }}><a href={app.linkedin_url} target="_blank" style={{color:'var(--blue)'}}>Link</a></td>
-                          <td style={{ padding: '16px 8px', maxWidth:'200px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{app.bio}</td>
-                          <td style={{ padding: '16px 8px', display: 'flex', gap: '8px' }}>
-                            <button onClick={() => handleApproveInstructor(app.id, 'approve')} style={{ padding:'8px 16px', background:'var(--green-bg)', color:'var(--green)', fontWeight: '600', border:'none', borderRadius:'8px', cursor:'pointer' }}>Approve</button>
-                            <button onClick={() => handleApproveInstructor(app.id, 'reject')} style={{ padding:'8px 16px', background:'var(--red-bg)', color:'var(--red)', fontWeight: '600', border:'none', borderRadius:'8px', cursor:'pointer' }}>Reject</button>
-                          </td>
+                  <div className="admin-table-wrap">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>User</th>
+                          <th>LinkedIn</th>
+                          <th>Bio</th>
+                          <th>Action</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {applications.map(app => (
+                          <tr key={app.id}>
+                            <td>
+                              <div style={{fontWeight: '700'}}>{app.first_name} {app.last_name}</div>
+                              <div style={{fontSize: '12px', color: 'var(--text-3)'}}>{app.email}</div>
+                            </td>
+                            <td><a href={app.linkedin_url} target="_blank" style={{color:'var(--indigo-mid)', fontWeight: '600'}}>Link ↗</a></td>
+                            <td style={{ maxWidth:'200px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{app.bio}</td>
+                            <td>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <button className="admin-btn admin-btn-success" onClick={() => handleApproveInstructor(app.id, 'approve')}>Approve</button>
+                                <button className="admin-btn admin-btn-danger" onClick={() => handleApproveInstructor(app.id, 'reject')}>Reject</button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
             </div>
@@ -210,48 +227,55 @@ export default function AdminDashboard() {
 
           {/* ---- COURSES ---- */}
           {activeView === "admin_courses" && (
-            <div className="view active fade-up" style={{ display: 'flex' }}>
-              <div className="section-label">Owner Operations</div>
-              <div className="section-title" style={{ fontFamily: "var(--font-d)", fontSize: "22px", fontWeight: 800, letterSpacing: "-0.5px", marginBottom: "24px" }}>
-                Publish Courses
+            <div className="view active fade-up">
+              <div className="section-hd">
+                <div>
+                  <div className="section-label">Owner Operations</div>
+                  <div className="section-title">Publish Courses</div>
+                </div>
               </div>
-              <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)', flex: 1 }}>
+              
+              <div className="admin-card">
                 <p style={{ color: 'var(--text-3)', marginBottom: '24px', fontSize: '14px' }}>Courses submitted by instructors awaiting platform publication.</p>
                 {courses.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--bg)', borderRadius: '12px', border: '1px dashed var(--border-md)' }}>
-                    <div style={{ fontSize: '32px', marginBottom: '12px' }}>✨</div>
-                    <p style={{ color: 'var(--text-3)', fontWeight: 500 }}>The queue is empty. Refresh to check for new courses.</p>
+                  <div className="admin-empty-state">
+                    <div className="admin-empty-icon">✨</div>
+                    <p className="admin-empty-text">The queue is empty. Refresh to check for new courses.</p>
                   </div>
                 ) : (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', color: 'var(--ink)', textAlign: 'left' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '1px solid var(--border-md)', color: 'var(--text-3)', fontSize: '14px' }}>
-                        <th style={{ padding: '12px 8px' }}>Course Name</th>
-                        <th style={{ padding: '12px 8px' }}>Price</th>
-                        <th style={{ padding: '12px 8px' }}>Instructor</th>
-                        <th style={{ padding: '12px 8px' }}>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {courses.map(c => (
-                        <tr key={c.id} style={{ borderBottom: '1px solid var(--border-sm)' }}>
-                          <td style={{ padding: '16px 8px' }}>
-                            <div style={{fontWeight: 'bold'}}>{c.name}</div>
-                            <div style={{fontSize: '12px', color: 'var(--text-3)'}}>{c.cat} • {c.dur} hrs</div>
-                          </td>
-                          <td style={{ padding: '16px 8px' }}>₹{c.price}</td>
-                          <td style={{ padding: '16px 8px' }}>
-                            <div>{c.first_name} {c.last_name}</div>
-                            <div style={{fontSize: '12px', color: 'var(--text-3)'}}>{c.email}</div>
-                          </td>
-                          <td style={{ padding: '16px 8px', display: 'flex', gap: '8px' }}>
-                            <button onClick={() => handlePublishCourse(c.id, 'approve')} style={{ padding:'8px 16px', background:'var(--blue-bg)', color:'var(--blue)', fontWeight: '600', border:'none', borderRadius:'8px', cursor:'pointer' }}>Publish</button>
-                            <button onClick={() => handlePublishCourse(c.id, 'reject')} style={{ padding:'8px 16px', background:'var(--surface)', border:'1px solid var(--border-md)', color:'var(--text-2)', fontWeight: '600', borderRadius:'8px', cursor:'pointer' }}>Draft</button>
-                          </td>
+                  <div className="admin-table-wrap">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Course Name</th>
+                          <th>Price</th>
+                          <th>Instructor</th>
+                          <th>Action</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {courses.map(c => (
+                          <tr key={c.id}>
+                            <td>
+                              <div style={{fontWeight: '700'}}>{c.name}</div>
+                              <div style={{fontSize: '12px', color: 'var(--text-3)'}}>{c.cat} • {c.dur} hrs</div>
+                            </td>
+                            <td style={{ fontWeight: '700', color: 'var(--indigo)' }}>₹{c.price}</td>
+                            <td>
+                              <div>{c.first_name} {c.last_name}</div>
+                              <div style={{fontSize: '12px', color: 'var(--text-3)'}}>{c.email}</div>
+                            </td>
+                            <td>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <button className="admin-btn admin-btn-primary" onClick={() => handlePublishCourse(c.id, 'approve')}>Publish</button>
+                                <button className="admin-btn" style={{ background: 'var(--surface-2)', color: 'var(--text-2)' }} onClick={() => handlePublishCourse(c.id, 'reject')}>Keep Draft</button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
             </div>
@@ -259,13 +283,16 @@ export default function AdminDashboard() {
 
           {/* ---- PROMOS ---- */}
           {activeView === "admin_promos" && (
-            <div className="view active fade-up" style={{ display: 'flex' }}>
-              <div className="section-label">Owner Operations</div>
-              <div className="section-title" style={{ fontFamily: "var(--font-d)", fontSize: "22px", fontWeight: 800, letterSpacing: "-0.5px", marginBottom: "24px" }}>
-                Promo Codes
+            <div className="view active fade-up">
+              <div className="section-hd">
+                <div>
+                  <div className="section-label">Owner Operations</div>
+                  <div className="section-title">Promo Codes</div>
+                </div>
               </div>
-              <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>
-                <form onSubmit={handleCreatePromo} style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', marginBottom: '40px' }}>
+              
+              <div className="admin-card">
+                <form onSubmit={handleCreatePromo} style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', marginBottom: '40px', padding: '24px', background: 'var(--bg)', borderRadius: '16px', border: '1px solid var(--border)' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                        <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Code String</label>
@@ -276,51 +303,55 @@ export default function AdminDashboard() {
                        <input name="perc" type="number" className="prompt-input" required placeholder="20" style={{ width: '100%' }} />
                      </div>
                   </div>
-                  <button type="submit" className="enrol-cta coral" style={{ width: 'auto', justifySelf: 'start', padding: '14px 40px' }}>Create Promo Code →</button>
+                  <button type="submit" className="enrol-cta coral" style={{ width: 'auto', justifySelf: 'start', padding: '14px 40px', marginTop: 0 }}>Create Promo Code →</button>
                 </form>
 
-                <h3 style={{ color: 'var(--ink)', marginBottom: '16px', fontSize: '16px' }}>Active Promo Codes</h3>
-                <table style={{ width: '100%', borderCollapse: 'collapse', color: 'var(--ink)', textAlign: 'left' }}>
-                  <thead>
-                    <tr style={{ borderBottom: '1px solid var(--border-md)', color: 'var(--text-3)', fontSize: '14px' }}>
-                      <th style={{ padding: '12px 8px' }}>Code</th>
-                      <th style={{ padding: '12px 8px' }}>Discount</th>
-                      <th style={{ padding: '12px 8px' }}>Created</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {promos.map(p => (
-                      <tr key={p.id} style={{ borderBottom: '1px solid var(--border-sm)' }}>
-                        <td style={{ padding: '16px 8px', fontWeight: 'bold', letterSpacing: '1px' }}>{p.code}</td>
-                        <td style={{ padding: '16px 8px', color: 'var(--green)' }}>{parseFloat(p.discount_percentage)}% OFF</td>
-                        <td style={{ padding: '16px 8px', color: 'var(--text-3)' }}>{new Date(p.created_at).toLocaleDateString()}</td>
+                <h3 style={{ color: 'var(--ink)', marginBottom: '16px', fontSize: '16px', fontWeight: '800' }}>Active Promo Codes</h3>
+                <div className="admin-table-wrap">
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Code</th>
+                        <th>Discount</th>
+                        <th>Created At</th>
                       </tr>
-                    ))}
-                    {promos.length === 0 && <tr><td colSpan={3} style={{padding:'16px'}}>No codes exist.</td></tr>}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {promos.map(p => (
+                        <tr key={p.id}>
+                          <td style={{ fontWeight: '800', letterSpacing: '1px', color: 'var(--indigo)' }}>{p.code}</td>
+                          <td style={{ fontWeight: '700' }}><span className="admin-badge success">{parseFloat(p.discount_percentage)}% OFF</span></td>
+                          <td style={{ color: 'var(--text-3)' }}>{new Date(p.created_at).toLocaleDateString()}</td>
+                        </tr>
+                      ))}
+                      {promos.length === 0 && <tr><td colSpan={3} style={{padding:'24px', textAlign:'center', color:'var(--text-3)'}}>No active codes.</td></tr>}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
 
           {/* ---- REFUNDS ---- */}
           {activeView === "admin_refunds" && (
-            <div className="view active fade-up" style={{ display: 'flex' }}>
-              <div className="section-label">Owner Operations</div>
-              <div className="section-title" style={{ fontFamily: "var(--font-d)", fontSize: "22px", fontWeight: 800, letterSpacing: "-0.5px", marginBottom: "24px" }}>
-                Process Refund
+            <div className="view active fade-up">
+              <div className="section-hd">
+                <div>
+                  <div className="section-label">Owner Operations</div>
+                  <div className="section-title">Process Refund</div>
+                </div>
               </div>
-              <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>
-                <p style={{ color: 'var(--text-3)', marginBottom: '20px' }}>Process a refund and immediately revoke course access via Razorpay ID.</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
-                  <div style={{ display: 'flex', gap: '12px', alignItems: 'center', width: '100%' }}>
-                    <input type="text" className="prompt-input" placeholder="Razorpay Order ID (order_...)" id="adminRefundId" style={{ flex: 1 }} />
-                    <button className="enrol-cta coral" style={{ width: 'auto', padding: '12px 24px', cursor: 'pointer', marginTop: 0 }} onClick={async () => {
-                      const orderId = (document.getElementById('adminRefundId') as HTMLInputElement).value;
-                      const res = await fetch('/api/admin/refunds', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ orderId }) });
-                      alert((await res.json()).message || 'Done!');
-                    }}>Issue Refund →</button>
-                  </div>
+              
+              <div className="admin-card">
+                <p style={{ color: 'var(--text-3)', marginBottom: '24px' }}>Process a refund and immediately revoke course access via Razorpay ID.</p>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <input type="text" className="prompt-input" placeholder="Razorpay Order ID (order_...)" id="adminRefundId" style={{ flex: 1 }} />
+                  <button className="enrol-cta coral" style={{ width: 'auto', padding: '12px 32px', cursor: 'pointer', marginTop: 0 }} onClick={async () => {
+                    const orderId = (document.getElementById('adminRefundId') as HTMLInputElement).value;
+                    const res = await fetch('/api/admin/refunds', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ orderId }) });
+                    const data = await res.json();
+                    alert(data.message || data.error || 'Done!');
+                  }}>Issue Refund →</button>
                 </div>
               </div>
             </div>
@@ -328,13 +359,16 @@ export default function AdminDashboard() {
 
           {/* ---- CERTIFICATES ---- */}
           {activeView === "admin_certificates" && (
-            <div className="view active fade-up" style={{ display: 'flex' }}>
-              <div className="section-label">Owner Operations</div>
-              <div className="section-title" style={{ fontFamily: "var(--font-d)", fontSize: "22px", fontWeight: 800, letterSpacing: "-0.5px", marginBottom: "24px" }}>
-                Revoke Certificate
+            <div className="view active fade-up">
+              <div className="section-hd">
+                <div>
+                  <div className="section-label">Owner Operations</div>
+                  <div className="section-title">Revoke Certificate</div>
+                </div>
               </div>
-              <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>
-                <p style={{ color: 'var(--text-3)', marginBottom: '20px' }}>Invalidate a certificate and update its public verification page.</p>
+              
+              <div className="admin-card">
+                <p style={{ color: 'var(--text-3)', marginBottom: '24px' }}>Invalidate a certificate and update its public verification page.</p>
                 <form 
                   onSubmit={async (e) => { 
                     e.preventDefault(); 
@@ -344,25 +378,27 @@ export default function AdminDashboard() {
                       headers: {'Content-Type':'application/json'}, 
                       body: JSON.stringify({ credential_id: formData.get('credential_id'), reason: formData.get('reason') }) 
                     }); 
-                    alert((await res.json()).message || 'Done!');
+                    const data = await res.json();
+                    alert(data.message || data.error || 'Done!');
                     e.currentTarget.reset();
                   }} 
                   style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', width: '100%' }}
                 >
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Credential ID</label>
-                    <input name="credential_id" type="text" className="prompt-input" required placeholder="XW-..." style={{ width: '100%' }} />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Revocation Reason</label>
-                    <input name="reason" type="text" className="prompt-input" required placeholder="e.g. Academic misconduct" style={{ width: '100%' }} />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Credential ID</label>
+                      <input name="credential_id" type="text" className="prompt-input" required placeholder="XW-..." style={{ width: '100%' }} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Revocation Reason</label>
+                      <input name="reason" type="text" className="prompt-input" required placeholder="e.g. Academic misconduct" style={{ width: '100%' }} />
+                    </div>
                   </div>
                   <button type="submit" className="enrol-cta" style={{ width: 'auto', justifySelf: 'start', padding: '14px 40px', background: 'var(--red)', marginTop: '8px' }}>Revoke Certificate Access</button>
                 </form>
               </div>
             </div>
           )}
-
         </div>
       </div>
     </div>
