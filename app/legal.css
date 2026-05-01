@@ -90,7 +90,7 @@
   left: 0;
   right: 0;
   height: 80px;
-  background: var(--indigo-dark);
+  background: var(--indigo);
   backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 2px solid var(--coral);
   display: flex;
