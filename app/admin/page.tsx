@@ -12,6 +12,7 @@ export default function AdminDashboard() {
   const [activeView, setActiveView] = useState("admin_instructors");
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Data states
   const [applications, setApplications] = useState<any[]>([]);
