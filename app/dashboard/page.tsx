@@ -957,9 +957,9 @@ export default function DashboardPage() {
         </nav>
 
         <div className="sb-footer">
-          <button className="sb-logout" onClick={handleLogout}>
-            <span className="sb-logout-icon">🚪</span>
-            <span className="sb-logout-label">Log out</span>
+          <button className="sb-logout" onClick={handleLogout} disabled={isLoggingOut}>
+            <span className="sb-logout-icon">{isLoggingOut ? '⏳' : '🚪'}</span>
+            <span className="sb-item-label">{isLoggingOut ? 'Logging out...' : 'Log out'}</span>
           </button>
         </div>
       </aside>

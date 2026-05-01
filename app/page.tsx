@@ -462,7 +462,9 @@ export default function Home() {
         <Logo />
         <div className="nav-links">
           <div className="nav-dropdown">
-            <button className="nav-link" onClick={openWorkshopBrowser}>Workshops ▾</button>
+            <button className="nav-link" onClick={() => { setIsNavigating(true); openWorkshopBrowser(); }}>
+              {isNavigating ? 'Loading...' : 'Workshops ▾'}
+            </button>
           </div>
           <a href="#about" className="nav-link" suppressHydrationWarning onClick={(e) => scrollToId(e, 'about')}>About us</a>
           <a href="#footer" className="nav-link" suppressHydrationWarning onClick={(e) => scrollToId(e, 'footer')}>Contact us</a>
@@ -531,7 +533,9 @@ export default function Home() {
               ) : (
                 <Link href="/Registration" className="btn-primary">Sign up for free →</Link>
               )}
-              <button className="btn-ghost" onClick={openWorkshopBrowser}>Browse workshops</button>
+              <button className="btn-ghost" onClick={() => { setIsNavigating(true); openWorkshopBrowser(); }}>
+                {isNavigating ? <div className="btn-loader" style={{ borderTopColor: 'var(--indigo)' }}></div> : 'Browse workshops'}
+              </button>
             </div>
           </div>
         </div>

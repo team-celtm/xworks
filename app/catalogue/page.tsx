@@ -72,6 +72,7 @@ function CatalogueContent() {
     page: 1,
     perPage: 12,
   });
+  const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
     async function fetchCategories() {
@@ -393,7 +394,9 @@ function CatalogueContent() {
       <nav className="nav">
         <Logo />
         <div className="nav-right">
-          <Link href="/dashboard" className="nav-link-sm">Dashboard</Link>
+          <Link href="/dashboard" className="nav-link-sm" onClick={() => setIsNavigating(true)}>
+            {isNavigating ? 'Loading...' : 'Dashboard'}
+          </Link>
           <button className="nav-back" onClick={() => router.back()}>← Back</button>
         </div>
       </nav>
