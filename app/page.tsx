@@ -52,6 +52,7 @@ export default function Home() {
   const [hasMounted, setHasMounted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -466,7 +467,9 @@ export default function Home() {
           <a href="#about" className="nav-link" suppressHydrationWarning onClick={(e) => scrollToId(e, 'about')}>About us</a>
           <a href="#footer" className="nav-link" suppressHydrationWarning onClick={(e) => scrollToId(e, 'footer')}>Contact us</a>
           {user ? (
-            <Link href="/dashboard" className="nav-btn">Go to Dashboard →</Link>
+            <Link href="/dashboard" className="nav-btn" onClick={() => setIsNavigating(true)}>
+              {isNavigating ? <div className="btn-loader"></div> : 'Go to Dashboard →'}
+            </Link>
           ) : (
             <>
               <Link href="/Login" className="nav-link">Login</Link>
@@ -490,7 +493,11 @@ export default function Home() {
         <a href="#about" className="mobile-nav-link" onClick={(e) => scrollToId(e, 'about')} suppressHydrationWarning>About us</a>
         <a href="#footer" className="mobile-nav-link" onClick={(e) => scrollToId(e, 'footer')} suppressHydrationWarning>Contact us</a>
         {user ? (
-          <div className="mobile-nav-cta"><Link href="/dashboard" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Go to Dashboard →</Link></div>
+          <div className="mobile-nav-cta">
+            <Link href="/dashboard" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setIsNavigating(true)}>
+              {isNavigating ? <div className="btn-loader"></div> : 'Go to Dashboard →'}
+            </Link>
+          </div>
         ) : (
           <>
             <Link href="/Login" className="mobile-nav-link">Login</Link>
@@ -687,7 +694,9 @@ export default function Home() {
           </div>
           <div className="cta-right">
             {user ? (
-              <Link href="/catalogue" className="btn-primary" style={{ fontSize: '16px', padding: '16px 40px' }}>Explore Workshops →</Link>
+              <Link href="/catalogue" className="btn-primary" style={{ fontSize: '16px', padding: '16px 40px' }} onClick={() => setIsNavigating(true)}>
+                {isNavigating ? <div className="btn-loader"></div> : 'Explore Workshops →'}
+              </Link>
             ) : (
               <Link href="/Registration" className="btn-primary" style={{ fontSize: '16px', padding: '16px 40px' }}>Sign up today — it's free →</Link>
             )}

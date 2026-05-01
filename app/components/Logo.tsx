@@ -14,12 +14,12 @@ export default function Logo({ className = "", href = "/" }: LogoProps) {
         <div className="logo-bar" style={{ height: '2px', background: 'var(--coral)', borderRadius: '1px', width: '16px' }}></div>
         <div className="logo-bar" style={{ height: '2px', background: 'var(--coral)', borderRadius: '1px', width: '10px', opacity: 0.5 }}></div>
       </div>
-      <span className="logo-name" style={{ 
-        fontFamily: 'var(--font-display, Syne, sans-serif)', 
-        fontSize: '22px', 
-        fontWeight: 800, 
-        color: '#FFFFFF', 
-        letterSpacing: '-0.5px', 
+      <span className="logo-name" style={{
+        fontFamily: 'var(--font-display, Syne, sans-serif)',
+        fontSize: '22px',
+        fontWeight: 800,
+        color: '#FFFFFF',
+        letterSpacing: '-0.5px',
         lineHeight: 1,
         display: 'flex',
         alignItems: 'center'

@@ -360,6 +360,7 @@ export default function DashboardPage() {
   useEffect(() => {
     // Using shared functions defined above to ensure consistency across the component
     const loadData = async () => {
+      setIsLoading(true);
       await Promise.all([
         loadWorkshops(),
         fetchEnrolments(),
@@ -370,6 +371,7 @@ export default function DashboardPage() {
         fetchProfile()
       ]);
       setTodayDate(new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }));
+      setIsLoading(false);
       setHasMounted(true);
     };
     loadData();
@@ -843,6 +845,31 @@ export default function DashboardPage() {
       </div>
     );
   };
+
+  if (!hasMounted || isLoading) {
+    return (
+      <div style={{ 
+        height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', background: 'var(--surface-2)',
+        gap: '24px'
+      }}>
+        <Logo color="var(--indigo)" />
+        <div className="dashboard-loader"></div>
+        <div style={{ color: 'var(--text-3)', fontSize: '14px', fontWeight: 500 }}>Preparing your workspace...</div>
+        <style jsx>{`
+          .dashboard-loader {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border);
+            border-top-color: var(--indigo);
+            border-radius: 50%;
+            animation: dashboard-spin 0.8s linear infinite;
+          }
+          @keyframes dashboard-spin { to { transform: rotate(360deg); } }
+        `}</style>
+      </div>
+    );
+  }
 
   if (!hasMounted) return null;
 
