@@ -25,9 +25,10 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { firstName, lastName, phone, city, preferences } = body;
+    console.log('[DEBUG] Updating profile for user:', userId, { firstName, lastName, phone, city });
 
     await pool.query(
-      `UPDATE users 
+      `UPDATE public.users 
        SET first_name = $1, last_name = $2, phone = $3, city = $4, preferences = $5 
        WHERE id = $6`,
       [firstName, lastName, phone, city, JSON.stringify(preferences || {}), userId]
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error('Profile update error:', err);
+    console.error('Profile update error detail:', err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
