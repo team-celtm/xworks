@@ -15,7 +15,10 @@ export async function GET(req: NextRequest) {
   try {
     const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
     const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const protocol = req.headers.get('x-forwarded-proto') || 'https';
+    const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
+    const defaultBaseUrl = host ? `${protocol}://${host}` : 'http://localhost:3000';
+    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || defaultBaseUrl;
     const REDIRECT_URI = `${BASE_URL}/api/auth/google/callback`;
 
     // 1. Exchange code for access token
@@ -34,7 +37,7 @@ export async function GET(req: NextRequest) {
     const tokenData = await tokenRes.json();
     if (!tokenData.access_token) {
       console.error('Google token error:', tokenData);
-      return NextResponse.json({ error: 'Failed to exchange token' }, { status: 400 });
+      return NextResponse.json({ error: 'Failed to exchange token', details: tokenData }, { status: 400 });
     }
 
     // 2. Fetch user info from Google

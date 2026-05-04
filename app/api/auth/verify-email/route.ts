@@ -25,7 +25,10 @@ export async function GET(req: NextRequest) {
     );
 
     // Redirect to login or success page
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || req.nextUrl.origin || 'http://localhost:3000';
+    const protocol = req.headers.get('x-forwarded-proto') || 'https';
+    const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
+    const defaultBaseUrl = host ? `${protocol}://${host}` : 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || defaultBaseUrl;
     return NextResponse.redirect(`${baseUrl}/Login?verified=true`);
 
   } catch (error) {

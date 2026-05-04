@@ -76,7 +76,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Send verification email using nodemailer with Link
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || req.nextUrl.origin || 'http://localhost:3000';
+    const protocol = req.headers.get('x-forwarded-proto') || 'https';
+    const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
+    const defaultBaseUrl = host ? `${protocol}://${host}` : 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || defaultBaseUrl;
     const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${verificationToken}`;
 
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
