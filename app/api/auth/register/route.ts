@@ -68,15 +68,15 @@ export async function POST(req: NextRequest) {
         phone,
         mappedRole,
         hashedPassword,
-        true, // email_verified 
-        'active', // status
+        false, // email_verified 
+        'pending_verification', // status
         verificationToken
       ]);
       userId = rows[0].id;
     }
 
     // Send verification email using nodemailer with Link
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001';
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const verifyUrl = `${baseUrl}/api/auth/verify-email?token=${verificationToken}`;
 
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
