@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { SignJWT } from 'jose';
+import { getBaseUrl } from '@/lib/utils';
 
 const SESSION_SECRET = process.env.SESSION_SECRET || 'your-default-secret-change-me';
 
@@ -15,10 +16,7 @@ export async function GET(req: NextRequest) {
   try {
     const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
     const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-    const protocol = req.headers.get('x-forwarded-proto') || 'https';
-    const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
-    const defaultBaseUrl = host ? `${protocol}://${host}` : 'http://localhost:3000';
-    const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || defaultBaseUrl;
+    const BASE_URL = getBaseUrl(req);
     const REDIRECT_URI = `${BASE_URL}/api/auth/google/callback`;
 
     // 1. Exchange code for access token

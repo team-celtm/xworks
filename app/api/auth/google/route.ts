@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getBaseUrl } from '@/lib/utils';
 
 export async function GET(req: NextRequest) {
   const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-  const protocol = req.headers.get('x-forwarded-proto') || 'https';
-  const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
-  const defaultBaseUrl = host ? `${protocol}://${host}` : 'http://localhost:3000';
-  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || defaultBaseUrl;
+  const BASE_URL = getBaseUrl(req);
   const REDIRECT_URI = `${BASE_URL}/api/auth/google/callback`;
 
   // Standard Google scopes

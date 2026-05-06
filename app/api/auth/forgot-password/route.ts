@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import crypto from 'crypto';
 import { sendMail } from '@/lib/mail';
+import { getBaseUrl } from '@/lib/utils';
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,10 +28,7 @@ export async function POST(req: NextRequest) {
       [resetToken, user.id]
     );
 
-    const protocol = req.headers.get('x-forwarded-proto') || 'https';
-    const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
-    const defaultBaseUrl = host ? `${protocol}://${host}` : 'http://localhost:3000';
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || defaultBaseUrl;
+    const baseUrl = getBaseUrl(req);
     const resetUrl = `${baseUrl}/Login?reset_token=${resetToken}`;
 
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {

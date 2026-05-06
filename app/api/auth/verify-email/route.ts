@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { getBaseUrl } from '@/lib/utils';
 
 export async function GET(req: NextRequest) {
   try {
@@ -25,10 +26,7 @@ export async function GET(req: NextRequest) {
     );
 
     // Redirect to login or success page
-    const protocol = req.headers.get('x-forwarded-proto') || 'https';
-    const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
-    const defaultBaseUrl = host ? `${protocol}://${host}` : 'http://localhost:3000';
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || defaultBaseUrl;
+    const baseUrl = getBaseUrl(req);
     return NextResponse.redirect(`${baseUrl}/Login?verified=true`);
 
   } catch (error) {

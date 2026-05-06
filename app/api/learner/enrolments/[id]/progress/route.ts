@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { jwtVerify } from 'jose';
+import { getBaseUrl } from '@/lib/utils';
 
 const SESSION_SECRET = process.env.SESSION_SECRET || 'your-default-secret-change-me';
 
@@ -41,10 +42,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     if (progressPct === 100) {
       // Trigger certificate job (fire and forget)
-      const protocol = req.headers.get('x-forwarded-proto') || 'http';
-      const host = req.headers.get('host') || 'localhost:3000';
+      const baseUrl = getBaseUrl(req);
       
-      fetch(`${protocol}://${host}/api/certificates`, {
+      fetch(`${baseUrl}/api/certificates`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
