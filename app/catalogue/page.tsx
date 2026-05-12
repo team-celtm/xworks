@@ -74,9 +74,11 @@ function CatalogueContent() {
   });
   const [isNavigating, setIsNavigating] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [userLoading, setUserLoading] = useState(true);
 
   useEffect(() => {
     const fetchUser = async () => {
+      setUserLoading(true);
       try {
         const res = await fetch("/api/auth/me");
         if (res.ok) {
@@ -84,6 +86,9 @@ function CatalogueContent() {
           setUser(data);
         }
       } catch (err) { }
+      finally {
+        setUserLoading(false);
+      }
     };
     fetchUser();
   }, []);
@@ -411,9 +416,15 @@ function CatalogueContent() {
           {(() => {
             const dashboardPath = user?.role === 'admin' ? '/admin' : (user?.role === 'instructor' ? '/instructor' : '/dashboard');
             return (
-              <Link href={dashboardPath} className="nav-link-sm" onClick={() => setIsNavigating(true)}>
-                {isNavigating ? 'Loading...' : 'Dashboard'}
-              </Link>
+              <>
+                {userLoading ? (
+                  <div className="btn-loader small" style={{ marginRight: '16px' }}></div>
+                ) : user && (
+                  <Link href={dashboardPath} className="nav-link-sm" onClick={() => setIsNavigating(true)}>
+                    {isNavigating ? 'Loading...' : 'Dashboard'}
+                  </Link>
+                )}
+              </>
             );
           })()}
           <button className="nav-back" onClick={() => router.back()}>← Back</button>

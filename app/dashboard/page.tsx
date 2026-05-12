@@ -212,15 +212,17 @@ export default function DashboardPage() {
         setUser(data);
         if (data.role === 'admin') {
           router.push('/admin');
-          return;
+          return true; // Indicate redirect is happening
         }
         if (data.role === 'instructor') {
           router.push('/instructor');
-          return;
+          return true; // Indicate redirect is happening
         }
       }
+      return false;
     } catch (err) {
       console.error("Failed to fetch user:", err);
+      return false;
     }
   };
 
@@ -369,7 +371,7 @@ export default function DashboardPage() {
     // Using shared functions defined above to ensure consistency across the component
     const loadData = async () => {
       setIsLoading(true);
-      await Promise.all([
+      const results = await Promise.all([
         loadWorkshops(),
         fetchEnrolments(),
         fetchUser(),
@@ -378,6 +380,9 @@ export default function DashboardPage() {
         fetchNotes(),
         fetchProfile()
       ]);
+      const isRedirecting = results[2]; // results from fetchUser()
+      if (isRedirecting) return; // Keep loading visible during redirect
+
       setTodayDate(new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }));
       setIsLoading(false);
       setHasMounted(true);

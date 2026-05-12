@@ -27,16 +27,15 @@ export default function AdminDashboard() {
           const data = await res.json();
           if (data.role !== 'admin') {
             router.push(data.role === 'instructor' ? '/instructor' : '/dashboard');
-            return;
+            return; // Don't set loading to false, let the redirect happen
           }
           setUser(data);
+          setLoading(false);
         } else {
           router.push('/Login');
         }
       } catch (err) {
         router.push('/Login');
-      } finally {
-        setLoading(false);
       }
     };
     fetchUser();

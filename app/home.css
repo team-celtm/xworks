@@ -143,6 +143,20 @@
   transform: translateY(-1px)
 }
 
+.nav-btn-loading {
+  height: 37px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 22px;
+}
+
+.btn-loader.small {
+  width: 14px;
+  height: 14px;
+  border-width: 1.5px;
+}
+
 .nav-dropdown {
   position: relative
 }

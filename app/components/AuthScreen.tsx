@@ -37,9 +37,16 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
             const res = await fetch('/api/auth/me');
             if (res.ok) {
               const data = await res.json();
-              if (data.role === 'admin') router.push('/admin');
-              else if (data.role === 'instructor') router.push('/instructor');
-              else router.push('/dashboard');
+              const returnUrl = searchParams.get('returnUrl');
+              if (returnUrl) {
+                router.push(returnUrl);
+              } else if (data.role === 'admin') {
+                router.push('/admin');
+              } else if (data.role === 'instructor') {
+                router.push('/instructor');
+              } else {
+                router.push('/dashboard');
+              }
             } else {
               router.push('/dashboard');
             }
@@ -511,13 +518,26 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
                 ) : (
                   <div className="next-steps">
                     <div className="ns-label">What&apos;s next</div>
-                    <div className="ns-item"><div className="ns-num">1</div>Browse 200+ workshops across 10 categories</div>
-                    <div className="ns-item"><div className="ns-num">2</div>Enrol in your first session and get a calendar invite</div>
-                    <div className="ns-item"><div className="ns-num">3</div>Earn a certificate and build your learning streak</div>
+                    {upProfile === 'Instructor' ? (
+                      <>
+                        <div className="ns-item"><div className="ns-num">1</div>Complete your professional profile</div>
+                        <div className="ns-item"><div className="ns-num">2</div>Submit your first workshop for review</div>
+                        <div className="ns-item"><div className="ns-num">3</div>Start building your student community</div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="ns-item"><div className="ns-num">1</div>Browse 200+ workshops across 10 categories</div>
+                        <div className="ns-item"><div className="ns-num">2</div>Enrol in your first session and get a calendar invite</div>
+                        <div className="ns-item"><div className="ns-num">3</div>Earn a certificate and build your learning streak</div>
+                      </>
+                    )}
                   </div>
                 )}
                 {!needsVerify && (
-                  <button className="btn-cta" onClick={() => router.push('/dashboard')}>
+                  <button className="btn-cta" onClick={() => {
+                    if (upProfile === 'Instructor') router.push('/instructor');
+                    else router.push('/dashboard');
+                  }}>
                     <span className="btn-txt">Go to my dashboard →</span>
                   </button>
                 )}

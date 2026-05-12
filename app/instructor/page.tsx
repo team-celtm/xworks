@@ -90,7 +90,7 @@ export default function InstructorDashboard() {
           const data = await res.json();
           if (data.role !== 'instructor') {
             router.push(data.role === 'admin' ? '/admin' : '/dashboard'); 
-            return;
+            return; // Don't set loading to false, let the redirect happen
           }
           setUser(data);
 
@@ -99,13 +99,12 @@ export default function InstructorDashboard() {
             const statData = await statRes.json();
             setAppStatus(statData.application_status);
           }
+          setLoading(false); // Only set loading to false if user is an instructor
         } else {
           router.push('/Login');
         }
       } catch (err) {
         router.push('/Login');
-      } finally {
-        setLoading(false);
       }
     };
     fetchUserAndStatus();

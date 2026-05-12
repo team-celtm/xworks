@@ -58,6 +58,7 @@ export default function CourseDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [userLoading, setUserLoading] = useState(true);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   useEffect(() => {
@@ -68,6 +69,7 @@ export default function CourseDetailPage() {
 
   useEffect(() => {
     const fetchUser = async () => {
+      setUserLoading(true);
       try {
         const res = await fetch("/api/auth/me");
         if (res.ok) {
@@ -75,6 +77,9 @@ export default function CourseDetailPage() {
           setUser(data);
         }
       } catch (err) { }
+      finally {
+        setUserLoading(false);
+      }
     };
     fetchUser();
   }, []);
@@ -248,7 +253,9 @@ export default function CourseDetailPage() {
 
         <div className={`nav-right ${isMobileNavOpen ? 'open' : ''}`}>
           <Link href="/catalogue" className="nav-link-sm" onClick={() => setIsMobileNavOpen(false)}>Explore</Link>
-          {user ? (
+          {userLoading ? (
+            <div className="btn-loader small" style={{ marginRight: '16px' }}></div>
+          ) : user ? (
             <Link href={user?.role === 'admin' ? '/admin' : (user?.role === 'instructor' ? '/instructor' : '/dashboard')} className="nav-link-sm" onClick={() => setIsMobileNavOpen(false)}>Dashboard</Link>
           ) : (
             <>

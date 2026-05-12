@@ -52,10 +52,12 @@ export default function Home() {
   const [hasMounted, setHasMounted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [userLoading, setUserLoading] = useState(true);
   const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
+      setUserLoading(true);
       try {
         const res = await fetch("/api/auth/me");
         if (res.ok) {
@@ -64,6 +66,8 @@ export default function Home() {
         }
       } catch (err) {
         // Silent error for session check
+      } finally {
+        setUserLoading(false);
       }
     };
     fetchUser();
@@ -471,7 +475,11 @@ export default function Home() {
               </div>
               <a href="#about" className="nav-link" suppressHydrationWarning onClick={(e) => scrollToId(e, 'about')}>About us</a>
               <Link href="/contact" className="nav-link">Contact us</Link>
-              {user ? (
+              {userLoading ? (
+                <div className="nav-btn-loading">
+                  <div className="btn-loader small"></div>
+                </div>
+              ) : user ? (
                 <Link href={dashboardPath} className="nav-btn" onClick={() => setIsNavigating(true)}>
                   {isNavigating ? <div className="btn-loader"></div> : 'Go to Dashboard →'}
                 </Link>
@@ -502,7 +510,11 @@ export default function Home() {
             <a href="#" className="mobile-nav-link" onClick={(e) => { e.preventDefault(); toggleMobileNav(); openWorkshopBrowser(); }}>Workshops</a>
             <a href="#about" className="mobile-nav-link" onClick={(e) => scrollToId(e, 'about')} suppressHydrationWarning>About us</a>
             <Link href="/contact" className="mobile-nav-link">Contact us</Link>
-            {user ? (
+            {userLoading ? (
+              <div className="mobile-nav-cta" style={{ display: 'flex', justifyContent: 'center', padding: '20px' }}>
+                <div className="btn-loader small"></div>
+              </div>
+            ) : user ? (
               <div className="mobile-nav-cta">
                 <Link href={dashboardPath} className="btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setIsNavigating(true)}>
                   {isNavigating ? <div className="btn-loader"></div> : 'Go to Dashboard →'}
@@ -511,7 +523,9 @@ export default function Home() {
             ) : (
               <>
                 <Link href="/Login" className="mobile-nav-link">Login</Link>
-                <div className="mobile-nav-cta"><Link href="/Registration" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Sign up free →</Link></div>
+                <div className="mobile-nav-cta">
+                  <Link href="/Registration" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Sign up free →</Link>
+                </div>
               </>
             )}
           </div>
