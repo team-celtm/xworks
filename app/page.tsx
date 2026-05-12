@@ -458,55 +458,65 @@ export default function Home() {
     <div className="home-container">
 
       {/* ════ NAV ════ */}
-      <nav ref={navRef} className="home-nav">
-        <Logo />
-        <div className="nav-links">
-          <div className="nav-dropdown">
-            <button className="nav-link" onClick={() => { setIsNavigating(true); openWorkshopBrowser(); }}>
-              {isNavigating ? 'Loading...' : 'Workshops ▾'}
-            </button>
-          </div>
-          <a href="#about" className="nav-link" suppressHydrationWarning onClick={(e) => scrollToId(e, 'about')}>About us</a>
-          <Link href="/contact" className="nav-link">Contact us</Link>
-          {user ? (
-            <Link href="/dashboard" className="nav-btn" onClick={() => setIsNavigating(true)}>
-              {isNavigating ? <div className="btn-loader"></div> : 'Go to Dashboard →'}
-            </Link>
-          ) : (
-            <>
-              <Link href="/Login" className="nav-link">Login</Link>
-              <Link href="/Registration" className="nav-btn">Sign up free →</Link>
-            </>
-          )}
-        </div>
-        <div className="hamburger" onClick={toggleMobileNav}>
-          <span></span><span></span><span></span>
-        </div>
-      </nav>
+      {(() => {
+        const dashboardPath = user?.role === 'admin' ? '/admin' : (user?.role === 'instructor' ? '/instructor' : '/dashboard');
+        return (
+          <nav ref={navRef} className="home-nav">
+            <Logo />
+            <div className="nav-links">
+              <div className="nav-dropdown">
+                <button className="nav-link" onClick={() => { setIsNavigating(true); openWorkshopBrowser(); }}>
+                  {isNavigating ? 'Loading...' : 'Workshops ▾'}
+                </button>
+              </div>
+              <a href="#about" className="nav-link" suppressHydrationWarning onClick={(e) => scrollToId(e, 'about')}>About us</a>
+              <Link href="/contact" className="nav-link">Contact us</Link>
+              {user ? (
+                <Link href={dashboardPath} className="nav-btn" onClick={() => setIsNavigating(true)}>
+                  {isNavigating ? <div className="btn-loader"></div> : 'Go to Dashboard →'}
+                </Link>
+              ) : (
+                <>
+                  <Link href="/Login" className="nav-link">Login</Link>
+                  <Link href="/Registration" className="nav-btn">Sign up free →</Link>
+                </>
+              )}
+            </div>
+            <div className="hamburger" onClick={toggleMobileNav}>
+              <span></span><span></span><span></span>
+            </div>
+          </nav>
+        );
+      })()}
 
-      <div className={`mobile-nav ${isMobileNavOpen ? 'open' : ''}`}>
-        <div className="mobile-nav-header">
-          <span style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 800, color: '#FFFFFF' }}>
-            X<span style={{ color: 'var(--coral)' }}>WORKS</span>
-          </span>
-          <button className="mobile-nav-close" onClick={toggleMobileNav}>✕</button>
-        </div>
-        <a href="#" className="mobile-nav-link" onClick={(e) => { e.preventDefault(); toggleMobileNav(); openWorkshopBrowser(); }}>Workshops</a>
-        <a href="#about" className="mobile-nav-link" onClick={(e) => scrollToId(e, 'about')} suppressHydrationWarning>About us</a>
-        <Link href="/contact" className="mobile-nav-link">Contact us</Link>
-        {user ? (
-          <div className="mobile-nav-cta">
-            <Link href="/dashboard" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setIsNavigating(true)}>
-              {isNavigating ? <div className="btn-loader"></div> : 'Go to Dashboard →'}
-            </Link>
+      {(() => {
+        const dashboardPath = user?.role === 'admin' ? '/admin' : (user?.role === 'instructor' ? '/instructor' : '/dashboard');
+        return (
+          <div className={`mobile-nav ${isMobileNavOpen ? 'open' : ''}`}>
+            <div className="mobile-nav-header">
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 800, color: '#FFFFFF' }}>
+                X<span style={{ color: 'var(--coral)' }}>WORKS</span>
+              </span>
+              <button className="mobile-nav-close" onClick={toggleMobileNav}>✕</button>
+            </div>
+            <a href="#" className="mobile-nav-link" onClick={(e) => { e.preventDefault(); toggleMobileNav(); openWorkshopBrowser(); }}>Workshops</a>
+            <a href="#about" className="mobile-nav-link" onClick={(e) => scrollToId(e, 'about')} suppressHydrationWarning>About us</a>
+            <Link href="/contact" className="mobile-nav-link">Contact us</Link>
+            {user ? (
+              <div className="mobile-nav-cta">
+                <Link href={dashboardPath} className="btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setIsNavigating(true)}>
+                  {isNavigating ? <div className="btn-loader"></div> : 'Go to Dashboard →'}
+                </Link>
+              </div>
+            ) : (
+              <>
+                <Link href="/Login" className="mobile-nav-link">Login</Link>
+                <div className="mobile-nav-cta"><Link href="/Registration" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Sign up free →</Link></div>
+              </>
+            )}
           </div>
-        ) : (
-          <>
-            <Link href="/Login" className="mobile-nav-link">Login</Link>
-            <div className="mobile-nav-cta"><Link href="/Registration" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Sign up free →</Link></div>
-          </>
-        )}
-      </div>
+        );
+      })()}
 
       {/* ════ HERO ════ */}
       <section className="hero" id="home">
@@ -528,11 +538,14 @@ export default function Home() {
               From school students to senior citizens — XWORKS brings you live, hands-on workshops across technology, creativity, wellness and more. Learn from experts. Build real skills.
             </p>
             <div className="hero-cta-row">
-              {user ? (
-                <Link href="/dashboard" className="btn-primary">Back to Dashboard →</Link>
-              ) : (
-                <Link href="/Registration" className="btn-primary">Sign up for free →</Link>
-              )}
+              {(() => {
+                const dashboardPath = user?.role === 'admin' ? '/admin' : (user?.role === 'instructor' ? '/instructor' : '/dashboard');
+                return user ? (
+                  <Link href={dashboardPath} className="btn-primary">Back to Dashboard →</Link>
+                ) : (
+                  <Link href="/Registration" className="btn-primary">Sign up for free →</Link>
+                );
+              })()}
               <button className="btn-ghost" onClick={() => { setIsNavigating(true); openWorkshopBrowser(); }}>
                 {isNavigating ? <div className="btn-loader" style={{ borderTopColor: 'var(--indigo)' }}></div> : 'Browse workshops'}
               </button>

@@ -73,6 +73,20 @@ function CatalogueContent() {
     perPage: 12,
   });
   const [isNavigating, setIsNavigating] = useState(false);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch("/api/auth/me");
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data);
+        }
+      } catch (err) { }
+    };
+    fetchUser();
+  }, []);
 
   useEffect(() => {
     async function fetchCategories() {
@@ -394,9 +408,14 @@ function CatalogueContent() {
       <nav className="nav">
         <Logo />
         <div className="nav-right">
-          <Link href="/dashboard" className="nav-link-sm" onClick={() => setIsNavigating(true)}>
-            {isNavigating ? 'Loading...' : 'Dashboard'}
-          </Link>
+          {(() => {
+            const dashboardPath = user?.role === 'admin' ? '/admin' : (user?.role === 'instructor' ? '/instructor' : '/dashboard');
+            return (
+              <Link href={dashboardPath} className="nav-link-sm" onClick={() => setIsNavigating(true)}>
+                {isNavigating ? 'Loading...' : 'Dashboard'}
+              </Link>
+            );
+          })()}
           <button className="nav-back" onClick={() => router.back()}>← Back</button>
         </div>
       </nav>

@@ -249,7 +249,7 @@ export default function CourseDetailPage() {
         <div className={`nav-right ${isMobileNavOpen ? 'open' : ''}`}>
           <Link href="/catalogue" className="nav-link-sm" onClick={() => setIsMobileNavOpen(false)}>Explore</Link>
           {user ? (
-            <Link href="/dashboard" className="nav-link-sm" onClick={() => setIsMobileNavOpen(false)}>Dashboard</Link>
+            <Link href={user?.role === 'admin' ? '/admin' : (user?.role === 'instructor' ? '/instructor' : '/dashboard')} className="nav-link-sm" onClick={() => setIsMobileNavOpen(false)}>Dashboard</Link>
           ) : (
             <>
               <Link href="/Login" className="nav-link-sm" onClick={() => setIsMobileNavOpen(false)}>Login</Link>

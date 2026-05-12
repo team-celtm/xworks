@@ -89,7 +89,7 @@ export default function InstructorDashboard() {
         if (res.ok) {
           const data = await res.json();
           if (data.role !== 'instructor') {
-            router.push('/dashboard'); 
+            router.push(data.role === 'admin' ? '/admin' : '/dashboard'); 
             return;
           }
           setUser(data);

@@ -32,7 +32,22 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
         setShowSuccess(true);
         setNeedsVerify(false); // Google users are pre-verified
       } else {
-        router.push('/dashboard');
+        const fetchRole = async () => {
+          try {
+            const res = await fetch('/api/auth/me');
+            if (res.ok) {
+              const data = await res.json();
+              if (data.role === 'admin') router.push('/admin');
+              else if (data.role === 'instructor') router.push('/instructor');
+              else router.push('/dashboard');
+            } else {
+              router.push('/dashboard');
+            }
+          } catch (e) {
+            router.push('/dashboard');
+          }
+        };
+        fetchRole();
       }
     }
 

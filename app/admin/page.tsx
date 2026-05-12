@@ -26,7 +26,7 @@ export default function AdminDashboard() {
         if (res.ok) {
           const data = await res.json();
           if (data.role !== 'admin') {
-            router.push('/dashboard');
+            router.push(data.role === 'instructor' ? '/instructor' : '/dashboard');
             return;
           }
           setUser(data);

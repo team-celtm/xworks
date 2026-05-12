@@ -210,6 +210,14 @@ export default function DashboardPage() {
       if (res.ok) {
         const data = await res.json();
         setUser(data);
+        if (data.role === 'admin') {
+          router.push('/admin');
+          return;
+        }
+        if (data.role === 'instructor') {
+          router.push('/instructor');
+          return;
+        }
       }
     } catch (err) {
       console.error("Failed to fetch user:", err);
