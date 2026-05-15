@@ -24,6 +24,10 @@ export default function AdminDashboard() {
   const [allCourses, setAllCourses] = useState<any[]>([]);
   const [coursePage, setCoursePage] = useState(1);
   const [coursePagination, setCoursePagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
+  const [courseSearch, setCourseSearch] = useState('');
+  const [courseStatus, setCourseStatus] = useState('');
+  const [courseCategory, setCourseCategory] = useState('');
+  const [isCoursesLoading, setIsCoursesLoading] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -61,17 +65,21 @@ export default function AdminDashboard() {
     if (activeView === 'admin_promos') {
       fetch('/api/admin/promo_codes').then(r => r.json()).then(d => setPromos(d.promos || []));
     }
-    if (activeView === 'admin_create_course') {
-      fetch('/api/categories').then(r => r.json()).then(d => setAllCategories(d || []));
-      fetch('/api/admin/all-instructors').then(r => r.json()).then(d => setAllInstructors(d.instructors || []));
+    if (activeView === 'admin_create_course' || activeView === 'admin_manage_courses' || activeView === 'admin_cert_repo') {
+      if (allCategories.length === 0) fetch('/api/categories').then(r => r.json()).then(d => setAllCategories(d || []));
+      if (allInstructors.length === 0) fetch('/api/admin/all-instructors').then(r => r.json()).then(d => setAllInstructors(d.instructors || []));
     }
-    if (activeView === 'admin_manage_courses') {
-      fetch(`/api/admin/courses/all?page=${coursePage}`).then(r => r.json()).then(d => {
-        setAllCourses(d.courses || []);
-        setCoursePagination(d.pagination || { total: 0, page: 1, limit: 10, totalPages: 1 });
-      });
+    if (activeView === 'admin_manage_courses' || activeView === 'admin_cert_repo') {
+      setIsCoursesLoading(true);
+      fetch(`/api/admin/courses/all?page=${coursePage}&search=${encodeURIComponent(courseSearch)}&categoryId=${courseCategory}&status=${courseStatus}`)
+        .then(r => r.json())
+        .then(d => {
+          setAllCourses(d.courses || []);
+          setCoursePagination(d.pagination || { total: 0, page: 1, limit: 10, totalPages: 1 });
+        })
+        .finally(() => setIsCoursesLoading(false));
     }
-  }, [activeView, user, coursePage]);
+  }, [activeView, user, coursePage, courseSearch, courseStatus, courseCategory]);
 
   const handleDeleteCourse = async (id: string) => {
     if (!confirm('Are you sure you want to delete this course? This action cannot be undone.')) return;
@@ -189,6 +197,11 @@ export default function AdminDashboard() {
             <span className="sb-item-label">Process Refunds</span>
           </button>
 
+          <button className={`sb-item ${activeView === "admin_cert_repo" ? "active" : ""}`} onClick={() => { setActiveView("admin_cert_repo"); setIsMobileMenuOpen(false); }}>
+            <span className="sb-item-icon">📜</span>
+            <span className="sb-item-label">Certificates Repo</span>
+          </button>
+          
           <button className={`sb-item ${activeView === "admin_certificates" ? "active" : ""}`} onClick={() => { setActiveView("admin_certificates"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">❌</span>
             <span className="sb-item-label">Revoke Certs</span>
@@ -444,6 +457,67 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {/* ---- CERTIFICATE REPO ---- */}
+          {activeView === "admin_cert_repo" && (
+            <div className="view active fade-up">
+              <div className="section-hd">
+                <div>
+                  <div className="section-label">Credential Assets</div>
+                  <div className="section-title">Certificates Repo</div>
+                </div>
+              </div>
+
+              <div className="admin-card">
+                <div className="section-subhd">
+                  <div className="section-sub-title">Course Certificate Assignments</div>
+                  <p style={{ fontSize: '13px', color: 'var(--text-3)' }}>Manage which templates are assigned to which courses and view issuance stats.</p>
+                </div>
+
+                <div className="admin-table-wrap" style={{ marginTop: '20px' }}>
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Course Name</th>
+                        <th>Assigned Template</th>
+                        <th>Total Issued</th>
+                        <th>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {allCourses.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-3)' }}>No courses available in repo.</td>
+                        </tr>
+                      ) : (
+                        allCourses.map(c => (
+                          <tr key={c.id}>
+                            <td>
+                              <div style={{ fontWeight: '700' }}>{c.name}</div>
+                              <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>ID: {c.id.slice(0, 8)}...</div>
+                            </td>
+                            <td>
+                              <div className="admin-badge" style={{ background: 'var(--surface-2)', color: 'var(--text-1)', textTransform: 'capitalize' }}>
+                                {(c.certificate_type || 'default').replace('_', ' ')}
+                              </div>
+                            </td>
+                            <td>
+                              <div style={{ fontWeight: '600', color: 'var(--indigo)' }}>{c.issued_count || 0} certs</div>
+                            </td>
+                            <td>
+                              <span className={`admin-badge ${c.status === 'published' ? 'success' : 'pending'}`}>
+                                {c.status === 'published' ? 'Live' : 'Inactive'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ---- CERTIFICATES ---- */}
           {activeView === "admin_certificates" && (
             <div className="view active fade-up">
@@ -590,9 +664,21 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
-                  <div className="form-group">
-                    <label className="admin-label">Badge Label (optional)</label>
-                    <input name="tag_label" type="text" className="prompt-input" placeholder="e.g. Best Seller" />
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+                    <div className="form-group">
+                      <label className="admin-label">Badge Label (optional)</label>
+                      <input name="tag_label" type="text" className="prompt-input" placeholder="e.g. Best Seller" />
+                    </div>
+                    <div className="form-group">
+                      <label className="admin-label">Certificate Template</label>
+                      <select name="certificate_type" className="prompt-input" required defaultValue="default">
+                        <option value="default">Default Template</option>
+                        <option value="tech_mastery">Tech Mastery (Premium)</option>
+                        <option value="creative_expert">Creative Expert</option>
+                        <option value="business_pro">Business Pro</option>
+                        <option value="completion_standard">Standard Completion</option>
+                      </select>
+                    </div>
                   </div>
 
                   <button type="submit" className="enrol-cta coral" style={{ width: 'auto', justifySelf: 'start', padding: '14px 60px', marginTop: '12px' }}>Create Course Now →</button>
@@ -613,10 +699,47 @@ export default function AdminDashboard() {
 
               <div className="admin-card">
                 <p style={{ color: 'var(--text-3)', marginBottom: '24px', fontSize: '14px' }}>Overview of all courses currently on the platform.</p>
-                {allCourses.length === 0 ? (
+                {/* --- FILTERS --- */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+                  <div className="form-group">
+                    <input 
+                      type="text" 
+                      placeholder="Search courses or instructors..." 
+                      className="prompt-input" 
+                      value={courseSearch}
+                      onChange={(e) => { setCourseSearch(e.target.value); setCoursePage(1); }}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <select className="prompt-input" value={courseCategory} onChange={(e) => { setCourseCategory(e.target.value); setCoursePage(1); }}>
+                      <option value="">All Categories</option>
+                      {allCategories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <select className="prompt-input" value={courseStatus} onChange={(e) => { setCourseStatus(e.target.value); setCoursePage(1); }}>
+                      <option value="">All Status</option>
+                      <option value="published">Published</option>
+                      <option value="under_review">Under Review</option>
+                      <option value="draft">Draft</option>
+                    </select>
+                  </div>
+                </div>
+
+                {isCoursesLoading ? (
+                   <div style={{ padding: '100px 0', textAlign: 'center' }}>
+                      <div className="dashboard-loader" style={{ margin: '0 auto', borderTopColor: 'var(--coral)' }}></div>
+                      <p style={{ marginTop: '16px', color: 'var(--text-3)', fontSize: '14px' }}>Updating records...</p>
+                   </div>
+                ) : allCourses.length === 0 ? (
                   <div className="admin-empty-state">
                     <div className="admin-empty-icon">📚</div>
-                    <p className="admin-empty-text">No courses found. Create one to get started!</p>
+                    <p className="admin-empty-text">No courses found matching your criteria.</p>
+                    {(courseSearch || courseCategory || courseStatus) && (
+                      <button onClick={() => { setCourseSearch(''); setCourseCategory(''); setCourseStatus(''); }} style={{ marginTop: '12px', background: 'none', border: 'none', color: 'var(--indigo)', fontWeight: '600', cursor: 'pointer', textDecoration: 'underline' }}>Clear all filters</button>
+                    )}
                   </div>
                 ) : (
                   <div className="admin-table-wrap">

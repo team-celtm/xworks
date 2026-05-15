@@ -22,6 +22,7 @@ export default function InstructorDashboard() {
   const [stats, setStats] = useState({ total_courses: 0, pending_payout: 0 });
   const [courses, setCourses] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
+  const [allCategories, setAllCategories] = useState<any[]>([]);
 
   useEffect(() => {
     fetch('/api/instructor/sessions')
@@ -79,6 +80,7 @@ export default function InstructorDashboard() {
       fetch('/api/teach/courses').then(r=>r.json()).then(d => {
         if (Array.isArray(d)) setCourses(d);
       });
+      fetch('/api/categories').then(r => r.json()).then(d => setAllCategories(d || []));
     }
   }, [activeView, user]);
 
@@ -258,8 +260,9 @@ export default function InstructorDashboard() {
                       method: 'POST', 
                       headers: {'Content-Type':'application/json'}, 
                       body: JSON.stringify({ 
-                        name: formData.get('name'), cat: formData.get('cat'), 
-                        dur: formData.get('dur'), price: formData.get('price') 
+                        name: formData.get('name'), category_id: formData.get('category_id'), 
+                        dur: formData.get('dur'), price: formData.get('price'),
+                        slug: formData.get('name')?.toString().toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substring(2, 7)
                       }) 
                     }); 
                     if (res.ok) {
@@ -278,8 +281,13 @@ export default function InstructorDashboard() {
                   
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                       <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Category Tag</label>
-                       <input name="cat" type="text" className="prompt-input" required placeholder="e.g. cyber" style={{ width: '100%' }} />
+                       <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Course Category</label>
+                       <select name="category_id" className="prompt-input" required style={{ width: '100%', height: '46px' }}>
+                         <option value="">Select Category</option>
+                         {allCategories.map(cat => (
+                           <option key={cat.id} value={cat.id}>{cat.name}</option>
+                         ))}
+                       </select>
                      </div>
                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                        <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Duration (hrs)</label>

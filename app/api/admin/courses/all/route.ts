@@ -30,40 +30,55 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const search = searchParams.get('search') || '';
     const categoryId = searchParams.get('categoryId') || '';
+    const status = searchParams.get('status') || '';
     const page = parseInt(searchParams.get('page') || '1');
     const limit = 10;
     const offset = (page - 1) * limit;
 
-    let query = `
+    let where = ["courses.status != 'deleted'"];
+    let params: any[] = [];
+
+    if (search) {
+      params.push(`%${search}%`);
+      where.push(`(courses.name ILIKE $${params.length} OR u.first_name ILIKE $${params.length} OR u.last_name ILIKE $${params.length} OR u.email ILIKE $${params.length})`);
+    }
+    if (categoryId) {
+      params.push(categoryId);
+      where.push(`courses.category_id = $${params.length}`);
+    }
+    if (status) {
+      params.push(status);
+      where.push(`courses.status = $${params.length}`);
+    }
+
+    const whereClause = where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
+
+    const query = `
       SELECT 
-        courses.id, courses.name, courses.slug, courses.price, courses.level, courses.dur, courses.emoji, courses.g, courses.tag, courses.tag_label, courses.status, courses.created_at,
+        courses.id, courses.name, courses.slug, courses.price, courses.level, courses.dur, courses.emoji, courses.g, courses.tag, courses.tag_label, courses.status, courses.certificate_type, courses.created_at,
         cat.name as category_name, 
-        u.first_name, u.last_name, u.email 
+        u.first_name, u.last_name, u.email,
+        (SELECT COUNT(*) FROM certificates WHERE course_id = courses.id) as issued_count
       FROM courses
       LEFT JOIN categories cat ON cat.id = courses.category_id
       LEFT JOIN instructors i ON i.id = courses.instructor_id
       LEFT JOIN users u ON u.id = i.user_id
-      WHERE courses.status != 'deleted'
+      ${whereClause}
+      ORDER BY courses.created_at DESC
+      LIMIT ${limit} OFFSET ${offset}
     `;
-    const params: any[] = [];
 
-    if (search) {
-      params.push(`%${search}%`);
-      query += ` AND (courses.name ILIKE $${params.length} OR u.first_name ILIKE $${params.length} OR u.last_name ILIKE $${params.length})`;
-    }
-
-    if (categoryId) {
-      params.push(categoryId);
-      query += ` AND courses.category_id = $${params.length}`;
-    }
-
-    // Get total count for pagination
-    const countRes = await pool.query(`SELECT COUNT(*) FROM (${query}) as sub`, params);
-    const total = parseInt(countRes.rows[0].count);
-
-    query += ` ORDER BY courses.created_at DESC LIMIT ${limit} OFFSET ${offset}`;
-    
     const result = await pool.query(query, params);
+
+    const countQuery = `
+      SELECT COUNT(*) 
+      FROM courses 
+      LEFT JOIN instructors i ON i.id = courses.instructor_id
+      LEFT JOIN users u ON u.id = i.user_id
+      ${whereClause}
+    `;
+    const countRes = await pool.query(countQuery, params);
+    const total = parseInt(countRes.rows[0].count);
 
     return NextResponse.json({ 
       courses: result.rows,
@@ -97,7 +112,7 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, message: 'Course successfully removed from platform' });
+    return NextResponse.json({ success: true, message: 'Course soft-deleted successfully' });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
