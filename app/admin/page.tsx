@@ -11,8 +11,8 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [activeView, setActiveView] = useState("admin_overview");
   const [user, setUser] = useState<any>(null);
-  const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ totalLearners: 0, totalInstructors: 0, activeCourses: 0, totalEnrolments: 0 });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Data states
@@ -22,12 +22,8 @@ export default function AdminDashboard() {
   const [allCategories, setAllCategories] = useState<any[]>([]);
   const [allInstructors, setAllInstructors] = useState<any[]>([]);
   const [allCourses, setAllCourses] = useState<any[]>([]);
-  const [editingCourse, setEditingCourse] = useState<any>(null);
-  const [courseSearch, setCourseSearch] = useState("");
-  const [courseCategoryFilter, setCourseCategoryFilter] = useState("");
   const [coursePage, setCoursePage] = useState(1);
-  const [coursePagination, setCoursePagination] = useState({ total: 0, totalPages: 1 });
-  const [isFetching, setIsFetching] = useState(false);
+  const [coursePagination, setCoursePagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -54,44 +50,28 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (!user) return;
     if (activeView === 'admin_overview') {
-      fetch('/api/admin/stats').then(r=>r.json()).then(d => setStats(d.stats || null));
+      fetch('/api/admin/stats').then(r => r.json()).then(d => setStats(d));
     }
     if (activeView === 'admin_instructors') {
-      fetch('/api/admin/instructors').then(r=>r.json()).then(d => setApplications(d.applications || []));
+      fetch('/api/admin/instructors').then(r => r.json()).then(d => setApplications(d.applications || []));
     }
     if (activeView === 'admin_courses') {
-      fetch('/api/admin/courses').then(r=>r.json()).then(d => setCourses(d.courses || []));
+      fetch('/api/admin/courses').then(r => r.json()).then(d => setCourses(d.courses || []));
     }
     if (activeView === 'admin_promos') {
-      fetch('/api/admin/promo_codes').then(r=>r.json()).then(d => setPromos(d.promos || []));
+      fetch('/api/admin/promo_codes').then(r => r.json()).then(d => setPromos(d.promos || []));
     }
-    if (activeView === 'admin_create_course' || activeView === 'admin_manage_courses') {
-      fetch('/api/admin/all-categories').then(r=>r.json()).then(d => setAllCategories(d.categories || []));
-      fetch('/api/admin/all-instructors').then(r=>r.json()).then(d => setAllInstructors(d.instructors || []));
+    if (activeView === 'admin_create_course') {
+      fetch('/api/categories').then(r => r.json()).then(d => setAllCategories(d || []));
+      fetch('/api/admin/all-instructors').then(r => r.json()).then(d => setAllInstructors(d.instructors || []));
     }
-
     if (activeView === 'admin_manage_courses') {
-      setIsFetching(true);
-      const query = new URLSearchParams({
-        search: courseSearch,
-        categoryId: courseCategoryFilter,
-        page: coursePage.toString()
-      }).toString();
-      
-      fetch(`/api/admin/courses/all?${query}`)
-        .then(r => r.json())
-        .then(d => {
-          if (d.error) console.error('Manage Courses Error:', d.error, d.details || '');
-          setAllCourses(d.courses || []);
-          if (d.pagination) setCoursePagination(d.pagination);
-          setIsFetching(false);
-        })
-        .catch(err => {
-          console.error('Fetch Error:', err);
-          setIsFetching(false);
-        });
+      fetch(`/api/admin/courses/all?page=${coursePage}`).then(r => r.json()).then(d => {
+        setAllCourses(d.courses || []);
+        setCoursePagination(d.pagination || { total: 0, page: 1, limit: 10, totalPages: 1 });
+      });
     }
-  }, [activeView, user, courseSearch, courseCategoryFilter, coursePage]);
+  }, [activeView, user, coursePage]);
 
   const handleDeleteCourse = async (id: string) => {
     if (!confirm('Are you sure you want to delete this course? This action cannot be undone.')) return;
@@ -100,17 +80,17 @@ export default function AdminDashboard() {
   };
 
   const handleApproveInstructor = async (id: string, action: 'approve' | 'reject') => {
-    const res = await fetch('/api/admin/instructors', { 
-      method: 'PUT', headers: {'Content-Type': 'application/json'}, 
-      body: JSON.stringify({ id, action }) 
+    const res = await fetch('/api/admin/instructors', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, action })
     });
     if (res.ok) setApplications(prev => prev.filter(a => a.id !== id));
   };
 
   const handlePublishCourse = async (id: string, action: 'approve' | 'reject') => {
-    const res = await fetch('/api/admin/courses', { 
-      method: 'PUT', headers: {'Content-Type': 'application/json'}, 
-      body: JSON.stringify({ id, action }) 
+    const res = await fetch('/api/admin/courses', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, action })
     });
     if (res.ok) setCourses(prev => prev.filter(c => c.id !== id));
   };
@@ -118,9 +98,9 @@ export default function AdminDashboard() {
   const handleCreatePromo = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    const res = await fetch('/api/admin/promo_codes', { 
-      method: 'POST', headers: {'Content-Type':'application/json'}, 
-      body: JSON.stringify({ code: formData.get('code'), discount_percentage: Number(formData.get('perc')) }) 
+    const res = await fetch('/api/admin/promo_codes', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: formData.get('code'), discount_percentage: Number(formData.get('perc')) })
     });
     const data = await res.json();
     if (data.success) {
@@ -178,18 +158,18 @@ export default function AdminDashboard() {
             <span className="sb-item-icon">📊</span>
             <span className="sb-item-label">Dashboard Overview</span>
           </button>
-          
+
           <button className={`sb-item ${activeView === "admin_instructors" ? "active" : ""}`} onClick={() => { setActiveView("admin_instructors"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">👨‍⚖️</span>
             <span className="sb-item-label">Approve Instructors</span>
           </button>
-          
+
           <button className={`sb-item ${activeView === "admin_courses" ? "active" : ""}`} onClick={() => { setActiveView("admin_courses"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">📢</span>
             <span className="sb-item-label">Publish Courses</span>
           </button>
 
-          <button className={`sb-item ${activeView === "admin_create_course" ? "active" : ""}`} onClick={() => { setEditingCourse(null); setActiveView("admin_create_course"); setIsMobileMenuOpen(false); }}>
+          <button className={`sb-item ${activeView === "admin_create_course" ? "active" : ""}`} onClick={() => { setActiveView("admin_create_course"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">➕</span>
             <span className="sb-item-label">Create Course</span>
           </button>
@@ -198,17 +178,17 @@ export default function AdminDashboard() {
             <span className="sb-item-icon">🛠️</span>
             <span className="sb-item-label">Manage Courses</span>
           </button>
-          
+
           <button className={`sb-item ${activeView === "admin_promos" ? "active" : ""}`} onClick={() => { setActiveView("admin_promos"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">🏷️</span>
             <span className="sb-item-label">Promo Codes</span>
           </button>
-          
+
           <button className={`sb-item ${activeView === "admin_refunds" ? "active" : ""}`} onClick={() => { setActiveView("admin_refunds"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">💸</span>
             <span className="sb-item-label">Process Refunds</span>
           </button>
-          
+
           <button className={`sb-item ${activeView === "admin_certificates" ? "active" : ""}`} onClick={() => { setActiveView("admin_certificates"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">❌</span>
             <span className="sb-item-label">Revoke Certs</span>
@@ -244,36 +224,36 @@ export default function AdminDashboard() {
                   <div className="section-title">Dashboard Overview</div>
                 </div>
               </div>
-              
-              <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '32px' }}>
-                <div className="admin-card" style={{ padding: '24px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>🎓</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '800' }}>Total Learners</div>
-                  <div style={{ fontSize: '36px', fontWeight: '900', color: 'var(--ink)' }}>{stats?.learners || 0}</div>
+
+              <div className="overview-grid">
+                <div className="overview-card">
+                  <div className="overview-icon">🎓</div>
+                  <div className="overview-label">Total Learners</div>
+                  <div className="overview-value">{stats.totalLearners}</div>
                 </div>
-                <div className="admin-card" style={{ padding: '24px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>👨‍🏫</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '800' }}>Total Instructors</div>
-                  <div style={{ fontSize: '36px', fontWeight: '900', color: 'var(--ink)' }}>{stats?.instructors || 0}</div>
+                <div className="overview-card">
+                  <div className="overview-icon">👨‍🏫</div>
+                  <div className="overview-label">Total Instructors</div>
+                  <div className="overview-value">{stats.totalInstructors}</div>
                 </div>
-                <div className="admin-card" style={{ padding: '24px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>📚</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '800' }}>Active Courses</div>
-                  <div style={{ fontSize: '36px', fontWeight: '900', color: 'var(--ink)' }}>{stats?.courses || 0}</div>
+                <div className="overview-card">
+                  <div className="overview-icon">📚</div>
+                  <div className="overview-label">Active Courses</div>
+                  <div className="overview-value">{stats.activeCourses}</div>
                 </div>
-                <div className="admin-card" style={{ padding: '24px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>💳</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '800' }}>Total Enrolments</div>
-                  <div style={{ fontSize: '36px', fontWeight: '900', color: 'var(--ink)' }}>{stats?.enrolments || 0}</div>
+                <div className="overview-card">
+                  <div className="overview-icon">💳</div>
+                  <div className="overview-label">Total Enrolments</div>
+                  <div className="overview-value">{stats.totalEnrolments}</div>
                 </div>
               </div>
 
-              <div className="admin-card">
-                <h3 style={{ marginBottom: '16px' }}>Quick Actions</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-                  <button className="admin-btn admin-btn-primary" onClick={() => setActiveView('admin_create_course')}>Create New Course</button>
-                  <button className="admin-btn" style={{ background: 'var(--surface-2)', color: 'var(--text-1)' }} onClick={() => setActiveView('admin_instructors')}>Review Applications</button>
-                  <button className="admin-btn" style={{ background: 'var(--surface-2)', color: 'var(--text-1)' }} onClick={() => setActiveView('admin_manage_courses')}>Inventory Check</button>
+              <div className="quick-actions-wrap">
+                <h3 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--indigo-dark)' }}>Quick Actions</h3>
+                <div className="quick-actions-grid">
+                  <button className="qa-btn primary" onClick={() => setActiveView('admin_create_course')}>Create New Course</button>
+                  <button className="qa-btn" onClick={() => setActiveView('admin_instructors')}>Review Applications</button>
+                  <button className="qa-btn" onClick={() => setActiveView('admin_manage_courses')}>Inventory Check</button>
                 </div>
               </div>
             </div>
@@ -288,7 +268,7 @@ export default function AdminDashboard() {
                   <div className="section-title">Approve Instructors</div>
                 </div>
               </div>
-              
+
               <div className="admin-card">
                 <p style={{ color: 'var(--text-3)', marginBottom: '24px', fontSize: '14px' }}>Pending applications waiting for platform access.</p>
                 {applications.length === 0 ? (
@@ -311,11 +291,11 @@ export default function AdminDashboard() {
                         {applications.map(app => (
                           <tr key={app.id}>
                             <td>
-                              <div style={{fontWeight: '700'}}>{app.first_name} {app.last_name}</div>
-                              <div style={{fontSize: '12px', color: 'var(--text-3)'}}>{app.email}</div>
+                              <div style={{ fontWeight: '700' }}>{app.first_name} {app.last_name}</div>
+                              <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>{app.email}</div>
                             </td>
-                            <td><a href={app.linkedin_url} target="_blank" style={{color:'var(--indigo-mid)', fontWeight: '600'}}>Link ↗</a></td>
-                            <td style={{ maxWidth:'200px', whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{app.bio}</td>
+                            <td><a href={app.linkedin_url} target="_blank" style={{ color: 'var(--indigo-mid)', fontWeight: '600' }}>Link ↗</a></td>
+                            <td style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{app.bio}</td>
                             <td>
                               <div style={{ display: 'flex', gap: '8px' }}>
                                 <button className="admin-btn admin-btn-success" onClick={() => handleApproveInstructor(app.id, 'approve')}>Approve</button>
@@ -341,7 +321,7 @@ export default function AdminDashboard() {
                   <div className="section-title">Publish Courses</div>
                 </div>
               </div>
-              
+
               <div className="admin-card">
                 <p style={{ color: 'var(--text-3)', marginBottom: '24px', fontSize: '14px' }}>Courses submitted by instructors awaiting platform publication.</p>
                 {courses.length === 0 ? (
@@ -364,13 +344,13 @@ export default function AdminDashboard() {
                         {courses.map(c => (
                           <tr key={c.id}>
                             <td>
-                              <div style={{fontWeight: '700'}}>{c.name}</div>
-                              <div style={{fontSize: '12px', color: 'var(--text-3)'}}>{c.cat} • {c.dur} hrs</div>
+                              <div style={{ fontWeight: '700' }}>{c.name}</div>
+                              <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>{c.cat} • {c.dur} hrs</div>
                             </td>
                             <td style={{ fontWeight: '700', color: 'var(--indigo)' }}>₹{c.price}</td>
                             <td>
                               <div>{c.first_name} {c.last_name}</div>
-                              <div style={{fontSize: '12px', color: 'var(--text-3)'}}>{c.email}</div>
+                              <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>{c.email}</div>
                             </td>
                             <td>
                               <div style={{ display: 'flex', gap: '8px' }}>
@@ -397,18 +377,18 @@ export default function AdminDashboard() {
                   <div className="section-title">Promo Codes</div>
                 </div>
               </div>
-              
+
               <div className="admin-card">
                 <form onSubmit={handleCreatePromo} style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', marginBottom: '40px', padding: '24px', background: 'var(--bg)', borderRadius: '16px', border: '1px solid var(--border)' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                       <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Code String</label>
-                       <input name="code" type="text" className="prompt-input" required placeholder="e.g. DIWALI50" style={{ textTransform: 'uppercase', width: '100%' }} />
-                     </div>
-                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                       <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Discount %</label>
-                       <input name="perc" type="number" className="prompt-input" required placeholder="20" style={{ width: '100%' }} />
-                     </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Code String</label>
+                      <input name="code" type="text" className="prompt-input" required placeholder="e.g. DIWALI50" style={{ textTransform: 'uppercase', width: '100%' }} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Discount %</label>
+                      <input name="perc" type="number" className="prompt-input" required placeholder="20" style={{ width: '100%' }} />
+                    </div>
                   </div>
                   <button type="submit" className="enrol-cta coral" style={{ width: 'auto', justifySelf: 'start', padding: '14px 40px', marginTop: 0 }}>Create Promo Code →</button>
                 </form>
@@ -431,7 +411,7 @@ export default function AdminDashboard() {
                           <td style={{ color: 'var(--text-3)' }}>{new Date(p.created_at).toLocaleDateString()}</td>
                         </tr>
                       ))}
-                      {promos.length === 0 && <tr><td colSpan={3} style={{padding:'24px', textAlign:'center', color:'var(--text-3)'}}>No active codes.</td></tr>}
+                      {promos.length === 0 && <tr><td colSpan={3} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-3)' }}>No active codes.</td></tr>}
                     </tbody>
                   </table>
                 </div>
@@ -448,14 +428,14 @@ export default function AdminDashboard() {
                   <div className="section-title">Process Refund</div>
                 </div>
               </div>
-              
+
               <div className="admin-card">
                 <p style={{ color: 'var(--text-3)', marginBottom: '24px' }}>Process a refund and immediately revoke course access via Razorpay ID.</p>
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                   <input type="text" className="prompt-input" placeholder="Razorpay Order ID (order_...)" id="adminRefundId" style={{ flex: 1 }} />
                   <button className="enrol-cta coral" style={{ width: 'auto', padding: '12px 32px', cursor: 'pointer', marginTop: 0 }} onClick={async () => {
                     const orderId = (document.getElementById('adminRefundId') as HTMLInputElement).value;
-                    const res = await fetch('/api/admin/refunds', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ orderId }) });
+                    const res = await fetch('/api/admin/refunds', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId }) });
                     const data = await res.json();
                     alert(data.message || data.error || 'Done!');
                   }}>Issue Refund →</button>
@@ -473,22 +453,22 @@ export default function AdminDashboard() {
                   <div className="section-title">Revoke Certificate</div>
                 </div>
               </div>
-              
+
               <div className="admin-card">
                 <p style={{ color: 'var(--text-3)', marginBottom: '24px' }}>Invalidate a certificate and update its public verification page.</p>
-                <form 
-                  onSubmit={async (e) => { 
-                    e.preventDefault(); 
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
                     const formData = new FormData(e.currentTarget);
-                    const res = await fetch('/api/admin/certificates', { 
-                      method: 'PUT', 
-                      headers: {'Content-Type':'application/json'}, 
-                      body: JSON.stringify({ credential_id: formData.get('credential_id'), reason: formData.get('reason') }) 
-                    }); 
+                    const res = await fetch('/api/admin/certificates', {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ credential_id: formData.get('credential_id'), reason: formData.get('reason') })
+                    });
                     const data = await res.json();
                     alert(data.message || data.error || 'Done!');
                     e.currentTarget.reset();
-                  }} 
+                  }}
                   style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', width: '100%' }}
                 >
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
@@ -513,50 +493,46 @@ export default function AdminDashboard() {
               <div className="section-hd">
                 <div>
                   <div className="section-label">Owner Operations</div>
-                  <div className="section-title">{editingCourse ? 'Edit Course' : 'Create New Course'}</div>
+                  <div className="section-title">Create New Course</div>
                 </div>
               </div>
-              
+
               <div className="admin-card">
-                <form 
-                  onSubmit={async (e) => { 
-                    e.preventDefault(); 
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
                     const formData = new FormData(e.currentTarget);
                     const payload = Object.fromEntries(formData.entries());
-                    const url = editingCourse ? `/api/admin/courses?id=${editingCourse.id}` : '/api/admin/courses';
-                    const method = editingCourse ? 'PUT' : 'POST';
-                    
-                    const res = await fetch(url, { 
-                      method, 
-                      headers: {'Content-Type':'application/json'}, 
-                      body: JSON.stringify(payload) 
-                    }); 
+                    const res = await fetch('/api/admin/courses', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(payload)
+                    });
                     const data = await res.json();
                     if (res.ok) {
-                      alert(editingCourse ? 'Course updated successfully!' : 'Course created successfully!');
-                      setEditingCourse(null);
-                      setActiveView('admin_manage_courses');
+                      alert('Course created successfully!');
+                      setActiveView('admin_courses');
                     } else {
-                      alert(data.error || 'Operation failed');
+                      alert(data.error || 'Failed to create course');
                     }
-                  }} 
+                  }}
                   style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', width: '100%' }}
                 >
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
                     <div className="form-group">
                       <label className="admin-label">Course Name</label>
-                      <input name="name" type="text" className="prompt-input" required placeholder="e.g. Master React in 30 Days" defaultValue={editingCourse?.name} />
+                      <input name="name" type="text" className="prompt-input" required placeholder="e.g. Master React in 30 Days" />
                     </div>
                     <div className="form-group">
                       <label className="admin-label">Slug (URL)</label>
-                      <input name="slug" type="text" className="prompt-input" required placeholder="e.g. react-mastery" defaultValue={editingCourse?.slug} />
+                      <input name="slug" type="text" className="prompt-input" required placeholder="e.g. react-mastery" />
                     </div>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
                     <div className="form-group">
                       <label className="admin-label">Category</label>
-                      <select name="category_id" className="prompt-input" required defaultValue={editingCourse?.category_id}>
+                      <select name="category_id" className="prompt-input" required>
                         <option value="">Select Category</option>
                         {allCategories.map(cat => (
                           <option key={cat.id} value={cat.id}>{cat.name}</option>
@@ -565,7 +541,7 @@ export default function AdminDashboard() {
                     </div>
                     <div className="form-group">
                       <label className="admin-label">Instructor</label>
-                      <select name="instructor_id" className="prompt-input" required defaultValue={editingCourse?.instructor_id}>
+                      <select name="instructor_id" className="prompt-input" required>
                         <option value="">Select Instructor</option>
                         {allInstructors.map(inst => (
                           <option key={inst.id} value={inst.id}>{inst.first_name} {inst.last_name} ({inst.email})</option>
@@ -577,11 +553,11 @@ export default function AdminDashboard() {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
                     <div className="form-group">
                       <label className="admin-label">Price (₹)</label>
-                      <input name="price" type="number" className="prompt-input" required placeholder="1299" defaultValue={editingCourse?.price} />
+                      <input name="price" type="number" className="prompt-input" required placeholder="1299" />
                     </div>
                     <div className="form-group">
                       <label className="admin-label">Level</label>
-                      <select name="level" className="prompt-input" required defaultValue={editingCourse?.level}>
+                      <select name="level" className="prompt-input" required>
                         <option value="Beginner">Beginner</option>
                         <option value="Intermediate">Intermediate</option>
                         <option value="Advanced">Advanced</option>
@@ -589,18 +565,18 @@ export default function AdminDashboard() {
                     </div>
                     <div className="form-group">
                       <label className="admin-label">Duration (hrs)</label>
-                      <input name="dur" type="number" className="prompt-input" required placeholder="10" defaultValue={editingCourse?.dur} />
+                      <input name="dur" type="number" className="prompt-input" required placeholder="10" />
                     </div>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
                     <div className="form-group">
                       <label className="admin-label">Emoji</label>
-                      <input name="emoji" type="text" className="prompt-input" placeholder="🎓" defaultValue={editingCourse?.emoji} />
+                      <input name="emoji" type="text" className="prompt-input" placeholder="🎓" />
                     </div>
                     <div className="form-group">
                       <label className="admin-label">Gradient Class</label>
-                      <select name="g" className="prompt-input" defaultValue={editingCourse?.g}>
+                      <select name="g" className="prompt-input">
                         <option value="t-indigo">Indigo</option>
                         <option value="t-coral">Coral</option>
                         <option value="t-amber">Amber</option>
@@ -610,18 +586,16 @@ export default function AdminDashboard() {
                     </div>
                     <div className="form-group">
                       <label className="admin-label">Badge (optional)</label>
-                      <input name="tag" type="text" className="prompt-input" placeholder="e.g. hot" defaultValue={editingCourse?.tag} />
+                      <input name="tag" type="text" className="prompt-input" placeholder="e.g. hot" />
                     </div>
                   </div>
 
                   <div className="form-group">
                     <label className="admin-label">Badge Label (optional)</label>
-                    <input name="tag_label" type="text" className="prompt-input" placeholder="e.g. Best Seller" defaultValue={editingCourse?.tag_label} />
+                    <input name="tag_label" type="text" className="prompt-input" placeholder="e.g. Best Seller" />
                   </div>
 
-                  <button type="submit" className="enrol-cta coral" style={{ width: 'auto', justifySelf: 'start', padding: '14px 60px', marginTop: '12px' }}>
-                    {editingCourse ? 'Save Changes' : 'Create Course Now →'}
-                  </button>
+                  <button type="submit" className="enrol-cta coral" style={{ width: 'auto', justifySelf: 'start', padding: '14px 60px', marginTop: '12px' }}>Create Course Now →</button>
                 </form>
               </div>
             </div>
@@ -636,63 +610,13 @@ export default function AdminDashboard() {
                   <div className="section-title">Manage All Courses</div>
                 </div>
               </div>
-              
+
               <div className="admin-card">
                 <p style={{ color: 'var(--text-3)', marginBottom: '24px', fontSize: '14px' }}>Overview of all courses currently on the platform.</p>
-                
-                <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
-                  <div style={{ flex: '1', minWidth: '200px' }}>
-                    <input 
-                      type="text" 
-                      className="prompt-input" 
-                      placeholder="Search courses or instructors..." 
-                      value={courseSearch}
-                      onChange={(e) => { setCourseSearch(e.target.value); setCoursePage(1); }}
-                    />
-                  </div>
-                  <div style={{ width: '200px' }}>
-                    <select 
-                      className="prompt-input"
-                      value={courseCategoryFilter}
-                      onChange={(e) => { setCourseCategoryFilter(e.target.value); setCoursePage(1); }}
-                    >
-                      <option value="">All Categories</option>
-                      {allCategories.map(cat => (
-                        <option key={cat.id} value={cat.id}>{cat.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  {(courseSearch || courseCategoryFilter) && (
-                    <button 
-                      className="admin-btn" 
-                      onClick={() => { setCourseSearch(""); setCourseCategoryFilter(""); setCoursePage(1); }}
-                    >
-                      Clear Filters
-                    </button>
-                  )}
-                </div>
-                {isFetching ? (
+                {allCourses.length === 0 ? (
                   <div className="admin-empty-state">
-                    <div className="spinner" style={{ marginBottom: '16px' }}></div>
-                    <p className="admin-empty-text">Fetching latest data...</p>
-                  </div>
-                ) : allCourses.length === 0 ? (
-                  <div className="admin-empty-state">
-                    <div className="admin-empty-icon">{courseSearch || courseCategoryFilter ? '🔍' : '📚'}</div>
-                    <p className="admin-empty-text">
-                      {courseSearch || courseCategoryFilter 
-                        ? 'No courses matching your filters. Try a different search!' 
-                        : 'No courses found. Create one to get started!'}
-                    </p>
-                    {(courseSearch || courseCategoryFilter) && (
-                      <button 
-                        className="admin-btn admin-btn-primary" 
-                        style={{ marginTop: '16px' }}
-                        onClick={() => { setCourseSearch(""); setCourseCategoryFilter(""); }}
-                      >
-                        Reset All Filters
-                      </button>
-                    )}
+                    <div className="admin-empty-icon">📚</div>
+                    <p className="admin-empty-text">No courses found. Create one to get started!</p>
                   </div>
                 ) : (
                   <div className="admin-table-wrap">
@@ -709,14 +633,12 @@ export default function AdminDashboard() {
                         {allCourses.map(c => (
                           <tr key={c.id}>
                             <td>
-                              <div style={{fontWeight: '700', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={c.name}>
-                                {c.name}
-                              </div>
-                              <div style={{fontSize: '12px', color: 'var(--text-3)'}}>{c.category_name} • ₹{c.price}</div>
+                              <div style={{ fontWeight: '700' }}>{c.name}</div>
+                              <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>{c.category_name} • ₹{c.price}</div>
                             </td>
                             <td>
                               <div>{c.first_name} {c.last_name}</div>
-                              <div style={{fontSize: '12px', color: 'var(--text-3)'}}>{c.email}</div>
+                              <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>{c.email}</div>
                             </td>
                             <td>
                               <span className={`admin-badge ${c.status === 'published' ? 'success' : 'pending'}`}>
@@ -725,7 +647,6 @@ export default function AdminDashboard() {
                             </td>
                             <td>
                               <div style={{ display: 'flex', gap: '8px' }}>
-                                <button className="admin-btn admin-btn-primary" onClick={() => { setEditingCourse(c); setActiveView('admin_create_course'); }}>Edit</button>
                                 <button className="admin-btn admin-btn-danger" onClick={() => handleDeleteCourse(c.id)}>Delete</button>
                               </div>
                             </td>
@@ -733,32 +654,24 @@ export default function AdminDashboard() {
                         ))}
                       </tbody>
                     </table>
-
                     {coursePagination.totalPages > 1 && (
-                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', marginTop: '32px', padding: '16px', borderTop: '1px solid var(--border)' }}>
+                      <div className="admin-pagination" style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '20px', borderTop: '1px solid var(--border)', marginTop: '20px', justifyContent: 'center' }}>
                         <button 
-                          className="admin-btn" 
-                          disabled={coursePage === 1}
+                          disabled={coursePage === 1} 
+                          onClick={() => setCoursePage(p => p - 1)}
+                          className="admin-btn"
                           style={{ opacity: coursePage === 1 ? 0.5 : 1, cursor: coursePage === 1 ? 'not-allowed' : 'pointer' }}
-                          onClick={() => setCoursePage(p => Math.max(1, p - 1))}
-                        >
-                          Previous
-                        </button>
-                        <span style={{ fontSize: '14px', color: 'var(--text-2)' }}>
-                          Page <strong>{coursePage}</strong> of {coursePagination.totalPages}
-                        </span>
+                        >← Prev</button>
+                        <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-2)' }}>Page {coursePage} of {coursePagination.totalPages}</span>
                         <button 
-                          className="admin-btn" 
-                          disabled={coursePage === coursePagination.totalPages}
+                          disabled={coursePage === coursePagination.totalPages} 
+                          onClick={() => setCoursePage(p => p + 1)}
+                          className="admin-btn"
                           style={{ opacity: coursePage === coursePagination.totalPages ? 0.5 : 1, cursor: coursePage === coursePagination.totalPages ? 'not-allowed' : 'pointer' }}
-                          onClick={() => setCoursePage(p => Math.min(coursePagination.totalPages, p + 1))}
-                        >
-                          Next
-                        </button>
+                        >Next →</button>
                       </div>
                     )}
                   </div>
-
                 )}
               </div>
             </div>

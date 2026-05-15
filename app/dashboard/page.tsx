@@ -1247,9 +1247,8 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* ══ INSTRUCTOR PORTAL INJECTION (Temporarily Disabled) ══ */}
-                  {/* 
-                  <div className="fade-up" style={{ animationDelay: '0.2s', marginTop: '24px' }}>
+                  {/* ══ INSTRUCTOR PORTAL PROMO ══ */}
+                  <div className="fade-up" style={{ animationDelay: '0.2s', marginTop: '40px' }}>
                     <div className="section-hd">
                       <div className="section-hd-left">
                         <div className="section-label">Instructor Portal</div>
@@ -1257,28 +1256,28 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     {user?.role === 'instructor' ? (
-                       <div className="summary-card">
+                       <div className="summary-card" style={{ background: 'linear-gradient(135deg, var(--indigo-dark), #1E1B4B)', border: '1px solid rgba(255,255,255,0.1)' }}>
                           <div className="summary-card-info">
-                            <div className="summary-card-title">Go to Creator Studio</div>
-                            <div className="summary-card-meta">Manage your courses, live sessions, and view earnings.</div>
+                            <div className="summary-card-title" style={{ color: '#fff' }}>Go to Creator Studio</div>
+                            <div className="summary-card-meta" style={{ color: 'rgba(255,255,255,0.7)' }}>Manage your courses, live sessions, and view earnings.</div>
                           </div>
                           <Link 
                             className="enrol-cta coral summary-card-btn" 
-                            style={{ textDecoration: 'none', textAlign: 'center' }}
+                            style={{ textDecoration: 'none', textAlign: 'center', minWidth: '200px' }}
                             href="/instructor"
                           >
                             Open Instructor Portal 🚀
                           </Link>
                        </div>
                     ) : (
-                       <div className="summary-card">
+                       <div className="summary-card" style={{ background: 'var(--surface)', border: '1px solid var(--border-md)', boxShadow: '0 10px 30px rgba(55,48,163,0.05)' }}>
                           <div className="summary-card-info">
                             <div className="summary-card-title">Become an Instructor</div>
                             <div className="summary-card-meta">Share your knowledge and earn revenue by teaching premium cyber-tech workshops.</div>
                           </div>
                           <Link 
                             className="enrol-cta coral summary-card-btn" 
-                            style={{ textDecoration: 'none', textAlign: 'center' }}
+                            style={{ textDecoration: 'none', textAlign: 'center', minWidth: '200px' }}
                             href="/teach"
                           >
                             Apply as Instructor ✨
@@ -1286,7 +1285,6 @@ export default function DashboardPage() {
                        </div>
                     )}
                   </div>
-                  */}
                 </div>
               )}
             </div>

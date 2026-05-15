@@ -13,6 +13,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    if (profile === 'Instructor') {
+      if (!bio || !linkedin) {
+        return NextResponse.json({ error: 'Bio and LinkedIn URL are required for instructors' }, { status: 400 });
+      }
+      const linkedinRegex = /^https:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+\/?$/;
+      if (!linkedinRegex.test(linkedin)) {
+        return NextResponse.json({ error: 'Please provide a valid LinkedIn profile URL (https://linkedin.com/in/...)' }, { status: 400 });
+      }
+    }
+
     // Check if user already exists
     const { rows: existing } = await pool.query('SELECT id, status FROM users WHERE email = $1', [email]);
     if (existing.length > 0) {
@@ -74,6 +84,14 @@ export async function POST(req: NextRequest) {
         verificationToken
       ]);
       userId = rows[0].id;
+
+      // Handle instructor application data if provided during signup
+      if (mappedRole === 'instructor' && bio) {
+        await pool.query(
+          'INSERT INTO instructor_applications (user_id, bio, linkedin_url, status) VALUES ($1, $2, $3, $4)',
+          [userId, bio, linkedin || '', 'pending']
+        );
+      }
     }
 
     // Send verification email using nodemailer with Link

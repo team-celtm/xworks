@@ -31,7 +31,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
       JOIN categories cat ON c.category_id = cat.id
       JOIN instructors i ON c.instructor_id = i.id
       JOIN users u ON i.user_id = u.id
-      WHERE c.slug = $1
+      WHERE c.slug = $1 AND c.status != 'deleted'
     `;
 
     const { rows } = await pool.query(query, [slug]);

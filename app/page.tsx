@@ -53,24 +53,22 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [userLoading, setUserLoading] = useState(true);
-  const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
-      setUserLoading(true);
       try {
-        const res = await fetch("/api/auth/me");
+        const res = await fetch("/api/auth/me", { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           setUser(data);
+        } else {
+          setUser(null);
         }
       } catch (err) {
         // Silent error for session check
-      } finally {
-        setUserLoading(false);
       }
     };
-    fetchUser();
+    fetchUser().finally(() => setUserLoading(false));
   }, []);
 
   useEffect(() => {
@@ -132,26 +130,6 @@ export default function Home() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  // Lock body scroll when overlay/modal is open
-  useEffect(() => {
-    if (catOverlay.isOpen || enrolData.isOpen || isWorkshopModalOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => { document.body.style.overflow = 'unset'; };
-  }, [catOverlay.isOpen, enrolData.isOpen, isWorkshopModalOpen]);
-
-  const scrollToId = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
-    e.preventDefault();
-    setIsMobileNavOpen(false); // Close mobile nav if open
-    const el = document.getElementById(id);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth' });
-      window.history.pushState(null, '', `/#${id}`);
-    }
-  };
 
   useEffect(() => {
     if (enrolData.isOpen && enrolData.step === 2 && enrolData.id) {
@@ -462,75 +440,53 @@ export default function Home() {
     <div className="home-container">
 
       {/* ════ NAV ════ */}
-      {(() => {
-        const dashboardPath = user?.role === 'admin' ? '/admin' : (user?.role === 'instructor' ? '/instructor' : '/dashboard');
-        return (
-          <nav ref={navRef} className="home-nav">
-            <Logo />
-            <div className="nav-links">
-              <div className="nav-dropdown">
-                <button className="nav-link" onClick={() => { setIsNavigating(true); openWorkshopBrowser(); }}>
-                  {isNavigating ? 'Loading...' : 'Workshops ▾'}
-                </button>
-              </div>
-              <a href="#about" className="nav-link" suppressHydrationWarning onClick={(e) => scrollToId(e, 'about')}>About us</a>
-              <Link href="/contact" className="nav-link">Contact us</Link>
-              {userLoading ? (
-                <div className="nav-btn-loading">
-                  <div className="btn-loader small"></div>
-                </div>
-              ) : user ? (
-                <Link href={dashboardPath} className="nav-btn" onClick={() => setIsNavigating(true)}>
-                  {isNavigating ? <div className="btn-loader"></div> : 'Go to Dashboard →'}
-                </Link>
-              ) : (
-                <>
-                  <Link href="/Login" className="nav-link">Login</Link>
-                  <Link href="/Registration" className="nav-btn">Sign up free →</Link>
-                </>
-              )}
-            </div>
-            <div className="hamburger" onClick={toggleMobileNav}>
-              <span></span><span></span><span></span>
-            </div>
-          </nav>
-        );
-      })()}
-
-      {(() => {
-        const dashboardPath = user?.role === 'admin' ? '/admin' : (user?.role === 'instructor' ? '/instructor' : '/dashboard');
-        return (
-          <div className={`mobile-nav ${isMobileNavOpen ? 'open' : ''}`}>
-            <div className="mobile-nav-header">
-              <span style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 800, color: '#FFFFFF' }}>
-                X<span style={{ color: 'var(--coral)' }}>WORKS</span>
-              </span>
-              <button className="mobile-nav-close" onClick={toggleMobileNav}>✕</button>
-            </div>
-            <a href="#" className="mobile-nav-link" onClick={(e) => { e.preventDefault(); toggleMobileNav(); openWorkshopBrowser(); }}>Workshops</a>
-            <a href="#about" className="mobile-nav-link" onClick={(e) => scrollToId(e, 'about')} suppressHydrationWarning>About us</a>
-            <Link href="/contact" className="mobile-nav-link">Contact us</Link>
-            {userLoading ? (
-              <div className="mobile-nav-cta" style={{ display: 'flex', justifyContent: 'center', padding: '20px' }}>
-                <div className="btn-loader small"></div>
-              </div>
-            ) : user ? (
-              <div className="mobile-nav-cta">
-                <Link href={dashboardPath} className="btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setIsNavigating(true)}>
-                  {isNavigating ? <div className="btn-loader"></div> : 'Go to Dashboard →'}
-                </Link>
-              </div>
-            ) : (
-              <>
-                <Link href="/Login" className="mobile-nav-link">Login</Link>
-                <div className="mobile-nav-cta">
-                  <Link href="/Registration" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Sign up free →</Link>
-                </div>
-              </>
-            )}
+      <nav ref={navRef} className="home-nav">
+        <Logo />
+        <div className="nav-links">
+          <div className="nav-dropdown">
+            <button className="nav-link" onClick={openWorkshopBrowser}>Workshops ▾</button>
           </div>
-        );
-      })()}
+          <a href="#footer" className="nav-link">About us</a>
+          <a href="#footer" className="nav-link">Contact us</a>
+          {userLoading ? (
+            <div className="skeleton" style={{ width: '120px', height: '36px', borderRadius: '100px', opacity: 0.2 }}></div>
+          ) : user ? (
+            <Link href={user.role === 'admin' ? "/admin" : "/dashboard"} className="nav-btn">
+              {user.role === 'admin' ? "Admin Portal →" : "Go to Dashboard →"}
+            </Link>
+          ) : (
+            <>
+              <Link href="/Login" className="nav-link">Login</Link>
+              <Link href="/Registration" className="nav-btn">Sign up free →</Link>
+            </>
+          )}
+        </div>
+        <div className="hamburger" onClick={toggleMobileNav}>
+          <span></span><span></span><span></span>
+        </div>
+      </nav>
+
+      <div className={`mobile-nav ${isMobileNavOpen ? 'open' : ''}`}>
+        <div className="mobile-nav-header">
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 800, color: '#FFFFFF' }}>
+            X<span style={{ color: 'var(--coral)' }}>WORKS</span>
+          </span>
+          <button className="mobile-nav-close" onClick={toggleMobileNav}>✕</button>
+        </div>
+        <a href="#" className="mobile-nav-link" onClick={(e) => { e.preventDefault(); toggleMobileNav(); openWorkshopBrowser(); }}>Workshops</a>
+        <a href="#footer" className="mobile-nav-link" onClick={() => setIsMobileNavOpen(false)}>About us</a>
+        <a href="#footer" className="mobile-nav-link" onClick={() => setIsMobileNavOpen(false)}>Contact us</a>
+        {userLoading ? (
+          <div className="skeleton" style={{ width: '100%', height: '44px', borderRadius: '12px' }}></div>
+        ) : user ? (
+          <div className="mobile-nav-cta"><Link href={user.role === 'admin' ? "/admin" : "/dashboard"} className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>{user.role === 'admin' ? "Admin Portal →" : "Go to Dashboard →"}</Link></div>
+        ) : (
+          <>
+            <Link href="/Login" className="mobile-nav-link">Login</Link>
+            <div className="mobile-nav-cta"><Link href="/Registration" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Sign up free →</Link></div>
+          </>
+        )}
+      </div>
 
       {/* ════ HERO ════ */}
       <section className="hero" id="home">
@@ -552,17 +508,14 @@ export default function Home() {
               From school students to senior citizens — XWORKS brings you live, hands-on workshops across technology, creativity, wellness and more. Learn from experts. Build real skills.
             </p>
             <div className="hero-cta-row">
-              {(() => {
-                const dashboardPath = user?.role === 'admin' ? '/admin' : (user?.role === 'instructor' ? '/instructor' : '/dashboard');
-                return user ? (
-                  <Link href={dashboardPath} className="btn-primary">Back to Dashboard →</Link>
-                ) : (
-                  <Link href="/Registration" className="btn-primary">Sign up for free →</Link>
-                );
-              })()}
-              <button className="btn-ghost" onClick={() => { setIsNavigating(true); openWorkshopBrowser(); }}>
-                {isNavigating ? <div className="btn-loader" style={{ borderTopColor: 'var(--indigo)' }}></div> : 'Browse workshops'}
-              </button>
+              {userLoading ? (
+                <div className="skeleton" style={{ width: '200px', height: '56px', borderRadius: '16px' }}></div>
+              ) : user ? (
+                <Link href={user.role === 'admin' ? "/admin" : "/dashboard"} className="btn-primary">{user.role === 'admin' ? "Back to Admin Portal →" : "Back to Dashboard →"}</Link>
+              ) : (
+                <Link href="/Registration" className="btn-primary">Sign up for free →</Link>
+              )}
+              <button className="btn-ghost" onClick={openWorkshopBrowser}>Browse workshops</button>
             </div>
           </div>
         </div>
@@ -687,7 +640,7 @@ export default function Home() {
       </section>
 
       {/* ════ WHO IS XWORKS FOR ════ */}
-      <div className="audience-section" id="about" suppressHydrationWarning>
+      <div className="audience-section">
         <div className="section-inner">
           <div className="section-eyebrow">Open to everyone</div>
           <div className="section-title" style={{ color: '#FFFFFF' }}>XWORKS is for <em style={{ color: 'var(--coral)', fontStyle: 'normal' }}>every stage of life</em></div>
@@ -724,14 +677,16 @@ export default function Home() {
             <div className="cta-sub">Thousands of curious minds are already learning something new today. Your first workshop is waiting.</div>
           </div>
           <div className="cta-right">
-            {user ? (
-              <Link href="/catalogue" className="btn-primary" style={{ fontSize: '16px', padding: '16px 40px' }} onClick={() => setIsNavigating(true)}>
-                {isNavigating ? <div className="btn-loader"></div> : 'Explore Workshops →'}
+            {userLoading ? (
+              <div className="skeleton" style={{ width: '200px', height: '56px', borderRadius: '16px', opacity: 0.2 }}></div>
+            ) : user ? (
+              <Link href={user.role === 'admin' ? "/admin" : "/dashboard"} className="btn-primary" style={{ fontSize: '16px', padding: '16px 40px' }}>
+                {user.role === 'admin' ? "Back to Admin Portal →" : "Back to Dashboard →"}
               </Link>
             ) : (
               <Link href="/Registration" className="btn-primary" style={{ fontSize: '16px', padding: '16px 40px' }}>Sign up today — it's free →</Link>
             )}
-            <div className="cta-fine">{user ? "Pick up where you left off · Keep learning" : "No credit card required · Cancel anytime"}</div>
+            <div className="cta-fine">No credit card required · Cancel anytime</div>
           </div>
         </div>
       </section>
@@ -774,7 +729,7 @@ export default function Home() {
 
       {/* ════ WORKSHOP BROWSER MODAL ════ */}
       {hasMounted && (
-        <div id="workshopModal" className={"workshop-modal " + (isWorkshopModalOpen ? "visible" : "")} onClick={(e) => { if ((e.target as any).id === "workshopModal") closeWorkshopBrowser(); }}>
+        <div id="workshopModal" className={`workshop-modal ${isWorkshopModalOpen ? 'visible' : ''}`} onClick={(e) => { if ((e.target as any).id === 'workshopModal') closeWorkshopBrowser(); }}>
           <div id="workshopPanel" className="workshop-panel">
             <div className="workshop-hd">
               <div>
@@ -788,7 +743,7 @@ export default function Home() {
                 <div className="workshop-sidebar-label">{categories.length} subjects</div>
                 <div id="subjectList">
                   {categories.map((s: any) => (
-                    <button key={s.id} className={"subject-btn " + (s.slug === activeSubjectSlug ? "active" : "")} onClick={() => setActiveSubjectSlug(s.slug)}>
+                    <button key={s.id} className={`subject-btn ${s.slug === activeSubjectSlug ? 'active' : ''}`} onClick={() => setActiveSubjectSlug(s.slug)}>
                       <span className="subject-icon">{s.icon}</span>
                       <span className="sbtn-label">{s.name}</span>
                       <span className="sbtn-count">{s.course_count}</span>
@@ -798,7 +753,7 @@ export default function Home() {
               </div>
               <div className="workshop-content" id="subjectContent">
                 {activeSubjectObj && (
-                  <div className="subject-hero" style={{ background: activeSubjectObj.color || "var(--surface-2)" }}>
+                  <div className="subject-hero" style={{ background: activeSubjectObj.color || 'var(--surface-2)' }}>
                     <div className="subject-hero-icon">{activeSubjectObj.icon}</div>
                     <div>
                       <div className="subject-hero-title">{activeSubjectObj.name}</div>
@@ -808,9 +763,9 @@ export default function Home() {
                 )}
                 
                 {isBrowserLoading ? (
-                  <div style={{ textAlign: "center", padding: "40px 0" }}>
-                    <div className="loader" style={{ margin: "0 auto 12px" }}></div>
-                    <div style={{ color: "var(--text-3)", fontSize: "13px" }}>Loading workshops...</div>
+                  <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                    <div className="loader" style={{ margin: '0 auto 12px' }}></div>
+                    <div style={{ color: 'var(--text-3)', fontSize: '13px' }}>Loading workshops...</div>
                   </div>
                 ) : browserSections.length > 0 ? (
                   browserSections.map((sec: any, j: number) => (
@@ -821,26 +776,25 @@ export default function Home() {
                           <button 
                             className="sub-card" 
                             key={item.id || k} 
-                            onClick={() => openEnrol(item.id, item.name, "by " + item.instructor + " · ★ " + item.rating + " · " + item.meta, "₹" + item.price.toLocaleString("en-IN"), "", item.icon)}
+                            onClick={() => openEnrol(item.id, item.name, `by ${item.instructor} · ★ ${item.rating} · ${item.meta}`, `₹${item.price.toLocaleString('en-IN')}`, '', item.icon)}
                           >
                             <div className="sub-card-icon">{item.icon}</div>
                             <div className="sub-card-name">{item.name}</div>
                             <div className="sub-card-meta">{item.meta}</div>
-                            <span className={"sub-card-tag tag-" + item.tag}>{item.tagLabel}</span>
+                            <span className={`sub-card-tag tag-${item.tag}`}>{item.tagLabel}</span>
                           </button>
                         ))}
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text-3)" }}>
+                  <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-3)' }}>
                     No workshops found in this subject yet.
                   </div>
                 )}
-                
                 {activeSubjectObj && (
-                  <div style={{ textAlign: "center", padding: "24px 0 8px" }}>
-                    <button onClick={() => openCatPage(activeSubjectObj.slug)} style={{ background: "none", border: "none", fontSize: "13px", color: "var(--indigo)", cursor: "pointer", fontWeight: 600 }}>
+                  <div style={{ textAlign: 'center', padding: '24px 0 8px' }}>
+                    <button onClick={() => openCatPage(activeSubjectObj.slug)} style={{ background: 'none', border: 'none', fontSize: '13px', color: 'var(--indigo)', cursor: 'pointer', fontWeight: 600 }}>
                       View all {activeSubjectObj.course_count} {activeSubjectObj.name} workshops →
                     </button>
                   </div>
@@ -853,12 +807,12 @@ export default function Home() {
 
       {/* ════ CATEGORY PAGE OVERLAY ════ */}
       {hasMounted && (
-        <div className={"cat-overlay " + (catOverlay.isClosing ? "closing" : "")} style={{ display: catOverlay.isOpen ? "block" : "none" }}>
+        <div className={`cat-overlay ${catOverlay.isClosing ? 'closing' : ''}`} style={{ display: catOverlay.isOpen ? 'block' : 'none' }}>
           {activeCat && (
             <>
               <div className="cat-page-nav">
-                <Logo />
-                <button className="cat-back-btn" onClick={closeCatPage}>← <span>Back to Home</span></button>
+                <button className="cat-back-btn" onClick={closeCatPage}>← Back to XWORKS</button>
+                <div className="cat-page-crumb">Workshops / <span>{activeCat.label}</span></div>
               </div>
               <div className="cat-hero">
                 <div className="cat-hero-left">
@@ -873,7 +827,7 @@ export default function Home() {
                     <div className="cat-hero-stat-num">{catCourses.length}<span>+</span></div>
                     <div className="cat-hero-stat-label">Workshops</div>
                   </div>
-                  <div style={{ width: "1px", height: "40px", background: "var(--border-md)" }}></div>
+                  <div style={{ width: '1px', height: '40px', background: 'var(--border-md)' }}></div>
                   <div>
                     <div className="cat-hero-stat-num">4.9<span>★</span></div>
                     <div className="cat-hero-stat-label">Avg rating</div>
@@ -885,18 +839,18 @@ export default function Home() {
                   <div className="cat-sub-title">All {activeCat.name} Workshops</div>
                   <div className="cat-sub-desc">Browse through our curated collection of {activeCat.name} workshops and register for upcoming live sessions.</div>
                   {isCatLoading ? (
-                    <div style={{ textAlign: "center", padding: "60px 0" }}>
-                      <div className="loader" style={{ margin: "0 auto 16px" }}></div>
-                      <div style={{ color: "var(--text-3)" }}>Loading workshops...</div>
+                    <div style={{ textAlign: 'center', padding: '60px 0' }}>
+                      <div className="loader" style={{ margin: '0 auto 16px' }}></div>
+                      <div style={{ color: 'var(--text-3)' }}>Loading workshops...</div>
                     </div>
                   ) : catCourses.length > 0 ? (
                     <div className="cat-courses-grid">
                       {catCourses.map((c: any) => {
-                        const priceStr = "₹" + c.price.toLocaleString("en-IN");
+                        const priceStr = '₹' + c.price.toLocaleString('en-IN');
                         return (
-                          <div key={c.id} className="cat-course-card" onClick={() => openEnrol(c.id, c.name, "with " + c.instructor + " · ★ " + c.rating + " · " + c.dur + " hrs · " + c.level, priceStr, c.g || "t-amber", c.emoji)}>
+                          <div key={c.id} className="cat-course-card" onClick={() => openEnrol(c.id, c.name, `by ${c.instructor} · ★ ${c.rating} · ${c.dur} hrs · ${c.level}`, priceStr, c.g || 't-amber', c.emoji)}>
                             <div className="cat-card-thumb">
-                              <div className={"cat-card-thumb-bg " + (c.g || "t-amber")}></div>
+                              <div className={`cat-card-thumb-bg ${c.g || 't-amber'}`}></div>
                               <div className="cat-card-emoji">{c.emoji}</div>
                               {c.tagLabel && <div className="cat-card-badge badge-live">{c.tagLabel}</div>}
                             </div>
@@ -915,10 +869,10 @@ export default function Home() {
                       })}
                     </div>
                   ) : (
-                    <div style={{ textAlign: "center", padding: "60px 0", background: "var(--surface-2)", borderRadius: "16px" }}>
-                      <div style={{ fontSize: "32px", marginBottom: "12px" }}>🔍</div>
-                      <div style={{ color: "var(--text-2)", fontWeight: 600 }}>No workshops found</div>
-                      <div style={{ color: "var(--text-3)", fontSize: "13px", marginTop: "4px" }}>Check back later for new {activeCat.name} sessions.</div>
+                    <div style={{ textAlign: 'center', padding: '60px 0', background: 'var(--surface-2)', borderRadius: '16px' }}>
+                      <div style={{ fontSize: '32px', marginBottom: '12px' }}>🔍</div>
+                      <div style={{ color: 'var(--text-2)', fontWeight: 600 }}>No workshops found</div>
+                      <div style={{ color: 'var(--text-3)', fontSize: '13px', marginTop: '4px' }}>Check back later for new {activeCat.name} sessions.</div>
                     </div>
                   )}
                 </div>
@@ -930,8 +884,8 @@ export default function Home() {
 
       {/* ════ ENROL MODAL ════ */}
       {hasMounted && (
-        <div className={"enrol-backdrop " + (enrolData.isOpen ? "open" : "")} onClick={(e) => { if ((e.target as any).className.includes("enrol-backdrop")) closeEnrol(); }}>
-          <div className="enrol-modal" style={{ display: enrolData.isOpen ? "block" : "none" }}>
+        <div className={`enrol-backdrop ${enrolData.isOpen ? 'open' : ''}`} onClick={(e) => { if ((e.target as any).className.includes('enrol-backdrop')) closeEnrol(); }}>
+          <div className="enrol-modal" style={{ display: enrolData.isOpen ? 'block' : 'none' }}>
             
             {enrolData.step === 1 && (
               <div>
@@ -951,160 +905,160 @@ export default function Home() {
                   </div>
                   <div className="enrol-section-label">Choose your format</div>
                   <div className="enrol-format-grid">
-                    <div className={"enrol-format-btn " + (enrolData.format === "live" ? "selected" : "")} onClick={() => enrolSelectFormat("live", enrolData.price)}>
+                    <div className={`enrol-format-btn ${enrolData.format === 'live' ? 'selected' : ''}`} onClick={() => enrolSelectFormat('live', enrolData.price)}>
                       <div className="enrol-format-icon">🔴</div><div className="enrol-format-name">Live session</div><div className="enrol-format-sub">Interactive · Q&A included</div>
                     </div>
-                    <div className={"enrol-format-btn " + (enrolData.format === "recorded" ? "selected" : "")} onClick={() => enrolSelectFormat("recorded", enrolData.price)}>
+                    <div className={`enrol-format-btn ${enrolData.format === 'recorded' ? 'selected' : ''}`} onClick={() => enrolSelectFormat('recorded', enrolData.price)}>
                       <div className="enrol-format-icon">📹</div><div className="enrol-format-name">Recorded</div><div className="enrol-format-sub">Watch anytime · Self-paced</div>
                     </div>
-                    <div className={"enrol-format-btn " + (enrolData.format === "inperson" ? "selected" : "")} onClick={() => enrolSelectFormat("inperson", enrolData.price)}>
+                    <div className={`enrol-format-btn ${enrolData.format === 'inperson' ? 'selected' : ''}`} onClick={() => enrolSelectFormat('inperson', enrolData.price)}>
                       <div className="enrol-format-icon">📍</div><div className="enrol-format-name">In-person</div><div className="enrol-format-sub">Nearby · Limited seats</div>
                     </div>
                   </div>
                   <div className="enrol-divider"></div>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
-                    <div style={{ fontSize: "13px", color: "#4B5080" }}>Price for <span>{enrolData.formatLabel}</span></div>
-                    <div style={{ fontFamily: "'Syne',sans-serif", fontSize: "20px", fontWeight: 800, color: "#3730A3" }}>{enrolData.price}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <div style={{ fontSize: '13px', color: '#4B5080' }}>Price for <span>{enrolData.formatLabel}</span></div>
+                    <div style={{ fontFamily: "'Syne',sans-serif", fontSize: '20px', fontWeight: 800, color: '#3730A3' }}>{enrolData.price}</div>
                   </div>
-                  <div style={{ fontSize: "12px", color: "#9294B8", marginBottom: "18px" }}>Includes certificate · Lifetime recording access · Class notes PDF</div>
+                  <div style={{ fontSize: '12px', color: '#9294B8', marginBottom: '18px' }}>Includes certificate · Lifetime recording access · Class notes PDF</div>
                   <button className="enrol-cta" onClick={() => enrolGoStep(2)}>Continue to schedule →</button>
                 </div>
               </div>
             )}
 
-            {enrolData.step === 2 && (
-              <div>
-                <div className="enrol-modal-hd"><button className="enrol-back" onClick={() => enrolGoStep(1)}>← Back</button><div className="enrol-modal-title">Pick a date & time</div><button className="enrol-modal-close" onClick={closeEnrol}>✕</button></div>
-                <div className="enrol-stepper">
-                  <div className="enrol-step-item"><div className="enrol-step-dot done">✓</div><div className="enrol-step-label">Format</div></div><div className="enrol-step-line done"></div>
-                  <div className="enrol-step-item"><div className="enrol-step-dot active">2</div><div className="enrol-step-label active">Schedule</div></div><div className="enrol-step-line pending"></div>
-                  <div className="enrol-step-item"><div className="enrol-step-dot pending">3</div><div className="enrol-step-label">Payment</div></div>
-                </div>
-                <div className="enrol-body">
-                  <div className="enrol-section-label">Available sessions</div>
-                  <div className="enrol-date-grid">
-                    {enrolData.sessions.length > 0 ? (
-                      enrolData.sessions.map((s) => {
-                        const d = new Date(s.scheduled_start);
-                        const day = d.toLocaleDateString("en-IN", { weekday: "short" });
-                        const num = d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
-                        const time = d.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
-                        const isFull = s.max_seats && s.registered_count >= s.max_seats;
-
-                        return (
-                          <button 
-                            key={s.id} 
-                            className={"enrol-date-btn " + (enrolData.selectedSessionId === s.id ? "sel" : "") + " " + (isFull ? "disabled" : "")}
-                            disabled={isFull}
-                            onClick={() => setEnrolData(prev => ({ 
-                              ...prev, 
-                              selectedSessionId: s.id,
-                              date: day + " " + num,
-                              time
-                            }))}
-                          >
-                            <div className="enrol-date-day">{day}</div>
-                            <div className="enrol-date-num">{num}</div>
-                            <div style={{ fontSize: "10px", marginTop: "4px", opacity: 0.8 }}>{time}</div>
-                          </button>
-                        );
-                      })
-                    ) : (
-                      <div style={{ gridColumn: "1/-1", padding: "16px 0", textAlign: "center", color: "var(--text-3)", fontSize: "14px" }}>
-                        No upcoming live sessions found. You can still enrol to access recordings or pick a date later.
-                      </div>
-                    )}
-                  </div>
-                  
-                  {enrolData.selectedSessionId && (
-                    <>
-                      <div className="enrol-section-label">Selected slot</div>
-                      <div className="enrol-session-info">
-                        {enrolData.date} · {enrolData.time} &nbsp;·&nbsp; {enrolData.format === "live" ? "Online via Zoom" : "Location TBD"}
-                      </div>
-                    </>
-                  )}
-
-                  <button className="enrol-cta" onClick={() => enrolGoStep(3)}>Continue to payment →</button>
-                </div>
+          {enrolData.step === 2 && (
+            <div>
+              <div className="enrol-modal-hd"><button className="enrol-back" onClick={() => enrolGoStep(1)}>← Back</button><div className="enrol-modal-title">Pick a date & time</div><button className="enrol-modal-close" onClick={closeEnrol}>✕</button></div>
+              <div className="enrol-stepper">
+                <div className="enrol-step-item"><div className="enrol-step-dot done">✓</div><div className="enrol-step-label">Format</div></div><div className="enrol-step-line done"></div>
+                <div className="enrol-step-item"><div className="enrol-step-dot active">2</div><div className="enrol-step-label active">Schedule</div></div><div className="enrol-step-line pending"></div>
+                <div className="enrol-step-item"><div className="enrol-step-dot pending">3</div><div className="enrol-step-label">Payment</div></div>
               </div>
-            )}
+              <div className="enrol-body">
+                <div className="enrol-section-label">Available sessions</div>
+                <div className="enrol-date-grid">
+                  {enrolData.sessions.length > 0 ? (
+                    enrolData.sessions.map((s) => {
+                      const d = new Date(s.scheduled_start);
+                      const day = d.toLocaleDateString('en-IN', { weekday: 'short' });
+                      const num = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+                      const time = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+                      const isFull = s.max_seats && s.registered_count >= s.max_seats;
 
-            {enrolData.step === 3 && (
-              <div>
-                <div className="enrol-modal-hd"><button className="enrol-back" onClick={() => enrolGoStep(2)}>← Back</button><div className="enrol-modal-title">Payment</div><button className="enrol-modal-close" onClick={closeEnrol}>✕</button></div>
-                <div className="enrol-stepper">
-                  <div className="enrol-step-item"><div className="enrol-step-dot done">✓</div><div className="enrol-step-label">Format</div></div><div className="enrol-step-line done"></div>
-                  <div className="enrol-step-item"><div className="enrol-step-dot done">✓</div><div className="enrol-step-label">Schedule</div></div><div className="enrol-step-line done"></div>
-                  <div className="enrol-step-item"><div className="enrol-step-dot active">3</div><div className="enrol-step-label active">Payment</div></div>
+                      return (
+                        <button
+                          key={s.id}
+                          className={`enrol-date-btn ${enrolData.selectedSessionId === s.id ? 'sel' : ''} ${isFull ? 'disabled' : ''}`}
+                          disabled={isFull}
+                          onClick={() => setEnrolData(prev => ({
+                            ...prev,
+                            selectedSessionId: s.id,
+                            date: `${day} ${num}`,
+                            time
+                          }))}
+                        >
+                          <div className="enrol-date-day">{day}</div>
+                          <div className="enrol-date-num">{num}</div>
+                          <div style={{ fontSize: '10px', marginTop: '4px', opacity: 0.8 }}>{time}</div>
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div style={{ gridColumn: '1/-1', padding: '16px 0', textAlign: 'center', color: 'var(--text-3)', fontSize: '14px' }}>
+                      No upcoming live sessions found. You can still enrol to access recordings or pick a date later.
+                    </div>
+                  )}
                 </div>
-                <div className="enrol-body">
-                  <div className="enrol-order-row"><span className="enrol-order-label">Workshop</span><span className="enrol-order-val">{enrolData.name}</span></div>
-                  <div className="enrol-order-row"><span className="enrol-order-label">Format</span><span className="enrol-order-val">{enrolData.price}</span></div>
-                  {enrolData.promoApplied && (
-                    <div className="enrol-order-row"><span className="enrol-order-label" style={{ color: "#16A34A" }}>Promo discount</span><span className="enrol-order-val" style={{ color: "#16A34A" }}>−₹{Math.round(enrolData.basePrice * 0.20)}</span></div>
-                  )}
-                  <div className="enrol-divider"></div>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-                    <span className="enrol-total">Total</span><span className="enrol-total">₹{enrolData.finalPrice.toLocaleString("en-IN")}</span>
-                  </div>
-                  <div className="enrol-promo-row">
-                    <input className="enrol-promo-input" value={promoCode} onChange={(e) => setPromoCode(e.target.value)} type="text" placeholder="Promo code (try XWORKS20)" />
-                    <button className="enrol-promo-apply" onClick={applyPromo}>Apply</button>
-                  </div>
-                  {promoMsg.text && (
-                    <div className="enrol-promo-ok" style={{ color: promoMsg.type === "error" ? "#D84040" : "#16A34A" }}>{promoMsg.text}</div>
-                  )}
-                  <div className="enrol-section-label">Pay with</div>
-                  <div className="enrol-pay-methods">
-                    {["UPI", "Card", "Net banking", "EMI"].map(method => (
-                      <button key={method} className={"enrol-pay-btn " + (enrolData.payMethod === method ? "sel" : "")} onClick={() => setEnrolData(prev => ({ ...prev, payMethod: method }))}>{method}</button>
-                    ))}
-                  </div>
-                  <div className="enrol-upi-field">
-                    {enrolData.payMethod === "UPI" && <span>UPI ID: &nbsp;<strong>priya@okaxis</strong></span>}
-                    {enrolData.payMethod === "Card" && <span style={{ color: "#4B5080" }}>Card ending in &nbsp;<strong>•••• 4242</strong> &nbsp;(Visa)</span>}
-                    {enrolData.payMethod === "Net banking" && <span style={{ color: "#4B5080" }}>Bank: &nbsp;<strong>HDFC Bank</strong></span>}
-                  </div>
-                  <button className={"enrol-cta coral " + (isEnrolling ? "loading" : "")} onClick={handleModalEnrol} disabled={isEnrolling}>
-                    {isEnrolling ? "Processing..." : enrolData.finalPrice === 0 ? "Enrol for Free →" : "Pay ₹" + enrolData.finalPrice.toLocaleString("en-IN") + " securely →"}
+
+                {enrolData.selectedSessionId && (
+                  <>
+                    <div className="enrol-section-label">Selected slot</div>
+                    <div className="enrol-session-info">
+                      {enrolData.date} · {enrolData.time} &nbsp;·&nbsp; {enrolData.format === 'live' ? 'Online via Zoom' : 'Location TBD'}
+                    </div>
+                  </>
+                )}
+
+                <button className="enrol-cta" onClick={() => enrolGoStep(3)}>Continue to payment →</button>
+              </div>
+            </div>
+          )}
+
+          {enrolData.step === 3 && (
+            <div>
+              <div className="enrol-modal-hd"><button className="enrol-back" onClick={() => enrolGoStep(2)}>← Back</button><div className="enrol-modal-title">Payment</div><button className="enrol-modal-close" onClick={closeEnrol}>✕</button></div>
+              <div className="enrol-stepper">
+                <div className="enrol-step-item"><div className="enrol-step-dot done">✓</div><div className="enrol-step-label">Format</div></div><div className="enrol-step-line done"></div>
+                <div className="enrol-step-item"><div className="enrol-step-dot done">✓</div><div className="enrol-step-label">Schedule</div></div><div className="enrol-step-line done"></div>
+                <div className="enrol-step-item"><div className="enrol-step-dot active">3</div><div className="enrol-step-label active">Payment</div></div>
+              </div>
+              <div className="enrol-body">
+                <div className="enrol-order-row"><span className="enrol-order-label">Workshop</span><span className="enrol-order-val">{enrolData.name}</span></div>
+                <div className="enrol-order-row"><span className="enrol-order-label">Format</span><span className="enrol-order-val">{enrolData.price}</span></div>
+                {enrolData.promoApplied && (
+                  <div className="enrol-order-row"><span className="enrol-order-label" style={{ color: '#16A34A' }}>Promo discount</span><span className="enrol-order-val" style={{ color: '#16A34A' }}>−₹{Math.round(enrolData.basePrice * 0.20)}</span></div>
+                )}
+                <div className="enrol-divider"></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <span className="enrol-total">Total</span><span className="enrol-total">₹{enrolData.finalPrice.toLocaleString('en-IN')}</span>
+                </div>
+                <div className="enrol-promo-row">
+                  <input className="enrol-promo-input" value={promoCode} onChange={(e) => setPromoCode(e.target.value)} type="text" placeholder="Promo code (try XWORKS20)" />
+                  <button className="enrol-promo-apply" onClick={applyPromo}>Apply</button>
+                </div>
+                {promoMsg.text && (
+                  <div className="enrol-promo-ok" style={{ color: promoMsg.type === 'error' ? '#D84040' : '#16A34A' }}>{promoMsg.text}</div>
+                )}
+                <div className="enrol-section-label">Pay with</div>
+                <div className="enrol-pay-methods">
+                  {['UPI', 'Card', 'Net banking', 'EMI'].map(method => (
+                    <button key={method} className={`enrol-pay-btn ${enrolData.payMethod === method ? 'sel' : ''}`} onClick={() => setEnrolData(prev => ({ ...prev, payMethod: method }))}>{method}</button>
+                  ))}
+                </div>
+                <div className="enrol-upi-field">
+                  {enrolData.payMethod === 'UPI' && <span>UPI ID: &nbsp;<strong>priya@okaxis</strong></span>}
+                  {enrolData.payMethod === 'Card' && <span style={{ color: '#4B5080' }}>Card ending in &nbsp;<strong>•••• 4242</strong> &nbsp;(Visa)</span>}
+                  {enrolData.payMethod === 'Net banking' && <span style={{ color: '#4B5080' }}>Bank: &nbsp;<strong>HDFC Bank</strong></span>}
+                </div>
+                <button className={`enrol-cta coral ${isEnrolling ? 'loading' : ''}`} onClick={handleModalEnrol} disabled={isEnrolling}>
+                  {isEnrolling ? 'Processing...' : enrolData.finalPrice === 0 ? 'Enrol for Free →' : `Pay ₹${enrolData.finalPrice.toLocaleString('en-IN')} securely →`}
+                </button>
+                <div className="enrol-fine">🔒 Secured by Razorpay &nbsp;·&nbsp; 100% refund if class is cancelled</div>
+              </div>
+            </div>
+          )}
+
+          {enrolData.step === 4 && (
+            <div>
+              <div className="enrol-success">
+                <div className="enrol-success-icon">✅</div>
+                <div className="enrol-success-badge">Booking confirmed</div>
+                <div className="enrol-success-title">You're enrolled!</div>
+                <div className="enrol-success-sub">Your seat is reserved. A calendar invite and Zoom link have been sent to your email.</div>
+                <div className="enrol-confirm-card">
+                  <div className="enrol-confirm-row"><span className="enrol-confirm-label">Workshop</span><span className="enrol-confirm-val">{enrolData.name}</span></div>
+                  <div className="enrol-confirm-row"><span className="enrol-confirm-label">Date & time</span><span className="enrol-confirm-val">{enrolData.date} · {enrolData.time}</span></div>
+                  <div className="enrol-confirm-row"><span className="enrol-confirm-label">Format</span><span className="enrol-confirm-val">{enrolData.format === 'live' ? 'Live · Zoom' : enrolData.format === 'recorded' ? 'Recorded · Watch anytime' : 'In-person · Venue'}</span></div>
+                  <div className="enrol-confirm-row"><span className="enrol-confirm-label">Amount paid</span><span className="enrol-confirm-val" style={{ color: '#3730A3' }}>₹{enrolData.finalPrice.toLocaleString('en-IN')}</span></div>
+                </div>
+                <div className="enrol-success-btns">
+                  <button className="enrol-success-btn" onClick={closeEnrol}>Close</button>
+                  <button
+                    className="enrol-success-btn primary"
+                    onClick={() => {
+                      closeEnrol();
+                      if (enrolData.enrolmentId) router.push(`/player/${enrolData.enrolmentId}`);
+                      else router.push(user?.role === 'admin' ? '/admin' : '/dashboard/enrolments');
+                    }}
+                  >
+                    Start Learning →
                   </button>
-                  <div className="enrol-fine">🔒 Secured by Razorpay &nbsp;·&nbsp; 100% refund if class is cancelled</div>
                 </div>
               </div>
-            )}
-
-            {enrolData.step === 4 && (
-              <div>
-                <div className="enrol-success">
-                  <div className="enrol-success-icon">✅</div>
-                  <div className="enrol-success-badge">Booking confirmed</div>
-                  <div className="enrol-success-title">You're enrolled!</div>
-                  <div className="enrol-success-sub">Your seat is reserved. A calendar invite and Zoom link have been sent to your email.</div>
-                  <div className="enrol-confirm-card">
-                    <div className="enrol-confirm-row"><span className="enrol-confirm-label">Workshop</span><span className="enrol-confirm-val">{enrolData.name}</span></div>
-                    <div className="enrol-confirm-row"><span className="enrol-confirm-label">Date & time</span><span className="enrol-confirm-val">{enrolData.date} · {enrolData.time}</span></div>
-                    <div className="enrol-confirm-row"><span className="enrol-confirm-label">Format</span><span className="enrol-confirm-val">{enrolData.format === "live" ? "Live · Zoom" : enrolData.format === "recorded" ? "Recorded · Watch anytime" : "In-person · Venue"}</span></div>
-                    <div className="enrol-confirm-row"><span className="enrol-confirm-label">Amount paid</span><span className="enrol-confirm-val" style={{ color: "#3730A3" }}>₹{enrolData.finalPrice.toLocaleString("en-IN")}</span></div>
-                  </div>
-                  <div className="enrol-success-btns">
-                    <button className="enrol-success-btn" onClick={closeEnrol}>Close</button>
-                    <button 
-                      className="enrol-success-btn primary" 
-                      onClick={() => {
-                        closeEnrol();
-                        if (enrolData.enrolmentId) router.push("/player/" + enrolData.enrolmentId);
-                        else router.push("/dashboard/enrolments");
-                      }}
-                    >
-                      Start Learning →
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
+      </div>
       )}
     </div>
   );

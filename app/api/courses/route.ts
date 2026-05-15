@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
       JOIN categories cat ON c.category_id = cat.id
       JOIN instructors i ON c.instructor_id = i.id
       JOIN users u ON i.user_id = u.id
-      ${where.length > 0 ? 'WHERE ' + where.join(' AND ') : ''}
+      ${where.length > 0 ? 'WHERE ' + where.join(' AND ') + " AND c.status = 'published'" : "WHERE c.status = 'published'"}
       ORDER BY ${orderBy}
       LIMIT ${limit}
     `;

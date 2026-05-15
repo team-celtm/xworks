@@ -7,7 +7,7 @@ const SESSION_SECRET = new TextEncoder().encode(
   process.env.SESSION_SECRET || 'your-default-secret-change-me'
 );
 
-async function checkAdmin() {
+async function checkAdmin(req: Request) {
   const cookieStore = await cookies();
   const token = cookieStore.get('access_token')?.value;
   if (!token) return null;
@@ -20,33 +20,23 @@ async function checkAdmin() {
   }
 }
 
-export async function GET() {
-  const admin = await checkAdmin();
+export async function GET(req: Request) {
+  const admin = await checkAdmin(req);
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    const usersCount = await pool.query("SELECT role, COUNT(*) FROM users GROUP BY role");
-    const coursesCount = await pool.query("SELECT COUNT(*) FROM courses");
-    const categoriesCount = await pool.query("SELECT COUNT(*) FROM categories");
-    const enrolmentsCount = await pool.query("SELECT COUNT(*) FROM enrolments");
+    const learnersRes = await pool.query("SELECT COUNT(*) FROM users WHERE role = 'learner'");
+    const instructorsRes = await pool.query("SELECT COUNT(*) FROM instructors");
+    const coursesRes = await pool.query("SELECT COUNT(*) FROM courses WHERE status = 'published'");
+    const enrolmentsRes = await pool.query("SELECT COUNT(*) FROM enrolments");
 
-    const stats: any = {
-      learners: 0,
-      instructors: 0,
-      admins: 0,
-      courses: parseInt(coursesCount.rows[0].count),
-      categories: parseInt(categoriesCount.rows[0].count),
-      enrolments: parseInt(enrolmentsCount.rows[0].count)
-    };
-
-    usersCount.rows.forEach(r => {
-      if (r.role === 'learner') stats.learners = parseInt(r.count);
-      if (r.role === 'instructor') stats.instructors = parseInt(r.count);
-      if (r.role === 'admin') stats.admins = parseInt(r.count);
+    return NextResponse.json({
+      totalLearners: parseInt(learnersRes.rows[0].count),
+      totalInstructors: parseInt(instructorsRes.rows[0].count),
+      activeCourses: parseInt(coursesRes.rows[0].count),
+      totalEnrolments: parseInt(enrolmentsRes.rows[0].count)
     });
-
-    return NextResponse.json({ stats });
-  } catch (err: any) {
+  } catch (err) {
     console.error(err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

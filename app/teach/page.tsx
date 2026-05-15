@@ -162,11 +162,24 @@ export default function TeachPage() {
                   </button>
                </div>
             </div>
+          ) : appStatus === 'rejected' ? (
+            <div className="fview on">
+               <div className="success-wrap" style={{ textAlign: 'center' }}>
+                  <span className="success-icon">❌</span>
+                  <div className="success-title">Application Not Approved</div>
+                  <div className="success-sub" style={{ marginBottom: '16px' }}>
+                    Unfortunately, your application was not approved at this time. Our team has reviewed your profile and determined it doesn&apos;t meet our current requirements.
+                  </div>
+                  <button className="btn-cta" onClick={() => setAppStatus('none')} style={{ marginTop: '24px' }}>
+                    <span className="btn-txt">Try Applying Again →</span>
+                  </button>
+               </div>
+            </div>
           ) : (
             <div className="fview on">
                <div className="success-wrap" style={{ textAlign: 'center' }}>
                   <span className="success-icon">✅</span>
-                  <div className="success-title">You're Approved!</div>
+                  <div className="success-title">You&apos;re Approved!</div>
                   <div className="success-sub" style={{ marginBottom: '16px' }}>
                     Your application was approved by the admin. You now have full access to the Creator Studio.
                   </div>

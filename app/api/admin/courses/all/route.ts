@@ -43,7 +43,7 @@ export async function GET(req: Request) {
       LEFT JOIN categories cat ON cat.id = courses.category_id
       LEFT JOIN instructors i ON i.id = courses.instructor_id
       LEFT JOIN users u ON u.id = i.user_id
-      WHERE 1=1
+      WHERE courses.status != 'deleted'
     `;
     const params: any[] = [];
 
@@ -90,8 +90,14 @@ export async function DELETE(req: Request) {
 
     if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
 
-    await pool.query('DELETE FROM courses WHERE id = $1', [id]);
-    return NextResponse.json({ success: true, message: 'Course deleted' });
+    // SOFT DELETE: Change status to 'deleted' to preserve enrolment records
+    const res = await pool.query("UPDATE courses SET status = 'deleted' WHERE id = $1 RETURNING id", [id]);
+    
+    if (res.rows.length === 0) {
+      return NextResponse.json({ error: 'Course not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, message: 'Course successfully removed from platform' });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
