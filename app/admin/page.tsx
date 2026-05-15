@@ -18,6 +18,15 @@ export default function AdminDashboard() {
   const [applications, setApplications] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
   const [promos, setPromos] = useState<any[]>([]);
+  const [allCategories, setAllCategories] = useState<any[]>([]);
+  const [allInstructors, setAllInstructors] = useState<any[]>([]);
+  const [allCourses, setAllCourses] = useState<any[]>([]);
+  const [editingCourse, setEditingCourse] = useState<any>(null);
+  const [courseSearch, setCourseSearch] = useState("");
+  const [courseCategoryFilter, setCourseCategoryFilter] = useState("");
+  const [coursePage, setCoursePage] = useState(1);
+  const [coursePagination, setCoursePagination] = useState({ total: 0, totalPages: 1 });
+  const [isFetching, setIsFetching] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -52,7 +61,39 @@ export default function AdminDashboard() {
     if (activeView === 'admin_promos') {
       fetch('/api/admin/promo_codes').then(r=>r.json()).then(d => setPromos(d.promos || []));
     }
-  }, [activeView, user]);
+    if (activeView === 'admin_create_course' || activeView === 'admin_manage_courses') {
+      fetch('/api/admin/all-categories').then(r=>r.json()).then(d => setAllCategories(d.categories || []));
+      fetch('/api/admin/all-instructors').then(r=>r.json()).then(d => setAllInstructors(d.instructors || []));
+    }
+
+    if (activeView === 'admin_manage_courses') {
+      setIsFetching(true);
+      const query = new URLSearchParams({
+        search: courseSearch,
+        categoryId: courseCategoryFilter,
+        page: coursePage.toString()
+      }).toString();
+      
+      fetch(`/api/admin/courses/all?${query}`)
+        .then(r => r.json())
+        .then(d => {
+          if (d.error) console.error('Manage Courses Error:', d.error, d.details || '');
+          setAllCourses(d.courses || []);
+          if (d.pagination) setCoursePagination(d.pagination);
+          setIsFetching(false);
+        })
+        .catch(err => {
+          console.error('Fetch Error:', err);
+          setIsFetching(false);
+        });
+    }
+  }, [activeView, user, courseSearch, courseCategoryFilter, coursePage]);
+
+  const handleDeleteCourse = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this course? This action cannot be undone.')) return;
+    const res = await fetch(`/api/admin/courses/all?id=${id}`, { method: 'DELETE' });
+    if (res.ok) setAllCourses(prev => prev.filter(c => c.id !== id));
+  };
 
   const handleApproveInstructor = async (id: string, action: 'approve' | 'reject') => {
     const res = await fetch('/api/admin/instructors', { 
@@ -137,6 +178,16 @@ export default function AdminDashboard() {
           <button className={`sb-item ${activeView === "admin_courses" ? "active" : ""}`} onClick={() => { setActiveView("admin_courses"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">📢</span>
             <span className="sb-item-label">Publish Courses</span>
+          </button>
+
+          <button className={`sb-item ${activeView === "admin_create_course" ? "active" : ""}`} onClick={() => { setEditingCourse(null); setActiveView("admin_create_course"); setIsMobileMenuOpen(false); }}>
+            <span className="sb-item-icon">➕</span>
+            <span className="sb-item-label">Create Course</span>
+          </button>
+
+          <button className={`sb-item ${activeView === "admin_manage_courses" ? "active" : ""}`} onClick={() => { setActiveView("admin_manage_courses"); setIsMobileMenuOpen(false); }}>
+            <span className="sb-item-icon">🛠️</span>
+            <span className="sb-item-label">Manage Courses</span>
           </button>
           
           <button className={`sb-item ${activeView === "admin_promos" ? "active" : ""}`} onClick={() => { setActiveView("admin_promos"); setIsMobileMenuOpen(false); }}>
@@ -402,7 +453,266 @@ export default function AdminDashboard() {
               </div>
             </div>
           )}
+
+          {/* ---- CREATE COURSE ---- */}
+          {activeView === "admin_create_course" && (
+            <div className="view active fade-up">
+              <div className="section-hd">
+                <div>
+                  <div className="section-label">Owner Operations</div>
+                  <div className="section-title">{editingCourse ? 'Edit Course' : 'Create New Course'}</div>
+                </div>
+              </div>
+              
+              <div className="admin-card">
+                <form 
+                  onSubmit={async (e) => { 
+                    e.preventDefault(); 
+                    const formData = new FormData(e.currentTarget);
+                    const payload = Object.fromEntries(formData.entries());
+                    const url = editingCourse ? `/api/admin/courses?id=${editingCourse.id}` : '/api/admin/courses';
+                    const method = editingCourse ? 'PUT' : 'POST';
+                    
+                    const res = await fetch(url, { 
+                      method, 
+                      headers: {'Content-Type':'application/json'}, 
+                      body: JSON.stringify(payload) 
+                    }); 
+                    const data = await res.json();
+                    if (res.ok) {
+                      alert(editingCourse ? 'Course updated successfully!' : 'Course created successfully!');
+                      setEditingCourse(null);
+                      setActiveView('admin_manage_courses');
+                    } else {
+                      alert(data.error || 'Operation failed');
+                    }
+                  }} 
+                  style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', width: '100%' }}
+                >
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+                    <div className="form-group">
+                      <label className="admin-label">Course Name</label>
+                      <input name="name" type="text" className="prompt-input" required placeholder="e.g. Master React in 30 Days" defaultValue={editingCourse?.name} />
+                    </div>
+                    <div className="form-group">
+                      <label className="admin-label">Slug (URL)</label>
+                      <input name="slug" type="text" className="prompt-input" required placeholder="e.g. react-mastery" defaultValue={editingCourse?.slug} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+                    <div className="form-group">
+                      <label className="admin-label">Category</label>
+                      <select name="category_id" className="prompt-input" required defaultValue={editingCourse?.category_id}>
+                        <option value="">Select Category</option>
+                        {allCategories.map(cat => (
+                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="admin-label">Instructor</label>
+                      <select name="instructor_id" className="prompt-input" required defaultValue={editingCourse?.instructor_id}>
+                        <option value="">Select Instructor</option>
+                        {allInstructors.map(inst => (
+                          <option key={inst.id} value={inst.id}>{inst.first_name} {inst.last_name} ({inst.email})</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
+                    <div className="form-group">
+                      <label className="admin-label">Price (₹)</label>
+                      <input name="price" type="number" className="prompt-input" required placeholder="1299" defaultValue={editingCourse?.price} />
+                    </div>
+                    <div className="form-group">
+                      <label className="admin-label">Level</label>
+                      <select name="level" className="prompt-input" required defaultValue={editingCourse?.level}>
+                        <option value="Beginner">Beginner</option>
+                        <option value="Intermediate">Intermediate</option>
+                        <option value="Advanced">Advanced</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="admin-label">Duration (hrs)</label>
+                      <input name="dur" type="number" className="prompt-input" required placeholder="10" defaultValue={editingCourse?.dur} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
+                    <div className="form-group">
+                      <label className="admin-label">Emoji</label>
+                      <input name="emoji" type="text" className="prompt-input" placeholder="🎓" defaultValue={editingCourse?.emoji} />
+                    </div>
+                    <div className="form-group">
+                      <label className="admin-label">Gradient Class</label>
+                      <select name="g" className="prompt-input" defaultValue={editingCourse?.g}>
+                        <option value="t-indigo">Indigo</option>
+                        <option value="t-coral">Coral</option>
+                        <option value="t-amber">Amber</option>
+                        <option value="t-cyan">Cyan</option>
+                        <option value="t-emerald">Emerald</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="admin-label">Badge (optional)</label>
+                      <input name="tag" type="text" className="prompt-input" placeholder="e.g. hot" defaultValue={editingCourse?.tag} />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="admin-label">Badge Label (optional)</label>
+                    <input name="tag_label" type="text" className="prompt-input" placeholder="e.g. Best Seller" defaultValue={editingCourse?.tag_label} />
+                  </div>
+
+                  <button type="submit" className="enrol-cta coral" style={{ width: 'auto', justifySelf: 'start', padding: '14px 60px', marginTop: '12px' }}>
+                    {editingCourse ? 'Save Changes' : 'Create Course Now →'}
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* ---- MANAGE COURSES ---- */}
+          {activeView === "admin_manage_courses" && (
+            <div className="view active fade-up">
+              <div className="section-hd">
+                <div>
+                  <div className="section-label">Owner Operations</div>
+                  <div className="section-title">Manage All Courses</div>
+                </div>
+              </div>
+              
+              <div className="admin-card">
+                <p style={{ color: 'var(--text-3)', marginBottom: '24px', fontSize: '14px' }}>Overview of all courses currently on the platform.</p>
+                
+                <div style={{ display: 'flex', gap: '16px', marginBottom: '24px', flexWrap: 'wrap' }}>
+                  <div style={{ flex: '1', minWidth: '200px' }}>
+                    <input 
+                      type="text" 
+                      className="prompt-input" 
+                      placeholder="Search courses or instructors..." 
+                      value={courseSearch}
+                      onChange={(e) => { setCourseSearch(e.target.value); setCoursePage(1); }}
+                    />
+                  </div>
+                  <div style={{ width: '200px' }}>
+                    <select 
+                      className="prompt-input"
+                      value={courseCategoryFilter}
+                      onChange={(e) => { setCourseCategoryFilter(e.target.value); setCoursePage(1); }}
+                    >
+                      <option value="">All Categories</option>
+                      {allCategories.map(cat => (
+                        <option key={cat.id} value={cat.id}>{cat.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {(courseSearch || courseCategoryFilter) && (
+                    <button 
+                      className="admin-btn" 
+                      onClick={() => { setCourseSearch(""); setCourseCategoryFilter(""); setCoursePage(1); }}
+                    >
+                      Clear Filters
+                    </button>
+                  )}
+                </div>
+                {isFetching ? (
+                  <div className="admin-empty-state">
+                    <div className="spinner" style={{ marginBottom: '16px' }}></div>
+                    <p className="admin-empty-text">Fetching latest data...</p>
+                  </div>
+                ) : allCourses.length === 0 ? (
+                  <div className="admin-empty-state">
+                    <div className="admin-empty-icon">{courseSearch || courseCategoryFilter ? '🔍' : '📚'}</div>
+                    <p className="admin-empty-text">
+                      {courseSearch || courseCategoryFilter 
+                        ? 'No courses matching your filters. Try a different search!' 
+                        : 'No courses found. Create one to get started!'}
+                    </p>
+                    {(courseSearch || courseCategoryFilter) && (
+                      <button 
+                        className="admin-btn admin-btn-primary" 
+                        style={{ marginTop: '16px' }}
+                        onClick={() => { setCourseSearch(""); setCourseCategoryFilter(""); }}
+                      >
+                        Reset All Filters
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="admin-table-wrap">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Course</th>
+                          <th>Instructor</th>
+                          <th>Status</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allCourses.map(c => (
+                          <tr key={c.id}>
+                            <td>
+                              <div style={{fontWeight: '700', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}} title={c.name}>
+                                {c.name}
+                              </div>
+                              <div style={{fontSize: '12px', color: 'var(--text-3)'}}>{c.category_name} • ₹{c.price}</div>
+                            </td>
+                            <td>
+                              <div>{c.first_name} {c.last_name}</div>
+                              <div style={{fontSize: '12px', color: 'var(--text-3)'}}>{c.email}</div>
+                            </td>
+                            <td>
+                              <span className={`admin-badge ${c.status === 'published' ? 'success' : 'pending'}`}>
+                                {c.status === 'published' ? 'Live' : (c.status || 'Draft').replace('_', ' ')}
+                              </span>
+                            </td>
+                            <td>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <button className="admin-btn admin-btn-primary" onClick={() => { setEditingCourse(c); setActiveView('admin_create_course'); }}>Edit</button>
+                                <button className="admin-btn admin-btn-danger" onClick={() => handleDeleteCourse(c.id)}>Delete</button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+
+                    {coursePagination.totalPages > 1 && (
+                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', marginTop: '32px', padding: '16px', borderTop: '1px solid var(--border)' }}>
+                        <button 
+                          className="admin-btn" 
+                          disabled={coursePage === 1}
+                          style={{ opacity: coursePage === 1 ? 0.5 : 1, cursor: coursePage === 1 ? 'not-allowed' : 'pointer' }}
+                          onClick={() => setCoursePage(p => Math.max(1, p - 1))}
+                        >
+                          Previous
+                        </button>
+                        <span style={{ fontSize: '14px', color: 'var(--text-2)' }}>
+                          Page <strong>{coursePage}</strong> of {coursePagination.totalPages}
+                        </span>
+                        <button 
+                          className="admin-btn" 
+                          disabled={coursePage === coursePagination.totalPages}
+                          style={{ opacity: coursePage === coursePagination.totalPages ? 0.5 : 1, cursor: coursePage === coursePagination.totalPages ? 'not-allowed' : 'pointer' }}
+                          onClick={() => setCoursePage(p => Math.min(coursePagination.totalPages, p + 1))}
+                        >
+                          Next
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                )}
+              </div>
+            </div>
+          )}
+
         </div>
+
       </div>
     </div>
   );

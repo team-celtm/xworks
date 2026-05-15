@@ -45,26 +45,78 @@ export async function PUT(req: Request) {
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
+    const { searchParams } = new URL(req.url);
+    const idParam = searchParams.get('id');
     const body = await req.json();
-    const { id, action } = body;
+    const { id, action, ...fields } = body;
+    
+    const courseId = id || idParam;
+    if (!courseId) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
 
-    if (!id || !['approve', 'reject'].includes(action)) {
-      return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
+    if (action && ['approve', 'reject'].includes(action)) {
+      const status = action === 'approve' ? 'published' : 'draft';
+      await pool.query(
+        `UPDATE courses SET status = $1, updated_at = NOW() WHERE id = $2`,
+        [status, courseId]
+      );
+      return NextResponse.json({ success: true, message: `Course ${status}` });
     }
 
-    const status = action === 'approve' ? 'published' : 'draft'; // Revert back to draft if rejected
-    const updateRes = await pool.query(
-      `UPDATE courses SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING id`,
-      [status, id]
+    const name = fields.name?.trim();
+    const slug = fields.slug?.trim().toLowerCase();
+    const { category_id, instructor_id, level, emoji, g, tag, tag_label } = fields;
+    const price = Math.max(0, parseFloat(fields.price) || 0);
+    const dur = Math.max(0, parseInt(fields.dur) || 0);
+
+    if (!name || !slug) return NextResponse.json({ error: 'Name and Slug are required' }, { status: 400 });
+
+    await pool.query(
+      `UPDATE courses SET 
+        name = $1, slug = $2, category_id = $3, instructor_id = $4, price = $5, 
+        level = $6, dur = $7, emoji = $8, g = $9, tag = $10, tag_label = $11, 
+        updated_at = NOW() 
+      WHERE id = $12`,
+      [name, slug, category_id, instructor_id, price, level || 'Beginner', dur, emoji || '🎓', g || 't-indigo', tag || null, tag_label || null, courseId]
     );
 
-    if (updateRes.rows.length === 0) {
-      return NextResponse.json({ error: 'Course not found' }, { status: 404 });
-    }
-
-    return NextResponse.json({ success: true, message: `Course ${status}` });
-  } catch (err) {
+    return NextResponse.json({ success: true, message: 'Course updated successfully' });
+  } catch (err: any) {
     console.error(err);
+    if (err.code === '23505') return NextResponse.json({ error: 'Slug already exists' }, { status: 400 });
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+export async function POST(req: Request) {
+  const admin = await checkAdmin(req);
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  try {
+    const body = await req.json();
+    const name = body.name?.trim();
+    const slug = body.slug?.trim().toLowerCase();
+    const { category_id, instructor_id, level, emoji, g, tag, tag_label } = body;
+    const price = Math.max(0, parseFloat(body.price) || 0);
+    const dur = Math.max(0, parseInt(body.dur) || 0);
+
+    if (!name || !slug || !category_id || !instructor_id) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    const result = await pool.query(
+      `INSERT INTO courses (
+        name, slug, category_id, instructor_id, price, 
+        level, dur, emoji, g, tag, tag_label, status, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'published', NOW(), NOW()) 
+      RETURNING id`,
+      [name, slug, category_id, instructor_id, price, level || 'Beginner', dur, emoji || '🎓', g || 't-indigo', tag || null, tag_label || null]
+    );
+
+    return NextResponse.json({ success: true, message: 'Course created successfully', courseId: result.rows[0].id });
+  } catch (err: any) {
+    console.error(err);
+    if (err.code === '23505') return NextResponse.json({ error: 'Slug already exists' }, { status: 400 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+

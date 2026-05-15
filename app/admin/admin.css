@@ -144,3 +144,45 @@
     padding: 12px 10px;
   }
 }
+
+.admin-card .prompt-input {
+  background: var(--surface-2) !important;
+  border: 1px solid var(--border-md) !important;
+  color: var(--ink) !important;
+  width: 100%;
+}
+
+.admin-card .prompt-input:focus {
+  border-color: var(--indigo-mid) !important;
+  background: var(--surface) !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.admin-card .prompt-input::placeholder {
+  color: var(--text-3) !important;
+}
+
+.admin-card .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.admin-card .admin-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.admin-card select.prompt-input {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%234B5080'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 16px;
+  padding-right: 40px;
+}
