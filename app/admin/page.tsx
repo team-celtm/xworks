@@ -9,8 +9,9 @@ import Logo from "../components/Logo";
 
 export default function AdminDashboard() {
   const router = useRouter();
-  const [activeView, setActiveView] = useState("admin_instructors");
+  const [activeView, setActiveView] = useState("admin_overview");
   const [user, setUser] = useState<any>(null);
+  const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -52,6 +53,9 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     if (!user) return;
+    if (activeView === 'admin_overview') {
+      fetch('/api/admin/stats').then(r=>r.json()).then(d => setStats(d.stats || null));
+    }
     if (activeView === 'admin_instructors') {
       fetch('/api/admin/instructors').then(r=>r.json()).then(d => setApplications(d.applications || []));
     }
@@ -170,6 +174,11 @@ export default function AdminDashboard() {
 
         <nav className="sb-nav">
           <div className="sb-section-label">Platform Controls</div>
+          <button className={`sb-item ${activeView === "admin_overview" ? "active" : ""}`} onClick={() => { setActiveView("admin_overview"); setIsMobileMenuOpen(false); }}>
+            <span className="sb-item-icon">📊</span>
+            <span className="sb-item-label">Dashboard Overview</span>
+          </button>
+          
           <button className={`sb-item ${activeView === "admin_instructors" ? "active" : ""}`} onClick={() => { setActiveView("admin_instructors"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">👨‍⚖️</span>
             <span className="sb-item-label">Approve Instructors</span>
@@ -226,6 +235,50 @@ export default function AdminDashboard() {
         </div>
 
         <div className="content">
+          {/* ---- OVERVIEW ---- */}
+          {activeView === "admin_overview" && (
+            <div className="view active fade-up">
+              <div className="section-hd">
+                <div>
+                  <div className="section-label">Platform Summary</div>
+                  <div className="section-title">Dashboard Overview</div>
+                </div>
+              </div>
+              
+              <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', marginBottom: '32px' }}>
+                <div className="admin-card" style={{ padding: '24px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>🎓</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '800' }}>Total Learners</div>
+                  <div style={{ fontSize: '36px', fontWeight: '900', color: 'var(--ink)' }}>{stats?.learners || 0}</div>
+                </div>
+                <div className="admin-card" style={{ padding: '24px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>👨‍🏫</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '800' }}>Total Instructors</div>
+                  <div style={{ fontSize: '36px', fontWeight: '900', color: 'var(--ink)' }}>{stats?.instructors || 0}</div>
+                </div>
+                <div className="admin-card" style={{ padding: '24px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>📚</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '800' }}>Active Courses</div>
+                  <div style={{ fontSize: '36px', fontWeight: '900', color: 'var(--ink)' }}>{stats?.courses || 0}</div>
+                </div>
+                <div className="admin-card" style={{ padding: '24px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>💳</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: '800' }}>Total Enrolments</div>
+                  <div style={{ fontSize: '36px', fontWeight: '900', color: 'var(--ink)' }}>{stats?.enrolments || 0}</div>
+                </div>
+              </div>
+
+              <div className="admin-card">
+                <h3 style={{ marginBottom: '16px' }}>Quick Actions</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+                  <button className="admin-btn admin-btn-primary" onClick={() => setActiveView('admin_create_course')}>Create New Course</button>
+                  <button className="admin-btn" style={{ background: 'var(--surface-2)', color: 'var(--text-1)' }} onClick={() => setActiveView('admin_instructors')}>Review Applications</button>
+                  <button className="admin-btn" style={{ background: 'var(--surface-2)', color: 'var(--text-1)' }} onClick={() => setActiveView('admin_manage_courses')}>Inventory Check</button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ---- INSTRUCTORS ---- */}
           {activeView === "admin_instructors" && (
             <div className="view active fade-up">
