@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import RoleTransitionOverlay from './RoleTransitionOverlay';
+import Logo from './Logo';
 
 interface AuthScreenProps {
   defaultTab?: 'in' | 'up';
@@ -340,6 +341,9 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
 
       <div className="panel-right">
         <div className="form-wrap">
+          <div className="auth-mobile-logo">
+            <Logo />
+          </div>
           {!showSuccess && tab !== 'forgot' && tab !== 'reset' && (
             <div className="tabs">
               <button className={`tab-btn ${tab === 'in' ? 'on' : ''}`} onClick={() => switchTab('in')}>Sign In</button>

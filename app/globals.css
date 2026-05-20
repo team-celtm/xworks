@@ -344,3 +344,15 @@ html,body{height:100%;font-family:var(--fb)}
   50% { transform: translateX(-30%) scaleX(0.7); }
   100% { transform: translateX(100%) scaleX(0.3); }
 }
+
+.auth-mobile-logo {
+  display: none;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 768px) {
+  .auth-mobile-logo {
+    display: flex;
+  }
+}

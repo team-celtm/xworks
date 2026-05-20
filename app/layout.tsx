@@ -25,6 +25,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${syne.variable} ${dmSans.variable}`}>
       <head>
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
       </head>
       <body>
