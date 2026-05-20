@@ -7,7 +7,7 @@
   --text:#1E1B4B;--text-2:#4B5080;--text-3:#9294B8;
 }
 
-html,body{height:100%;font-family:var(--fb)}
+html,body{min-height:100%;font-family:var(--fb)}
 .shell{display:flex;flex-direction:column;min-height:100vh;width:100vw;overflow-x:hidden}
 
 .panel-left{

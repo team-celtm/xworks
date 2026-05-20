@@ -31,17 +31,19 @@
 }
 
 /* ── SCROLLBAR ── */
-::-webkit-scrollbar {
-  width: 4px
-}
+@media (min-width: 860px) {
+  ::-webkit-scrollbar {
+    width: 4px
+  }
 
-::-webkit-scrollbar-track {
-  background: var(--surface-2)
-}
+  ::-webkit-scrollbar-track {
+    background: var(--surface-2)
+  }
 
-::-webkit-scrollbar-thumb {
-  background: rgba(200, 185, 0, 0.45);
-  border-radius: 4px
+  ::-webkit-scrollbar-thumb {
+    background: rgba(200, 185, 0, 0.45);
+    border-radius: 4px
+  }
 }
 
 /* ══════════════════════════
@@ -1381,6 +1383,8 @@
   background: var(--indigo);
   flex-direction: column;
   padding: 32px 24px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .mobile-nav.open {
@@ -3019,6 +3023,7 @@
     border-bottom: none;
     background: #F9FAFB;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -3081,6 +3086,7 @@
   .workshop-content {
     flex: 1;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     padding: 16px;
     background: #FFF;
   }
