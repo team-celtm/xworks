@@ -90,7 +90,11 @@ export default function InstructorDashboard() {
   useEffect(() => {
     const fetchUserAndStatus = async () => {
       try {
-        const res = await fetch("/api/auth/me");
+        const [res, statRes] = await Promise.all([
+          fetch("/api/auth/me"),
+          fetch("/api/instructor/status")
+        ]);
+
         if (res.ok) {
           const data = await res.json();
           if (data.role !== 'instructor') {
@@ -99,7 +103,6 @@ export default function InstructorDashboard() {
           }
           setUser(data);
 
-          const statRes = await fetch("/api/instructor/status");
           if (statRes.ok) {
             const statData = await statRes.json();
             setAppStatus(statData.application_status);

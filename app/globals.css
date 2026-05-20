@@ -330,14 +330,17 @@ html,body{height:100%;font-family:var(--fb)}
 
 .role-loading-fill {
   height: 100%;
+  width: 100%;
   border-radius: 100px;
   background: #ffffff;
   box-shadow: 0 0 12px #ffffff;
-  animation: loadProgress 1.8s ease-in-out infinite;
+  transform-origin: left center;
+  will-change: transform;
+  animation: loadProgress 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 @keyframes loadProgress {
-  0% { left: -100%; width: 50%; }
-  50% { left: 0%; width: 80%; }
-  100% { left: 100%; width: 50%; }
+  0% { transform: translateX(-100%) scaleX(0.3); }
+  50% { transform: translateX(-30%) scaleX(0.7); }
+  100% { transform: translateX(100%) scaleX(0.3); }
 }
