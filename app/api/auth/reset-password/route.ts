@@ -4,7 +4,9 @@ import bcrypt from 'bcryptjs';
 
 export async function POST(req: NextRequest) {
   try {
-    const { token, newPassword } = await req.json();
+    const body = await req.json();
+    const token = body.token;
+    const newPassword = body.newPassword || body.password;
 
     if (!token || !newPassword) {
       return NextResponse.json({ error: 'Token and new password are required' }, { status: 400 });
