@@ -7,7 +7,8 @@ import { getBaseUrl } from '@/lib/utils';
 
 export async function POST(req: NextRequest) {
   try {
-    const { firstName, lastName, email, profile, password, phone, bio, linkedin } = await req.json();
+    const { firstName, lastName, email: rawEmail, profile, password, phone, bio, linkedin } = await req.json();
+    const email = rawEmail ? rawEmail.trim().toLowerCase() : '';
 
     if (!email || !password || !firstName || !phone) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });

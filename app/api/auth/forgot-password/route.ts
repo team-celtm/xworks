@@ -6,7 +6,8 @@ import { getBaseUrl } from '@/lib/utils';
 
 export async function POST(req: NextRequest) {
   try {
-    const { email } = await req.json();
+    const { email: rawEmail } = await req.json();
+    const email = rawEmail ? rawEmail.trim().toLowerCase() : '';
 
     if (!email) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });

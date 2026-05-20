@@ -7,7 +7,8 @@ const SESSION_SECRET = process.env.SESSION_SECRET || 'your-default-secret-change
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, password } = await req.json();
+    const { email: rawEmail, password } = await req.json();
+    const email = rawEmail ? rawEmail.trim().toLowerCase() : '';
 
     if (!email || !password) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
