@@ -229,8 +229,13 @@ html,body{height:100%;font-family:var(--fb)}
 }
 
 .role-overlay.admin {
-  background: radial-gradient(circle at center, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.99) 100%);
-  text-shadow: 0 0 10px rgba(148, 163, 184, 0.3);
+  background: radial-gradient(circle at center, rgba(30, 27, 75, 0.97) 0%, rgba(10, 8, 30, 0.99) 100%);
+  text-shadow: 0 0 12px rgba(251, 146, 60, 0.45);
+}
+
+.role-overlay.admin .role-loading-fill {
+  background: linear-gradient(90deg, var(--coral), var(--coral-dark)) !important;
+  box-shadow: 0 0 12px var(--coral) !important;
 }
 
 .role-overlay.instructor {
@@ -252,6 +257,7 @@ html,body{height:100%;font-family:var(--fb)}
 
 .role-overlay.admin .role-icon-container {
   animation: spinGear 3s linear infinite;
+  filter: drop-shadow(0 8px 16px rgba(251, 146, 60, 0.45));
 }
 
 .role-overlay.instructor .role-icon-container {
