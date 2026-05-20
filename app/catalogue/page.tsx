@@ -156,7 +156,6 @@ function CatalogueContent() {
 
   const filtered = useMemo(() => {
     let list = [...workshops];
-    if (state.cat !== 'all') list = list.filter(w => w.cat === state.cat);
     if (state.level !== 'all') list = list.filter(w => w.level === state.level || w.level === 'All levels');
     if (state.format === 'live') list = list.filter(w => w.live);
     if (state.format === 'recorded') list = list.filter(w => !w.live);
