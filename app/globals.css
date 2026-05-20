@@ -229,18 +229,18 @@ html,body{height:100%;font-family:var(--fb)}
 }
 
 .role-overlay.admin {
-  background: radial-gradient(circle at center, rgba(79, 70, 229, 0.92) 0%, rgba(30, 27, 75, 0.98) 100%);
-  text-shadow: 0 0 10px rgba(129, 140, 248, 0.3);
+  background: radial-gradient(circle at center, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.99) 100%);
+  text-shadow: 0 0 10px rgba(148, 163, 184, 0.3);
 }
 
 .role-overlay.instructor {
-  background: radial-gradient(circle at center, rgba(234, 115, 23, 0.92) 0%, rgba(67, 20, 7, 0.98) 100%);
+  background: radial-gradient(circle at center, rgba(251, 146, 60, 0.92) 0%, rgba(67, 20, 7, 0.98) 100%);
   text-shadow: 0 0 10px rgba(251, 146, 60, 0.3);
 }
 
 .role-overlay.learner {
-  background: radial-gradient(circle at center, rgba(16, 185, 129, 0.92) 0%, rgba(6, 78, 59, 0.98) 100%);
-  text-shadow: 0 0 10px rgba(52, 211, 153, 0.3);
+  background: radial-gradient(circle at center, rgba(79, 70, 229, 0.92) 0%, rgba(30, 27, 75, 0.98) 100%);
+  text-shadow: 0 0 10px rgba(129, 140, 248, 0.3);
 }
 
 .role-icon-container {
