@@ -140,7 +140,7 @@ export default function InstructorDashboard() {
     }
   };
 
-  if (loading) return <div className="shell flex items-center justify-center" style={{ background: "var(--bg)", color: "var(--ink)" }}>Loading secure portal...</div>;
+  if (loading) return <RoleTransitionOverlay role="instructor" type="login" />;
   if (!user || user.role !== 'instructor') return null;
 
   if (appStatus === 'none') {

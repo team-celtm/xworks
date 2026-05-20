@@ -127,19 +127,7 @@ export default function AdminDashboard() {
     router.push("/");
   };
 
-  if (loading) return (
-    <div className="shell" style={{ alignItems: 'center', justifyContent: 'center', background: 'var(--indigo-dark)' }}>
-      <div className="dashboard-loader" style={{ borderTopColor: 'var(--coral)' }}></div>
-      <style jsx>{`
-        .dashboard-loader {
-          width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1);
-          border-top-color: var(--indigo); border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
-    </div>
-  );
+  if (loading) return <RoleTransitionOverlay role="admin" type="login" />;
   if (!user || user.role !== 'admin') return null;
 
   return (

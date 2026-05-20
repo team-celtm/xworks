@@ -861,28 +861,7 @@ export default function DashboardPage() {
   };
 
   if (!hasMounted || isLoading) {
-    return (
-      <div suppressHydrationWarning style={{ 
-        height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center', background: 'var(--indigo-dark)',
-        gap: '24px'
-      }}>
-        <Logo />
-        <div className="dashboard-loader" style={{ borderTopColor: 'var(--coral)' }}></div>
-        <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '14px', fontWeight: 500 }}>Preparing your workspace...</div>
-        <style jsx>{`
-          .dashboard-loader {
-            width: 40px;
-            height: 40px;
-            border: 3px solid var(--border);
-            border-top-color: var(--indigo);
-            border-radius: 50%;
-            animation: dashboard-spin 0.8s linear infinite;
-          }
-          @keyframes dashboard-spin { to { transform: rotate(360deg); } }
-        `}</style>
-      </div>
-    );
+    return <RoleTransitionOverlay role="learner" type="login" />;
   }
 
   if (!hasMounted) return null;
