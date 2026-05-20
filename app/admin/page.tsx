@@ -6,6 +6,7 @@ import Link from 'next/link';
 import "../dashboard/dashboard.css";
 import "./admin.css";
 import Logo from "../components/Logo";
+import RoleTransitionOverlay from "../components/RoleTransitionOverlay";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -14,6 +15,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ totalLearners: 0, totalInstructors: 0, activeCourses: 0, totalEnrolments: 0 });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Data states
   const [applications, setApplications] = useState<any[]>([]);
@@ -120,6 +122,7 @@ export default function AdminDashboard() {
   };
 
   const handleLogout = async () => {
+    setIsLoggingOut(true);
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/");
   };
@@ -141,6 +144,7 @@ export default function AdminDashboard() {
 
   return (
     <div className={`shell ${isMobileMenuOpen ? 'menu-open' : ''}`}>
+      {isLoggingOut && <RoleTransitionOverlay role="admin" type="logout" />}
       {/* SIDEBAR */}
       <aside className={`sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
         <div className="sb-mobile-hd">

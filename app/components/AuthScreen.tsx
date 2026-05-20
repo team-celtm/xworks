@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import RoleTransitionOverlay from './RoleTransitionOverlay';
 
 interface AuthScreenProps {
   defaultTab?: 'in' | 'up';
@@ -19,6 +20,7 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
   const [needsVerify, setNeedsVerify] = useState(false);
   const [errorText, setErrorText] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [loginRole, setLoginRole] = useState<'admin' | 'instructor' | 'learner' | null>(null);
 
   useEffect(() => {
     if (searchParams.get('verified') === 'true') {
@@ -204,11 +206,14 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
       const data = await res.json();
       if (res.ok) {
         const returnUrl = searchParams?.get('returnUrl');
+        const role = data.user?.role || 'learner';
+        setLoginRole(role as 'admin' | 'instructor' | 'learner');
+        
         if (returnUrl) {
           router.push(returnUrl);
-        } else if (data.user?.role === 'admin') {
+        } else if (role === 'admin') {
           router.push('/admin');
-        } else if (data.user?.role === 'instructor') {
+        } else if (role === 'instructor') {
           router.push('/instructor');
         } else {
           router.push('/dashboard');
@@ -295,6 +300,7 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
 
   return (
     <div className="shell">
+      {loginRole && <RoleTransitionOverlay role={loginRole} type="login" />}
       <div className="panel-left">
         <div className="grid-bg"></div>
         <div className="orb orb-a"></div><div className="orb orb-b"></div><div className="orb orb-c"></div>

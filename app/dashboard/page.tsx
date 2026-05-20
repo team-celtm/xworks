@@ -6,6 +6,7 @@ import "./notes.css";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Logo from "../components/Logo";
+import RoleTransitionOverlay from "../components/RoleTransitionOverlay";
 
 /* ══ DATA ══ */
 interface Workshop {
@@ -2070,15 +2071,7 @@ export default function DashboardPage() {
       )}
 
       {/* ══ LOGOUT OVERLAY ══ */}
-      {isLoggingOut && (
-        <div className="enrol-backdrop open" style={{ zIndex: 9999, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="fade-up" style={{ textAlign: 'center', color: '#fff' }}>
-            <div style={{ fontSize: '48px', marginBottom: '20px' }}>👋</div>
-            <div style={{ fontSize: '24px', fontWeight: 800, marginBottom: '8px' }}>Logging you out...</div>
-            <div style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)' }}>Successfully logged out of XWORKS. Redirecting to Login...</div>
-          </div>
-        </div>
-      )}
+      {isLoggingOut && <RoleTransitionOverlay role="learner" type="logout" />}
       {/* ══ BOOKING MODAL ══ */}
       {bookingSession && (
         <div className="enrol-backdrop open" style={{ zIndex: 1000 }}>

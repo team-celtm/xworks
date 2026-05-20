@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import "../dashboard/dashboard.css";
+import RoleTransitionOverlay from "../components/RoleTransitionOverlay";
 
 export default function InstructorDashboard() {
   const router = useRouter();
@@ -12,6 +13,7 @@ export default function InstructorDashboard() {
   const [loading, setLoading] = useState(true);
   const [appStatus, setAppStatus] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // Application Form States
   const [bio, setBio] = useState('');
@@ -114,6 +116,7 @@ export default function InstructorDashboard() {
   }, [router]);
 
   const handleLogout = async () => {
+    setIsLoggingOut(true);
     await fetch("/api/auth/logout", { method: "POST" });
     router.push("/");
   };
@@ -193,6 +196,7 @@ export default function InstructorDashboard() {
 
   return (
     <div className={`shell ${isMobileMenuOpen ? 'menu-open' : ''}`}>
+      {isLoggingOut && <RoleTransitionOverlay role="instructor" type="logout" />}
       {/* ══════════════════════════
            INSTRUCTOR SIDEBAR (Left)
        ══════════════════════════ */}
