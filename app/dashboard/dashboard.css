@@ -297,6 +297,10 @@ body {
   display: block;
 }
 
+.sidebar.open .sb-footer {
+  display: block;
+}
+
 @media(min-width:768px) {
   .sb-nav {
     display: block
