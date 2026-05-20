@@ -27,7 +27,11 @@ export default function RootLayout({
       <head>
         <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
       </head>
-      <body>{children}</body>
+      <body>
+        <div id="app-layout-container" style={{ display: "contents" }}>
+          {children}
+        </div>
+      </body>
     </html>
   );
 }
