@@ -50,7 +50,10 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { bio, linkedin_url } = body;
 
-    const existingId = await pool.query(`SELECT id FROM instructor_applications WHERE user_id = $1`, [user.id]);
+    const existingId = await pool.query(
+      `SELECT id FROM instructor_applications WHERE user_id = $1 AND status IN ('pending', 'approved') LIMIT 1`,
+      [user.id]
+    );
     if (existingId.rows.length > 0) {
       return NextResponse.json({ error: 'Application already exists' }, { status: 400 });
     }

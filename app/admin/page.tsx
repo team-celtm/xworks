@@ -303,13 +303,13 @@ export default function AdminDashboard() {
                       <tbody>
                         {applications.map(app => (
                           <tr key={app.id}>
-                            <td>
+                            <td data-label="User">
                               <div style={{ fontWeight: '700' }}>{app.first_name} {app.last_name}</div>
                               <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>{app.email}</div>
                             </td>
-                            <td><a href={app.linkedin_url} target="_blank" style={{ color: 'var(--indigo-mid)', fontWeight: '600' }}>Link ↗</a></td>
-                            <td style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{app.bio}</td>
-                            <td>
+                            <td data-label="LinkedIn"><a href={app.linkedin_url} target="_blank" style={{ color: 'var(--indigo-mid)', fontWeight: '600' }}>Link ↗</a></td>
+                            <td data-label="Bio" style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{app.bio}</td>
+                            <td data-label="Action">
                               <div style={{ display: 'flex', gap: '8px' }}>
                                 <button className="admin-btn admin-btn-success" onClick={() => handleApproveInstructor(app.id, 'approve')}>Approve</button>
                                 <button className="admin-btn admin-btn-danger" onClick={() => handleApproveInstructor(app.id, 'reject')}>Reject</button>
@@ -356,16 +356,16 @@ export default function AdminDashboard() {
                       <tbody>
                         {courses.map(c => (
                           <tr key={c.id}>
-                            <td>
+                            <td data-label="Course Name">
                               <div style={{ fontWeight: '700' }}>{c.name}</div>
                               <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>{c.cat} • {c.dur} hrs</div>
                             </td>
-                            <td style={{ fontWeight: '700', color: 'var(--indigo)' }}>₹{c.price}</td>
-                            <td>
+                            <td data-label="Price" style={{ fontWeight: '700', color: 'var(--indigo)' }}>₹{c.price}</td>
+                            <td data-label="Instructor">
                               <div>{c.first_name} {c.last_name}</div>
                               <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>{c.email}</div>
                             </td>
-                            <td>
+                            <td data-label="Action">
                               <div style={{ display: 'flex', gap: '8px' }}>
                                 <button className="admin-btn admin-btn-primary" onClick={() => handlePublishCourse(c.id, 'approve')}>Publish</button>
                                 <button className="admin-btn" style={{ background: 'var(--surface-2)', color: 'var(--text-2)' }} onClick={() => handlePublishCourse(c.id, 'reject')}>Keep Draft</button>
@@ -419,9 +419,9 @@ export default function AdminDashboard() {
                     <tbody>
                       {promos.map(p => (
                         <tr key={p.id}>
-                          <td style={{ fontWeight: '800', letterSpacing: '1px', color: 'var(--indigo)' }}>{p.code}</td>
-                          <td style={{ fontWeight: '700' }}><span className="admin-badge success">{parseFloat(p.discount_percentage)}% OFF</span></td>
-                          <td style={{ color: 'var(--text-3)' }}>{new Date(p.created_at).toLocaleDateString()}</td>
+                          <td data-label="Code" style={{ fontWeight: '800', letterSpacing: '1px', color: 'var(--indigo)' }}>{p.code}</td>
+                          <td data-label="Discount" style={{ fontWeight: '700' }}><span className="admin-badge success">{parseFloat(p.discount_percentage)}% OFF</span></td>
+                          <td data-label="Created At" style={{ color: 'var(--text-3)' }}>{new Date(p.created_at).toLocaleDateString()}</td>
                         </tr>
                       ))}
                       {promos.length === 0 && <tr><td colSpan={3} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-3)' }}>No active codes.</td></tr>}
@@ -491,19 +491,19 @@ export default function AdminDashboard() {
                       ) : (
                         allCourses.map(c => (
                           <tr key={c.id}>
-                            <td>
+                            <td data-label="Course Name">
                               <div style={{ fontWeight: '700' }}>{c.name}</div>
                               <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>ID: {c.id.slice(0, 8)}...</div>
                             </td>
-                            <td>
+                            <td data-label="Assigned Template">
                               <div className="admin-badge" style={{ background: 'var(--surface-2)', color: 'var(--text-1)', textTransform: 'capitalize' }}>
                                 {(c.certificate_type || 'default').replace('_', ' ')}
                               </div>
                             </td>
-                            <td>
+                            <td data-label="Total Issued">
                               <div style={{ fontWeight: '600', color: 'var(--indigo)' }}>{c.issued_count || 0} certs</div>
                             </td>
-                            <td>
+                            <td data-label="Status">
                               <span className={`admin-badge ${c.status === 'published' ? 'success' : 'pending'}`}>
                                 {c.status === 'published' ? 'Live' : 'Inactive'}
                               </span>
@@ -700,7 +700,7 @@ export default function AdminDashboard() {
               <div className="admin-card">
                 <p style={{ color: 'var(--text-3)', marginBottom: '24px', fontSize: '14px' }}>Overview of all courses currently on the platform.</p>
                 {/* --- FILTERS --- */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
+                <div className="admin-filters-grid" style={{ marginBottom: '24px' }}>
                   <div className="form-group">
                     <input 
                       type="text" 
@@ -728,11 +728,11 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                {isCoursesLoading ? (
-                   <div style={{ padding: '100px 0', textAlign: 'center' }}>
-                      <div className="dashboard-loader" style={{ margin: '0 auto', borderTopColor: 'var(--coral)' }}></div>
-                      <p style={{ marginTop: '16px', color: 'var(--text-3)', fontSize: '14px' }}>Updating records...</p>
-                   </div>
+                 {isCoursesLoading ? (
+                    <div style={{ padding: '100px 0', textAlign: 'center' }}>
+                       <div className="dashboard-loader" style={{ margin: '0 auto', borderTopColor: 'var(--coral)' }}></div>
+                       <p style={{ marginTop: '16px', color: 'var(--text-3)', fontSize: '14px' }}>Updating records...</p>
+                    </div>
                 ) : allCourses.length === 0 ? (
                   <div className="admin-empty-state">
                     <div className="admin-empty-icon">📚</div>
@@ -755,20 +755,20 @@ export default function AdminDashboard() {
                       <tbody>
                         {allCourses.map(c => (
                           <tr key={c.id}>
-                            <td>
+                            <td data-label="Course">
                               <div style={{ fontWeight: '700' }}>{c.name}</div>
                               <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>{c.category_name} • ₹{c.price}</div>
                             </td>
-                            <td>
+                            <td data-label="Instructor">
                               <div>{c.first_name} {c.last_name}</div>
                               <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>{c.email}</div>
                             </td>
-                            <td>
+                            <td data-label="Status">
                               <span className={`admin-badge ${c.status === 'published' ? 'success' : 'pending'}`}>
                                 {c.status === 'published' ? 'Live' : (c.status || 'Draft').replace('_', ' ')}
                               </span>
                             </td>
-                            <td>
+                            <td data-label="Action">
                               <div style={{ display: 'flex', gap: '8px' }}>
                                 <button className="admin-btn admin-btn-danger" onClick={() => handleDeleteCourse(c.id)}>Delete</button>
                               </div>

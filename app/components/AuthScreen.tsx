@@ -231,10 +231,33 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
   };
 
   const doSignup = async () => {
+    setErrorText('');
     if (!upEmail || !upPhone || !tcChecked || !upPwd) {
+      setErrorText('Please fill in all required fields and accept terms.');
       setWiggleBtn(true);
       setTimeout(() => setWiggleBtn(false), 350);
       return;
+    }
+    if (!upProfile) {
+      setErrorText('Please select your profile (Learner or Instructor).');
+      setWiggleBtn(true);
+      setTimeout(() => setWiggleBtn(false), 350);
+      return;
+    }
+    if (upProfile === 'Instructor') {
+      if (!upBio || !upLinkedin) {
+        setErrorText('Bio and LinkedIn URL are required for instructors.');
+        setWiggleBtn(true);
+        setTimeout(() => setWiggleBtn(false), 350);
+        return;
+      }
+      const linkedinRegex = /^https:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+\/?$/;
+      if (!linkedinRegex.test(upLinkedin)) {
+        setErrorText('Please provide a valid LinkedIn profile URL (https://linkedin.com/in/username).');
+        setWiggleBtn(true);
+        setTimeout(() => setWiggleBtn(false), 350);
+        return;
+      }
     }
     setLoading(true);
     try {
@@ -291,17 +314,17 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
           <div>
             <div className="eyebrow"><div className="eyebrow-dash"></div>Where skills come alive</div>
             <h1 className="hero-title">Learn something<br/><em>extraordinary</em><br/>today.</h1>
-            <p className="hero-body">Join 40,000+ curious minds. From AI to guitar, investing to yoga — your next skill is one click away.</p>
+            <p className="hero-body">Join 5,000+ curious minds. From AI to guitar, investing to yoga — your next skill is one click away.</p>
             <div className="chips">
-              <div className="chip"><div className="chip-dot"></div>200+ workshops</div>
+              <div className="chip"><div className="chip-dot"></div>100+ workshops</div>
               <div className="chip"><div className="chip-dot"></div>All skill levels</div>
               <div className="chip"><div className="chip-dot"></div>Expert instructors</div>
               <div className="chip"><div className="chip-dot"></div>Certificates</div>
             </div>
           </div>
           <div className="proof">
-            <div className="proof-stat"><div className="num">40<b>k+</b></div><div className="lbl">Learners</div></div>
-            <div className="proof-stat"><div className="num">200<b>+</b></div><div className="lbl">Workshops</div></div>
+            <div className="proof-stat"><div className="num">5<b>k+</b></div><div className="lbl">Learners</div></div>
+            <div className="proof-stat"><div className="num">100<b>+</b></div><div className="lbl">Workshops</div></div>
             <div className="proof-stat"><div className="num">4.8<b>★</b></div><div className="lbl">Avg rating</div></div>
             <div className="proof-stat"><div className="num">10<b>+</b></div><div className="lbl">Categories</div></div>
           </div>
@@ -400,6 +423,31 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
                   <option>Instructor</option>
                 </select>
               </div>
+              {upProfile === 'Instructor' && (
+                <>
+                  <div className="field">
+                    <label>Short Bio</label>
+                    <textarea 
+                      className="inp" 
+                      placeholder="Tell us about your background, expertise, and what you teach..." 
+                      value={upBio} 
+                      onChange={(e) => setUpBio(e.target.value)}
+                      rows={3}
+                      style={{ height: 'auto', padding: '12px', resize: 'vertical' }}
+                    />
+                  </div>
+                  <div className="field">
+                    <label>LinkedIn Profile URL</label>
+                    <input 
+                      className="inp" 
+                      type="url" 
+                      placeholder="https://linkedin.com/in/username" 
+                      value={upLinkedin} 
+                      onChange={(e) => setUpLinkedin(e.target.value)} 
+                    />
+                  </div>
+                </>
+              )}
               <div className="field">
                 <label>Create a password</label>
                 <div className="pwd-wrap">
@@ -526,7 +574,7 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
                       </>
                     ) : (
                       <>
-                        <div className="ns-item"><div className="ns-num">1</div>Browse 200+ workshops across 10 categories</div>
+                        <div className="ns-item"><div className="ns-num">1</div>Browse 100+ workshops across 10 categories</div>
                         <div className="ns-item"><div className="ns-num">2</div>Enrol in your first session and get a calendar invite</div>
                         <div className="ns-item"><div className="ns-num">3</div>Earn a certificate and build your learning streak</div>
                       </>

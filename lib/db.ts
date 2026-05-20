@@ -1,4 +1,4 @@
-import { Pool, QueryResult, QueryResultRow } from "pg";
+import { Pool, QueryResult, QueryResultRow, QueryConfig } from "pg";
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -19,16 +19,20 @@ pool.on("error", (err) => {
 const originalQuery = pool.query.bind(pool);
 
 // Monkey-patch pool.query to be resilient to 57P03 (DB starting up)
-// @ts-ignore
-pool.query = async function (text: any, params: any): Promise<any> {
+// @ts-expect-error - Overriding read-only property for monkey-patching
+pool.query = (async function <R extends QueryResultRow = QueryResultRow, I extends unknown[] = unknown[]>(
+  text: string | QueryConfig<I>,
+  params?: I
+): Promise<QueryResult<R>> {
   const maxRetries = 10;
   const delay = 2000;
 
   for (let i = 0; i < maxRetries; i++) {
     try {
-      return await originalQuery(text, params);
-    } catch (err: any) {
-      if (err.code === '57P03' && i < maxRetries - 1) {
+      return await (originalQuery as (t: typeof text, p?: typeof params) => Promise<QueryResult<R>>)(text, params);
+    } catch (err: unknown) {
+      const pgErr = err as { code?: string };
+      if (pgErr && pgErr.code === '57P03' && i < maxRetries - 1) {
         console.log(`[DB] System is starting up. Retrying in ${delay}ms... (Attempt ${i + 1}/${maxRetries})`);
         await new Promise(resolve => setTimeout(resolve, delay));
         continue;
@@ -36,7 +40,8 @@ pool.query = async function (text: any, params: any): Promise<any> {
       throw err;
     }
   }
-} as any;
+  throw new Error("Database query failed after max retries.");
+} as unknown);
 
 export default pool;
 

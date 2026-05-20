@@ -33,7 +33,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Already an instructor' }, { status: 400 });
     }
 
-    const existingApp = await pool.query('SELECT status FROM instructor_applications WHERE user_id = $1', [userId]);
+    const existingApp = await pool.query(
+      "SELECT status FROM instructor_applications WHERE user_id = $1 AND status IN ('pending', 'approved') LIMIT 1",
+      [userId]
+    );
     if (existingApp.rows.length > 0) {
       return NextResponse.json({ error: 'Application already exists with status: ' + existingApp.rows[0].status }, { status: 400 });
     }

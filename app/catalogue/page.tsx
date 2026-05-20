@@ -435,7 +435,7 @@ function CatalogueContent() {
       <div className="page-header">
         <div className="page-eyebrow">Browse catalogue</div>
         <div className="page-title">{pageTitleText}</div>
-        <div className="page-subtitle">176 workshops across 10 categories</div>
+        <div className="page-subtitle">100+ workshops across 10 categories</div>
 
         <div className="filter-bar">
           <div className="search-wrap">
@@ -515,7 +515,7 @@ function CatalogueContent() {
           <div className="sidebar-section">
             <div className="sidebar-label">Category</div>
             {[
-              { id: 'all', icon: '🗂️', name: 'All categories', count: 176 },
+              { id: 'all', icon: '🗂️', name: 'All categories', count: '100+' },
               ...dbCategories.map((c: any) => ({
                 id: c.slug,
                 icon: c.icon || '🎓',

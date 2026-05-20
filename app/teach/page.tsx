@@ -74,7 +74,7 @@ export default function TeachPage() {
           <div>
             <div className="eyebrow"><div className="eyebrow-dash"></div>Become an Instructor</div>
             <h1 className="hero-title">Share your knowledge.<br/><em>Empower</em><br/>learners today.</h1>
-            <p className="hero-body">Join the cyber-tech revolution. Share your expertise with 40,000+ curious minds, build immersive learning experiences, and earn revenue doing what you love.</p>
+            <p className="hero-body">Join the cyber-tech revolution. Share your expertise with 5,000+ curious minds, build immersive learning experiences, and earn revenue doing what you love.</p>
             <div className="chips">
               <div className="chip"><div className="chip-dot"></div>Industry standard payout splits</div>
               <div className="chip"><div className="chip-dot"></div>Global Audience</div>
@@ -82,7 +82,7 @@ export default function TeachPage() {
             </div>
           </div>
           <div className="proof">
-            <div className="proof-stat"><div className="num">40<b>k+</b></div><div className="lbl">Active Learners</div></div>
+            <div className="proof-stat"><div className="num">5<b>k+</b></div><div className="lbl">Active Learners</div></div>
             <div className="proof-stat"><div className="num">80<b>/</b>20</div><div className="lbl">Base Rev Split</div></div>
           </div>
           <a href="#" className="back-btn" onClick={(e) => { e.preventDefault(); router.push('/dashboard'); }}>← Back to Dashboard</a>

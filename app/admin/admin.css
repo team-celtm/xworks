@@ -138,12 +138,94 @@
 
 @media (max-width: 768px) {
   .admin-card {
-    padding: 20px;
+    padding: 16px;
+    border-radius: 12px;
   }
-  .admin-table th, .admin-table td {
-    padding: 12px 10px;
+
+  .section-hd {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .section-title {
+    font-size: 20px !important;
+  }
+
+  .admin-table-wrap {
+    border: none;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .admin-table thead {
+    display: none;
+  }
+
+  .admin-table, .admin-table tbody, .admin-table tr, .admin-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .admin-table tr {
+    background: var(--surface);
+    border: 1px solid var(--border-md);
+    border-radius: 12px;
+    margin-bottom: 12px;
+    padding: 12px;
+  }
+
+  .admin-table td {
+    border-bottom: none;
+    padding: 8px 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .admin-table td::before {
+    content: attr(data-label);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 2px;
+  }
+
+  .admin-table td:empty {
+    display: none;
+  }
+
+  .overview-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .overview-card {
+    padding: 20px 16px;
+  }
+
+  .overview-value {
+    font-size: 28px;
+  }
+
+  .overview-icon {
+    font-size: 24px;
+  }
+
+  .admin-btn {
+    width: 100%;
+    text-align: center;
+    padding: 12px;
+  }
+
+  .admin-table td div[style*="display: flex"] {
+    flex-direction: column;
+    width: 100%;
   }
 }
+
 
 .admin-card .prompt-input {
   background: var(--surface-2) !important;
@@ -274,4 +356,31 @@
 
 .qa-btn.primary:hover {
   background: var(--indigo);
+}
+
+.admin-filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 768px) {
+  .admin-filters-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media(max-width:768px) {
+  .topbar-greeting {
+    display: none;
+  }
+  .topbar {
+    padding: 0 16px;
+    height: 56px;
+    min-height: 56px;
+    background: var(--surface);
+  }
+  .sb-mobile-hd {
+    background: var(--indigo-dark);
+  }
 }

@@ -79,6 +79,10 @@ export async function PUT(req: Request) {
 
         // Update user role
         await client.query(`UPDATE users SET role = 'instructor' WHERE id = $1`, [user_id]);
+      } else {
+        const { user_id } = updateRes.rows[0];
+        // Demote back to learner on application rejection
+        await client.query(`UPDATE users SET role = 'learner' WHERE id = $1`, [user_id]);
       }
 
       await client.query('COMMIT');

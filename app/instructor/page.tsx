@@ -144,7 +144,7 @@ export default function InstructorDashboard() {
       <div className="shell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
         <div style={{ maxWidth: '600px', width: '100%', background: 'var(--surface)', padding: '40px', borderRadius: '24px', border: '1px solid var(--border-md)' }}>
           <h1 style={{ fontFamily: 'var(--font-d)', fontSize: '32px', fontWeight: 800, color: 'var(--ink)', marginBottom: '16px', letterSpacing: '-1px' }}>Apply to Teach</h1>
-          <p style={{ color: 'var(--text-3)', marginBottom: '32px' }}>Complete your profile to unlock the Creator Studio and start publishing courses to 40,000+ learners.</p>
+          <p style={{ color: 'var(--text-3)', marginBottom: '32px' }}>Complete your profile to unlock the Creator Studio and start publishing courses to 5,000+ learners.</p>
           
           <div style={{ marginBottom: '24px' }}>
             <label style={{ display: 'block', color: 'var(--text-2)', fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Bio / Experience</label>
@@ -171,6 +171,19 @@ export default function InstructorDashboard() {
           <div style={{ fontSize: '48px', marginBottom: '24px' }}>⏳</div>
           <h1 style={{ fontFamily: 'var(--font-d)', fontSize: '32px', fontWeight: 800, color: 'var(--ink)', marginBottom: '16px', letterSpacing: '-1px' }}>Application Pending Review</h1>
           <p style={{ color: 'var(--text-3)' }}>The platform administrators are currently reviewing your application. You will gain full access to the Creator Studio once approved.</p>
+          <button className="prompt-input" style={{ marginTop: '32px', border: '1px solid var(--border-md)', background: 'transparent' }} onClick={handleLogout}>Log Out</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (appStatus === 'rejected') {
+    return (
+      <div className="shell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+        <div style={{ maxWidth: '600px', width: '100%', background: 'var(--surface)', padding: '40px', borderRadius: '24px', border: '1px solid var(--border-md)', textAlign: 'center' }}>
+          <div style={{ fontSize: '48px', marginBottom: '24px' }}>❌</div>
+          <h1 style={{ fontFamily: 'var(--font-d)', fontSize: '32px', fontWeight: 800, color: 'var(--ink)', marginBottom: '16px', letterSpacing: '-1px' }}>Application Rejected</h1>
+          <p style={{ color: 'var(--text-3)' }}>Unfortunately, your application to teach has been rejected by the platform administrators. If you believe this is an error, please contact support.</p>
           <button className="prompt-input" style={{ marginTop: '32px', border: '1px solid var(--border-md)', background: 'transparent' }} onClick={handleLogout}>Log Out</button>
         </div>
       </div>
@@ -235,7 +248,7 @@ export default function InstructorDashboard() {
         {/* Topbar */}
         <div className="topbar">
           <div className="topbar-greeting">
-            Welcome back to the Studio, {user.firstName || 'Instructor'}! 🚀 Let's inspire learners today.
+            Welcome back to the Studio, {user.firstName || 'Instructor'}! 🚀 Let&apos;s inspire learners today.
           </div>
           <div className="topbar-right">
             <div className="topbar-notif">🔔<div className="notif-dot"></div></div>

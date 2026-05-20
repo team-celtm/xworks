@@ -524,9 +524,9 @@ export default function Home() {
       {/* ════ CATEGORIES STRIP ════ */}
       <div className="stats-strip">
         <div className="stats-strip-inner">
-          <div className="stats-strip-item"><div className="hero-stat-num">200<span>+</span></div><div className="hero-stat-label">Live workshops</div></div>
+          <div className="stats-strip-item"><div className="hero-stat-num">100<span>+</span></div><div className="hero-stat-label">Live workshops</div></div>
           <div className="stats-strip-divider"></div>
-          <div className="stats-strip-item"><div className="hero-stat-num">40<span>k+</span></div><div className="hero-stat-label">Learners</div></div>
+          <div className="stats-strip-item"><div className="hero-stat-num">5<span>k+</span></div><div className="hero-stat-label">Learners</div></div>
           <div className="stats-strip-divider"></div>
           <div className="stats-strip-item"><div className="hero-stat-num">9<span>+</span></div><div className="hero-stat-label">Categories</div></div>
           <div className="stats-strip-divider"></div>
@@ -660,7 +660,7 @@ export default function Home() {
           <div className="section-eyebrow">Simple as 1–2–3</div>
           <div className="section-title">How XWORKS works</div>
           <div className="steps-grid">
-            <div className="step-card"><div className="step-accent"></div><div className="step-num">01</div><div className="step-title">Discover your workshop</div><div className="step-desc">Browse 200+ curated workshops across 10 categories. Filter by interest, duration, or level.</div></div>
+            <div className="step-card"><div className="step-accent"></div><div className="step-num">01</div><div className="step-title">Discover your workshop</div><div className="step-desc">Browse 100+ curated workshops across 10 categories. Filter by interest, duration, or level.</div></div>
             <div className="step-card"><div className="step-accent"></div><div className="step-num">02</div><div className="step-title">Sign up & reserve your seat</div><div className="step-desc">One-click enrolment. Get instant confirmation with your calendar invite and prep materials.</div></div>
             <div className="step-card"><div className="step-accent"></div><div className="step-num">03</div><div className="step-title">Learn live from experts</div><div className="step-desc">Attend live sessions, ask questions in real-time, and walk away with a certificate.</div></div>
             <div className="step-card"><div className="step-accent"></div><div className="step-num">04</div><div className="step-title">Keep evolving</div><div className="step-desc">New workshops added every week. Build your learning streak and track your growth.</div></div>

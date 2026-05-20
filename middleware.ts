@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
+interface JWTPayload {
+  role?: string;
+  status?: string;
+}
+
 const SESSION_SECRET = new TextEncoder().encode(
   process.env.SESSION_SECRET || 'your-default-secret-change-me'
 );
@@ -29,8 +34,9 @@ export async function middleware(request: NextRequest) {
     try {
       // 2. Logged in -> Verify Token and Check Role
       const { payload } = await jwtVerify(accessToken, SESSION_SECRET);
-      const role = (payload as any).role;
-      const status = (payload as any).status;
+      const jwtPayload = payload as unknown as JWTPayload;
+      const role = jwtPayload.role;
+      const status = jwtPayload.status;
 
       // Check for suspended status
       if (status === 'suspended') {
@@ -63,7 +69,7 @@ export async function middleware(request: NextRequest) {
         }
       }
 
-    } catch (error) {
+    } catch {
       // 3. Invalid/Expired Token -> Clear and Redirect
       const response = NextResponse.redirect(new URL('/Login', request.url));
       response.cookies.delete('access_token');
@@ -78,10 +84,11 @@ export async function middleware(request: NextRequest) {
     if (accessToken) {
       try {
         const { payload } = await jwtVerify(accessToken, SESSION_SECRET);
-        const role = (payload as any).role;
+        const jwtPayload = payload as unknown as JWTPayload;
+        const role = jwtPayload.role;
         const target = role === 'admin' ? '/admin' : (role === 'instructor' ? '/instructor' : '/dashboard');
         return NextResponse.redirect(new URL(target, request.url));
-      } catch (e) {
+      } catch {
         // Token invalid, clear it and let them see the login page
         const response = NextResponse.next();
         response.cookies.delete('access_token');
