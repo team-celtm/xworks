@@ -11,6 +11,7 @@ export default function InstructorDashboard() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [appStatus, setAppStatus] = useState<string | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Application Form States
   const [bio, setBio] = useState('');
@@ -191,42 +192,46 @@ export default function InstructorDashboard() {
   }
 
   return (
-    <div className="shell">
+    <div className={`shell ${isMobileMenuOpen ? 'menu-open' : ''}`}>
       {/* ══════════════════════════
            INSTRUCTOR SIDEBAR (Left)
-      ══════════════════════════ */}
-      <aside className="sidebar">
-        <Link href="/" className="sb-logo" style={{ textDecoration: 'none' }}>
-          <div className="sb-logo-bars">
-            <div className="sb-logo-bar"></div>
-            <div className="sb-logo-bar"></div>
-          </div>
-          <span className="sb-logo-name">X<span className="works-text">WORKS</span></span>
-        </Link>
-
-        <div className="sb-user">
-          <div className="sb-avatar">
-            {user ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase() : "..."}
-          </div>
-          <div>
-            <div className="sb-user-name">{user ? `${user.firstName} ${user.lastName}` : "Loading..."}</div>
-            <div className="sb-user-tag">Instructor Portal</div>
+       ══════════════════════════ */}
+      <aside className={`sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
+        <div className="sb-mobile-hd">
+          <button className="sb-menu-btn" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+            {isMobileMenuOpen ? '✕' : '☰'}
+          </button>
+          <Link href="/" className="sb-logo" style={{ textDecoration: 'none' }}>
+            <div className="sb-logo-bars">
+              <div className="sb-logo-bar"></div>
+              <div className="sb-logo-bar"></div>
+            </div>
+            <span className="sb-logo-name">X<span className="works-text">WORKS</span></span>
+          </Link>
+          <div className="sb-user">
+            <div className="sb-avatar">
+              {user ? `${user.firstName?.[0] || ""}${user.lastName?.[0] || ""}`.toUpperCase() : "..."}
+            </div>
+            <div className="sb-user-info-mob">
+              <div className="sb-user-name">{user ? `${user.firstName} ${user.lastName}` : "Loading..."}</div>
+              <div className="sb-user-tag">Instructor Portal</div>
+            </div>
           </div>
         </div>
 
         <nav className="sb-nav">
           <div className="sb-section-label">Creator Studio</div>
-          <button className={`sb-item ${activeView === "inst_courses" ? "active" : ""}`} onClick={() => setActiveView("inst_courses")}>
+          <button className={`sb-item ${activeView === "inst_courses" ? "active" : ""}`} onClick={() => { setActiveView("inst_courses"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">🎬</span>
             <span className="sb-item-label">My Courses</span>
           </button>
           
-          <button className={`sb-item ${activeView === "inst_sessions" ? "active" : ""}`} onClick={() => setActiveView("inst_sessions")}>
+          <button className={`sb-item ${activeView === "inst_sessions" ? "active" : ""}`} onClick={() => { setActiveView("inst_sessions"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">📅</span>
             <span className="sb-item-label">Live Sessions</span>
           </button>
           
-          <button className={`sb-item ${activeView === "inst_earnings" ? "active" : ""}`} onClick={() => setActiveView("inst_earnings")}>
+          <button className={`sb-item ${activeView === "inst_earnings" ? "active" : ""}`} onClick={() => { setActiveView("inst_earnings"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">💰</span>
             <span className="sb-item-label">Earnings & Payouts</span>
           </button>
@@ -263,8 +268,8 @@ export default function InstructorDashboard() {
               <div className="section-title" style={{ fontFamily: "var(--font-d)", fontSize: "22px", fontWeight: 800, letterSpacing: "-0.5px", marginBottom: "24px" }}>
                 Course Management
               </div>
-              <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)', marginBottom: '24px' }}>
-                <p style={{ color: 'var(--text-3)', marginBottom: '20px' }}>Upload a new course as a draft.</p>
+              <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)', marginBottom: '24px', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '16px' }}>
+                <p style={{ color: 'var(--text-3)', marginBottom: '4px' }}>Upload a new course as a draft.</p>
                 <form 
                   onSubmit={async (e) => { 
                     e.preventDefault(); 
@@ -315,7 +320,7 @@ export default function InstructorDashboard() {
                 </form>
               </div>
 
-              <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>
+              <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
                 <h3 style={{ color: 'var(--ink)', marginBottom: '16px', fontSize: '16px' }}>Your Courses</h3>
                 {courses.length === 0 ? <p style={{color:'var(--text-3)'}}>You have not created any courses yet.</p> : (
                 <div style={{ overflowX: 'auto' }}>
@@ -360,14 +365,14 @@ export default function InstructorDashboard() {
               {sessions.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   {sessions.map(s => (
-                    <div key={s.sessionId} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--surface)', padding: '24px', borderRadius: '16px', border: '1px solid var(--border-md)' }}>
+                    <div key={s.sessionId} className="session-row">
                       <div>
                         <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: 'var(--ink)' }}>{s.sessionTitle}</h3>
                         <div style={{ color: 'var(--text-3)', fontSize: '14px' }}>
                           {s.courseName} • {new Date(s.scheduledStart).toLocaleString()} • {s.registrantCount} learners registered
                         </div>
                       </div>
-                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                      <div className="session-actions">
                         {s.sessionStatus === 'cancelled' ? (
                           <span style={{ padding: '8px 16px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '100px', fontWeight: 600, fontSize: '13px' }}>
                             Cancelled
