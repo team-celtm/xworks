@@ -5,6 +5,8 @@
   --surface:#FFFFFF;--bg:#F5F6FF;
   --border:rgba(55,48,163,0.10);--border-md:rgba(55,48,163,0.18);
   --text:#1E1B4B;--text-2:#4B5080;--text-3:#9294B8;
+  --font-display: var(--fd);
+  --font-body: var(--fb);
 }
 
 html,body{min-height:100%;font-family:var(--fb)}
