@@ -344,6 +344,9 @@ function CatalogueContent() {
     if (!enrolData.id) return;
 
     setLoading(true);
+    setEnrolStep(5); // Show processing screen
+    setPromoError('Initializing payment gateway...');
+
     try {
       // If it's a paid course, start Razorpay flow
       if (enrolData.finalPrice && enrolData.finalPrice > 0) {
@@ -366,6 +369,7 @@ function CatalogueContent() {
             return;
           }
           setPromoError(orderData.error || 'Could not create payment order');
+          setEnrolStep(6);
           setLoading(false);
           return;
         }
@@ -379,47 +383,65 @@ function CatalogueContent() {
           order_id: orderData.orderId,
           handler: async (response: any) => {
             setLoading(true);
-            const verifyRes = await fetch('/api/payments/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                courseId: enrolData.id,
-                promoCode: promoApplied ? promoCode : null,
-                format: enrolData.format,
-                sessionId: enrolData.selectedSessionId
-              })
-            });
-            const verifyData = await verifyRes.json();
-            if (verifyRes.ok) {
-              setModalEnrolmentId(verifyData.enrolmentId);
+            setEnrolStep(5);
+            setPromoError('Verifying your payment securely...');
 
-              // NEW: Session Registration
-              if (enrolData.format === 'live' && enrolData.selectedSessionId) {
-                await fetch(`/api/sessions/${enrolData.selectedSessionId}/register`, { method: 'POST' });
+            try {
+              const verifyRes = await fetch('/api/payments/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  courseId: enrolData.id,
+                  promoCode: promoApplied ? promoCode : null,
+                  format: enrolData.format,
+                  sessionId: enrolData.selectedSessionId
+                })
+              });
+              const verifyData = await verifyRes.json();
+              if (verifyRes.ok) {
+                setModalEnrolmentId(verifyData.enrolmentId);
+
+                // NEW: Session Registration
+                if (enrolData.format === 'live' && enrolData.selectedSessionId) {
+                  await fetch(`/api/sessions/${enrolData.selectedSessionId}/register`, { method: 'POST' });
+                }
+
+                setEnrolStep(4); // Success step
+              } else {
+                setPromoError(verifyData.error || 'Payment verification failed');
+                setEnrolStep(6); // Failed step
               }
-
-              setEnrolStep(4);
-            } else {
-              alert(verifyData.error || 'Payment verification failed');
+            } catch (vErr: any) {
+              setPromoError(vErr.message || 'Verification connection failed');
+              setEnrolStep(6);
+            } finally {
+              setLoading(false);
             }
-            setLoading(false);
           },
           prefill: {
             name: '',
             email: '',
           },
-          theme: { color: '#4F46E5' }
+          theme: { color: '#4F46E5' },
+          modal: {
+            ondismiss: () => {
+              setLoading(false);
+              setPromoError('Payment checkout was closed.');
+              setEnrolStep(6); // Cancelled step
+            }
+          }
         };
 
         const rzp = new window.Razorpay(options);
         rzp.open();
-        setLoading(false);
         return;
       }
 
+      // Free Course Enrolment Flow
+      setPromoError('Creating free enrolment...');
       const res = await fetch('/api/learner/enrolments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -443,13 +465,15 @@ function CatalogueContent() {
           await fetch(`/api/sessions/${enrolData.selectedSessionId}/register`, { method: 'POST' });
         }
 
-        setEnrolStep(4);
+        setEnrolStep(4); // Success step
       } else {
-        alert(data.error || 'Failed to enrol');
+        setPromoError(data.error || 'Failed to enrol');
+        setEnrolStep(6);
       }
     } catch (err: any) {
       console.error('Enrol failed:', err);
-      alert(err.message || 'An error occurred during enrolment');
+      setPromoError(err.message || 'An error occurred during enrolment');
+      setEnrolStep(6);
     } finally {
       setLoading(false);
     }
@@ -1033,30 +1057,82 @@ function CatalogueContent() {
 
             {/* STEP 4: CONFIRMATION */}
             {enrolStep === 4 && (
-              <div className="enrol-success">
-                <div className="enrol-success-icon">✅</div>
-                <div className="enrol-success-badge">Booking confirmed</div>
-                <div className="enrol-success-title">You&apos;re enrolled!</div>
-                <div className="enrol-success-sub">Your seat is reserved. A calendar invite and Zoom link have been sent to your email.</div>
-                <div className="enrol-confirm-card">
-                  <div className="enrol-confirm-row"><span className="enrol-confirm-label">Workshop</span><span className="enrol-confirm-val">{enrolData.name}</span></div>
-                  <div className="enrol-confirm-row"><span className="enrol-confirm-label">Date & time</span><span className="enrol-confirm-val">{enrolData.date} · {enrolData.time}</span></div>
-                  <div className="enrol-confirm-row"><span className="enrol-confirm-label">Format</span><span className="enrol-confirm-val">{enrolData.format === 'live' ? 'Live · Zoom' : enrolData.format === 'recorded' ? 'Recorded · Watch anytime' : 'In-person · Venue confirmed'}</span></div>
-                  <div className="enrol-confirm-row"><span className="enrol-confirm-label">Amount paid</span><span className="enrol-confirm-val" style={{ color: '#3730A3' }}>₹{(enrolData.finalPrice || 0).toLocaleString('en-IN')}</span></div>
+              <div>
+                <div className="enrol-success">
+                  <div className="enrol-status-container">
+                    <div className="status-icon-box">
+                      <svg className="checkmark-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                        <circle className="checkmark-circle" cx="26" cy="26" r="25" fill="none" />
+                        <path className="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+                      </svg>
+                    </div>
+                    <div className="enrol-success-badge">Booking confirmed</div>
+                    <div className="enrol-success-title">You're enrolled!</div>
+                    <div className="enrol-success-sub">Your seat is reserved. A calendar invite and Zoom link have been sent to your email.</div>
+                  </div>
+                  <div className="enrol-confirm-card">
+                    <div className="enrol-confirm-row"><span className="enrol-confirm-label">Workshop</span><span className="enrol-confirm-val">{enrolData.name}</span></div>
+                    <div className="enrol-confirm-row"><span className="enrol-confirm-label">Date & time</span><span className="enrol-confirm-val">{enrolData.date} · {enrolData.time}</span></div>
+                    <div className="enrol-confirm-row"><span className="enrol-confirm-label">Format</span><span className="enrol-confirm-val">{enrolData.format === 'live' ? 'Live · Zoom' : enrolData.format === 'recorded' ? 'Recorded · Watch anytime' : 'In-person · Venue confirmed'}</span></div>
+                    <div className="enrol-confirm-row"><span className="enrol-confirm-label">Amount paid</span><span className="enrol-confirm-val" style={{ color: '#3730A3' }}>₹{(enrolData.finalPrice || 0).toLocaleString('en-IN')}</span></div>
+                  </div>
+                  <div className="enrol-success-btns">
+                    <button className="enrol-success-btn" onClick={closeEnrol}>Close</button>
+                    <button
+                      className="enrol-success-btn primary"
+                      onClick={() => {
+                        closeEnrol();
+                        if (modalEnrolmentId) router.push(`/player/${modalEnrolmentId}`);
+                        else router.push(user?.role === 'admin' ? '/admin' : '/dashboard/enrolments');
+                      }}
+                    >
+                      Start Learning →
+                    </button>
+                  </div>
                 </div>
-                <div className="enrol-success-btns">
-                  <button className="enrol-success-btn" onClick={closeEnrol}>Close</button>
-                  <button
-                    className="enrol-success-btn primary"
-                    onClick={() => {
-                      closeEnrol();
-                      if (modalEnrolmentId) router.push(`/player/${modalEnrolmentId}`);
-                      else router.push('/dashboard/enrolments');
-                    }}
-                  >
-                    {modalEnrolmentId ? 'Start Learning →' : 'Go to dashboard →'}
-                  </button>
+              </div>
+            )}
+
+            {enrolStep === 5 && (
+              <div className="enrol-status-container" style={{ padding: '60px 24px' }}>
+                <div className="status-icon-box">
+                  <div className="status-spinner"></div>
                 </div>
+                <div className="status-title">{promoError || 'Processing Payment'}</div>
+                <div className="status-desc">Please do not close this window or refresh the page while we secure your enrolment.</div>
+              </div>
+            )}
+
+            {enrolStep === 6 && (
+              <div className="enrol-status-container" style={{ padding: '50px 24px' }}>
+                <div className="status-icon-box">
+                  <svg className="cross-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                    <circle className="cross-circle" cx="26" cy="26" r="25" fill="none" />
+                    <path className="cross-line1" fill="none" d="M16 16l20 20" />
+                    <path className="cross-line2" fill="none" d="M36 16L16 36" />
+                  </svg>
+                </div>
+                <div className="status-title">Payment Cancelled or Failed</div>
+                <div className="status-desc">{promoError || 'The payment transaction could not be completed. Please check your connection and try again.'}</div>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                  <button className="status-btn" onClick={() => { setPromoError(''); setEnrolStep(3); }}>Try Again</button>
+                  <button className="status-btn secondary" onClick={closeEnrol}>Close</button>
+                </div>
+              </div>
+            )}
+
+            {enrolStep === 7 && (
+              <div className="enrol-status-container" style={{ padding: '50px 24px' }}>
+                <div className="status-icon-box">
+                  <svg className="pending-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                    <circle className="pending-circle" cx="26" cy="26" r="25" fill="none" />
+                    <path className="pending-dash" fill="none" strokeLinecap="round" strokeWidth="4" d="M26 14v20" />
+                    <circle className="pending-dot" cx="26" cy="40" r="2" fill="#F59E0B" />
+                  </svg>
+                </div>
+                <div className="status-title">Verification Pending</div>
+                <div className="status-desc">We are verifying your transaction with the payment gateway. You can check your status in your dashboard shortly.</div>
+                <button className="status-btn" onClick={closeEnrol}>Close & Check Dashboard</button>
               </div>
             )}
 

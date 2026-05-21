@@ -720,8 +720,12 @@ export default function DashboardPage() {
         return;
       }
 
+      setEnrolStep(5); // Show processing screen
+      setPromoOk({ text: 'Initializing payment gateway...', color: "#1E1B4B", show: true });
+
       // 0. Handle Free Course / 100% Discount Case
       if (enrolData.finalPrice === 0) {
+        setPromoOk({ text: 'Creating free enrolment...', color: "#1E1B4B", show: true });
         const freeRes = await fetch("/api/enrolments", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -754,7 +758,11 @@ export default function DashboardPage() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to initiate payment");
+      if (!res.ok) {
+        setPromoOk({ text: data.error || 'Could not create payment order', color: "#D84040", show: true });
+        setEnrolStep(6);
+        return;
+      }
 
       const options = {
         key: data.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
@@ -764,6 +772,8 @@ export default function DashboardPage() {
         description: `Enrollment for ${enrolData.name}`,
         order_id: data.orderId,
         handler: async function (response: any) {
+          setEnrolStep(5);
+          setPromoOk({ text: 'Verifying your payment securely...', color: "#1E1B4B", show: true });
           try {
             const verifyRes = await fetch("/api/payments/verify", {
               method: "POST",
@@ -784,11 +794,13 @@ export default function DashboardPage() {
               fetchSessions();
             } else {
               const vData = await verifyRes.json();
-              alert(vData.error || "Payment verification failed");
+              setPromoOk({ text: vData.error || 'Payment verification failed', color: "#D84040", show: true });
+              setEnrolStep(6);
             }
-          } catch (vErr) {
+          } catch (vErr: any) {
             console.error("Verification error:", vErr);
-            alert("Connection error during verification");
+            setPromoOk({ text: vErr.message || 'Verification connection failed', color: "#D84040", show: true });
+            setEnrolStep(6);
           }
         },
         prefill: {
@@ -796,15 +808,22 @@ export default function DashboardPage() {
           email: user.email,
         },
         theme: {
-          color: "#3730A3",
+          color: "#4F46E5",
         },
+        modal: {
+          ondismiss: () => {
+            setPromoOk({ text: 'Payment checkout was closed.', color: "#D84040", show: true });
+            setEnrolStep(6); // Cancelled step
+          }
+        }
       };
 
       const rzp = new (window as any).Razorpay(options);
       rzp.open();
 
     } catch (err: any) {
-      alert(err.message);
+      setPromoOk({ text: err.message || 'An error occurred', color: "#D84040", show: true });
+      setEnrolStep(6);
     }
   };
 
@@ -2132,10 +2151,17 @@ export default function DashboardPage() {
             {enrolStep === 4 && (
               <div>
                 <div className="enrol-success">
-                  <div className="enrol-success-icon">✅</div>
-                  <div className="enrol-success-badge">Booking confirmed</div>
-                  <div className="enrol-success-title">You&apos;re enrolled!</div>
-                  <div className="enrol-success-sub">Your seat is reserved. A calendar invite and Zoom link have been sent to your email.</div>
+                  <div className="enrol-status-container">
+                    <div className="status-icon-box">
+                      <svg className="checkmark-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                        <circle className="checkmark-circle" cx="26" cy="26" r="25" fill="none" />
+                        <path className="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+                      </svg>
+                    </div>
+                    <div className="enrol-success-badge">Booking confirmed</div>
+                    <div className="enrol-success-title">You're enrolled!</div>
+                    <div className="enrol-success-sub">Your seat is reserved. A calendar invite and Zoom link have been sent to your email.</div>
+                  </div>
                   <div className="enrol-confirm-card">
                     <div className="enrol-confirm-row"><span className="enrol-confirm-label">Workshop</span><span className="enrol-confirm-val">{enrolData.name as string}</span></div>
                     <div className="enrol-confirm-row"><span className="enrol-confirm-label">Date & time</span><span className="enrol-confirm-val">{enrolData.date as string} · {enrolData.time as string}</span></div>
@@ -2150,6 +2176,49 @@ export default function DashboardPage() {
                     <button className="enrol-success-btn primary" onClick={() => { closeEnrol(); setActiveView("upcoming"); }}>Go to dashboard →</button>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {enrolStep === 5 && (
+              <div className="enrol-status-container" style={{ padding: '60px 24px' }}>
+                <div className="status-icon-box">
+                  <div className="status-spinner"></div>
+                </div>
+                <div className="status-title">{promoOk.text || 'Processing Payment'}</div>
+                <div className="status-desc">Please do not close this window or refresh the page while we secure your enrolment.</div>
+              </div>
+            )}
+
+            {enrolStep === 6 && (
+              <div className="enrol-status-container" style={{ padding: '50px 24px' }}>
+                <div className="status-icon-box">
+                  <svg className="cross-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                    <circle className="cross-circle" cx="26" cy="26" r="25" fill="none" />
+                    <path className="cross-line1" fill="none" d="M16 16l20 20" />
+                    <path className="cross-line2" fill="none" d="M36 16L16 36" />
+                  </svg>
+                </div>
+                <div className="status-title">Payment Cancelled or Failed</div>
+                <div className="status-desc">{promoOk.text || 'The payment transaction could not be completed. Please check your connection and try again.'}</div>
+                <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                  <button className="status-btn" onClick={() => { setPromoOk({ text: '', color: '', show: false }); setEnrolStep(3); }}>Try Again</button>
+                  <button className="status-btn secondary" onClick={closeEnrol}>Close</button>
+                </div>
+              </div>
+            )}
+
+            {enrolStep === 7 && (
+              <div className="enrol-status-container" style={{ padding: '50px 24px' }}>
+                <div className="status-icon-box">
+                  <svg className="pending-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                    <circle className="pending-circle" cx="26" cy="26" r="25" fill="none" />
+                    <path className="pending-dash" fill="none" strokeLinecap="round" strokeWidth="4" d="M26 14v20" />
+                    <circle className="pending-dot" cx="26" cy="40" r="2" fill="#F59E0B" />
+                  </svg>
+                </div>
+                <div className="status-title">Verification Pending</div>
+                <div className="status-desc">We are verifying your transaction with the payment gateway. You can check your status in your dashboard shortly.</div>
+                <button className="status-btn" onClick={closeEnrol}>Close & Check Dashboard</button>
               </div>
             )}
           </div>

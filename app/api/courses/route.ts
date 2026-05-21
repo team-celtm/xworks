@@ -53,6 +53,7 @@ export async function GET(req: NextRequest) {
     let orderBy = 'c.name ASC';
     if (query) orderBy = 'rank DESC, ' + orderBy;
     else if (sort === 'best') orderBy = 'c.rating DESC, ' + orderBy;
+    else if (sort === 'new') orderBy = 'c.created_at DESC, ' + orderBy;
 
     let sql = `
       ${select}

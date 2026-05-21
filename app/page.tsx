@@ -331,6 +331,9 @@ export default function Home() {
     if (!enrolData.id) return;
 
     setIsEnrolling(true);
+    enrolGoStep(5); // Show processing screen
+    setPromoMsg({ text: 'Initializing payment gateway...', type: 'info' });
+
     try {
       // If it's a paid course, start Razorpay flow
       if (enrolData.finalPrice && enrolData.finalPrice > 0) {
@@ -353,6 +356,7 @@ export default function Home() {
             return;
           }
           setPromoMsg({ text: orderData.error || 'Could not create payment order', type: 'error' });
+          enrolGoStep(6);
           setIsEnrolling(false);
           return;
         }
@@ -366,26 +370,36 @@ export default function Home() {
           order_id: orderData.orderId,
           handler: async (response: any) => {
             setIsEnrolling(true);
-            const verifyRes = await fetch('/api/payments/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                courseId: enrolData.id,
-                promoCode: enrolData.promoApplied ? promoCode : null,
-                sessionId: enrolData.selectedSessionId
-              })
-            });
-            const verifyData = await verifyRes.json();
-            if (verifyRes.ok) {
-              setEnrolData(prev => ({ ...prev, enrolmentId: verifyData.enrolmentId }));
-              enrolGoStep(4);
-            } else {
-              setPromoMsg({ text: verifyData.error || 'Payment verification failed', type: 'error' });
+            enrolGoStep(5);
+            setPromoMsg({ text: 'Verifying your payment securely...', type: 'info' });
+
+            try {
+              const verifyRes = await fetch('/api/payments/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  courseId: enrolData.id,
+                  promoCode: enrolData.promoApplied ? promoCode : null,
+                  sessionId: enrolData.selectedSessionId
+                })
+              });
+              const verifyData = await verifyRes.json();
+              if (verifyRes.ok) {
+                setEnrolData(prev => ({ ...prev, enrolmentId: verifyData.enrolmentId }));
+                enrolGoStep(4); // Success step
+              } else {
+                setPromoMsg({ text: verifyData.error || 'Payment verification failed', type: 'error' });
+                enrolGoStep(6); // Failed step
+              }
+            } catch (vErr: any) {
+              setPromoMsg({ text: vErr.message || 'Verification connection failed', type: 'error' });
+              enrolGoStep(6);
+            } finally {
+              setIsEnrolling(false);
             }
-            setIsEnrolling(false);
           },
           prefill: {
             name: '',
@@ -393,7 +407,11 @@ export default function Home() {
           },
           theme: { color: '#4F46E5' },
           modal: {
-            ondismiss: () => setIsEnrolling(false)
+            ondismiss: () => {
+              setIsEnrolling(false);
+              setPromoMsg({ text: 'Payment checkout was closed.', type: 'error' });
+              enrolGoStep(6); // Cancelled step
+            }
           }
         };
 
@@ -402,6 +420,8 @@ export default function Home() {
         return;
       }
 
+      // Free Course Enrolment Flow
+      setPromoMsg({ text: 'Creating free enrolment...', type: 'info' });
       const res = await fetch('/api/learner/enrolments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -425,13 +445,15 @@ export default function Home() {
           await fetch(`/api/sessions/${enrolData.selectedSessionId}/register`, { method: 'POST' });
         }
 
-        enrolGoStep(4);
+        enrolGoStep(4); // Success step
       } else {
         setPromoMsg({ text: data.error || 'Failed to enrol', type: 'error' });
+        enrolGoStep(6);
       }
     } catch (err: any) {
       console.error('Enrol failed:', err);
-      setPromoMsg({ text: err.message || 'An error occurred', type: 'error' });
+      setPromoMsg({ text: err.message || 'An error occurred during enrolment', type: 'error' });
+      enrolGoStep(6);
     } finally {
       setIsEnrolling(false);
     }
@@ -1140,10 +1162,17 @@ export default function Home() {
           {enrolData.step === 4 && (
             <div>
               <div className="enrol-success">
-                <div className="enrol-success-icon">✅</div>
-                <div className="enrol-success-badge">Booking confirmed</div>
-                <div className="enrol-success-title">You're enrolled!</div>
-                <div className="enrol-success-sub">Your seat is reserved. A calendar invite and Zoom link have been sent to your email.</div>
+                <div className="enrol-status-container">
+                  <div className="status-icon-box">
+                    <svg className="checkmark-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                      <circle className="checkmark-circle" cx="26" cy="26" r="25" fill="none" />
+                      <path className="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+                    </svg>
+                  </div>
+                  <div className="enrol-success-badge">Booking confirmed</div>
+                  <div className="enrol-success-title">You're enrolled!</div>
+                  <div className="enrol-success-sub">Your seat is reserved. A calendar invite and Zoom link have been sent to your email.</div>
+                </div>
                 <div className="enrol-confirm-card">
                   <div className="enrol-confirm-row"><span className="enrol-confirm-label">Workshop</span><span className="enrol-confirm-val">{enrolData.name}</span></div>
                   <div className="enrol-confirm-row"><span className="enrol-confirm-label">Date & time</span><span className="enrol-confirm-val">{enrolData.date} · {enrolData.time}</span></div>
@@ -1164,6 +1193,49 @@ export default function Home() {
                   </button>
                 </div>
               </div>
+            </div>
+          )}
+
+          {enrolData.step === 5 && (
+            <div className="enrol-status-container" style={{ padding: '60px 24px' }}>
+              <div className="status-icon-box">
+                <div className="status-spinner"></div>
+              </div>
+              <div className="status-title">{promoMsg.text || 'Processing Payment'}</div>
+              <div className="status-desc">Please do not close this window or refresh the page while we secure your enrolment.</div>
+            </div>
+          )}
+
+          {enrolData.step === 6 && (
+            <div className="enrol-status-container" style={{ padding: '50px 24px' }}>
+              <div className="status-icon-box">
+                <svg className="cross-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                  <circle className="cross-circle" cx="26" cy="26" r="25" fill="none" />
+                  <path className="cross-line1" fill="none" d="M16 16l20 20" />
+                  <path className="cross-line2" fill="none" d="M36 16L16 36" />
+                </svg>
+              </div>
+              <div className="status-title">Payment Cancelled or Failed</div>
+              <div className="status-desc">{promoMsg.type === 'error' ? promoMsg.text : 'The payment transaction could not be completed. Please check your connection and try again.'}</div>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                <button className="status-btn" onClick={() => { setPromoMsg({ text: '', type: '' }); enrolGoStep(3); }}>Try Again</button>
+                <button className="status-btn secondary" onClick={closeEnrol}>Close</button>
+              </div>
+            </div>
+          )}
+
+          {enrolData.step === 7 && (
+            <div className="enrol-status-container" style={{ padding: '50px 24px' }}>
+              <div className="status-icon-box">
+                <svg className="pending-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
+                  <circle className="pending-circle" cx="26" cy="26" r="25" fill="none" />
+                  <path className="pending-dash" fill="none" strokeLinecap="round" strokeWidth="4" d="M26 14v20" />
+                  <circle className="pending-dot" cx="26" cy="40" r="2" fill="#F59E0B" />
+                </svg>
+              </div>
+              <div className="status-title">Verification Pending</div>
+              <div className="status-desc">We are verifying your transaction with the payment gateway. You can check your status in your dashboard shortly.</div>
+              <button className="status-btn" onClick={closeEnrol}>Close & Check Dashboard</button>
             </div>
           )}
         </div>
