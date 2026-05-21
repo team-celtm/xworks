@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import crypto from 'crypto';
 import { jwtVerify } from 'jose';
+import Razorpay from 'razorpay';
 
 const SESSION_SECRET = process.env.SESSION_SECRET || 'your-default-secret-change-me';
 const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
+const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,6 +33,23 @@ export async function POST(req: NextRequest) {
         paymentId: razorpay_payment_id
       });
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+    }
+
+    // 1.5 Fetch Razorpay order and verify course match (Loophole Fix)
+    const razorpay = new Razorpay({
+      key_id: RAZORPAY_KEY_ID!,
+      key_secret: RAZORPAY_KEY_SECRET!,
+    });
+
+    const order = await razorpay.orders.fetch(razorpay_order_id);
+    const actualCourseId = (order as any).notes?.courseId;
+
+    if (actualCourseId !== courseId) {
+      console.error('Payment loophole attempt detected: courseId mismatch', {
+        requestedCourseId: courseId,
+        actualCourseId
+      });
+      return NextResponse.json({ error: 'Order course mismatch detected' }, { status: 400 });
     }
 
     // 2. Check if already enrolled
