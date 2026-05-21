@@ -6,6 +6,7 @@ import './home.css';
 import { SUBJECTS, CAT_DATA } from './data';
 import Footer from './components/Footer';
 import Logo from './components/Logo';
+import AlertModal from './components/AlertModal';
 
 const triggerPromoConfetti = (elementId: string) => {
   const anchor = document.getElementById(elementId);
@@ -101,6 +102,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
   const [userLoading, setUserLoading] = useState(true);
+  const [alertOpen, setAlertOpen] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -277,7 +279,7 @@ export default function Home() {
   // Enrol Modal
   const openEnrol = (id: string | number, name: string, meta: string, price: string, thumbBg: string, thumbEmoji: string) => {
     if (user && (user.role === 'admin' || user.role === 'instructor')) {
-      alert('Administrators and Instructors are not allowed to enrol in or make payments for courses.');
+      setAlertOpen(true);
       return;
     }
     const basePrice = parseInt(price.replace(/[^0-9]/g, '')) || 0;
@@ -1245,6 +1247,12 @@ export default function Home() {
         </div>
       </div>
       )}
+      <AlertModal
+        isOpen={alertOpen}
+        onClose={() => setAlertOpen(false)}
+        title="Access Restricted"
+        message="Administrators and Instructors are not allowed to enrol in or make payments for courses."
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Logo from '../../components/Logo';
 import '../../catalogue/catalogue.css';
+import AlertModal from '../../components/AlertModal';
 
 declare global {
   interface Window {
@@ -59,6 +60,7 @@ export default function CourseDetailPage() {
   const [success, setSuccess] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [userLoading, setUserLoading] = useState(true);
+  const [alertOpen, setAlertOpen] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
 
@@ -131,7 +133,7 @@ export default function CourseDetailPage() {
   const handleEnrol = async () => {
     if (!course) return;
     if (user && (user.role === 'admin' || user.role === 'instructor')) {
-      alert('Administrators and Instructors are not allowed to enrol in or make payments for courses.');
+      setAlertOpen(true);
       return;
     }
     if (course.live && !selectedSessionId && sessions.length > 0) {
@@ -1004,6 +1006,12 @@ export default function CourseDetailPage() {
           }
         `}</style>
       </div>
+      <AlertModal
+        isOpen={alertOpen}
+        onClose={() => setAlertOpen(false)}
+        title="Access Restricted"
+        message="Administrators and Instructors are not allowed to enrol in or make payments for courses."
+      />
     </div>
   );
 }

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import './catalogue.css';
 import Logo from '../components/Logo';
+import AlertModal from '../components/AlertModal';
 
 declare global {
   interface Window {
@@ -122,6 +123,7 @@ function CatalogueContent() {
   const [isNavigating, setIsNavigating] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [userLoading, setUserLoading] = useState(true);
+  const [alertOpen, setAlertOpen] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -261,7 +263,7 @@ function CatalogueContent() {
 
   const openEnrol = async (w: Workshop) => {
     if (user && (user.role === 'admin' || user.role === 'instructor')) {
-      alert('Administrators and Instructors are not allowed to enrol in or make payments for courses.');
+      setAlertOpen(true);
       return;
     }
     const basePrice = Number(w.price) || 0;
@@ -1143,6 +1145,12 @@ function CatalogueContent() {
           </div>
         </div>
       )}
+      <AlertModal
+        isOpen={alertOpen}
+        onClose={() => setAlertOpen(false)}
+        title="Access Restricted"
+        message="Administrators and Instructors are not allowed to enrol in or make payments for courses."
+      />
     </div>
   );
 }

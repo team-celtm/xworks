@@ -7,6 +7,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Logo from "../components/Logo";
 import RoleTransitionOverlay from "../components/RoleTransitionOverlay";
+import AlertModal from "../components/AlertModal";
 
 const triggerPromoConfetti = (elementId: string) => {
   const anchor = document.getElementById(elementId);
@@ -117,6 +118,7 @@ export default function DashboardPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [alertOpen, setAlertOpen] = useState(false);
 
   // Enrol modal state
   const [enrolModalOpen, setEnrolModalOpen] = useState(false);
@@ -596,7 +598,7 @@ export default function DashboardPage() {
 
   const openEnrol = async (w: Workshop) => {
     if (user && (user.role === 'admin' || user.role === 'instructor')) {
-      alert('Administrators and Instructors are not allowed to enrol in or make payments for courses.');
+      setAlertOpen(true);
       return;
     }
     const basePrice = Number(w.price) || 0;
@@ -724,7 +726,7 @@ export default function DashboardPage() {
         return;
       }
       if (user.role === 'admin' || user.role === 'instructor') {
-        alert('Administrators and Instructors are not allowed to enrol in or make payments for courses.');
+        setAlertOpen(true);
         return;
       }
 
@@ -2305,6 +2307,12 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+      <AlertModal
+        isOpen={alertOpen}
+        onClose={() => setAlertOpen(false)}
+        title="Access Restricted"
+        message="Administrators and Instructors are not allowed to enrol in or make payments for courses."
+      />
     </div>
   );
 }
