@@ -1,11 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
-  <circle cx="16" cy="16" r="15" fill="#1E1B4B" stroke="#FB923C" stroke-width="1.5"/>
-  <g transform="translate(5, 5)">
-    <!-- Sleek X in white -->
-    <path d="M3 4 L9 18" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
-    <path d="M9 4 L3 18" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round"/>
-    <!-- Accenting Coral bars -->
-    <rect x="13" y="8" width="9" height="2.5" rx="1.25" fill="#FB923C"/>
-    <rect x="13" y="13" width="6" height="2.5" rx="1.25" fill="#FB923C" opacity="0.8"/>
-  </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3b2cc4" />
+      <stop offset="100%" stop-color="#241697" />
+    </linearGradient>
+  </defs>
+  <!-- Rounded square background -->
+  <rect x="0" y="0" width="100" height="100" rx="25" fill="url(#bg-grad)" />
+  <!-- Two orange horizontal bars -->
+  <rect x="26" y="44.5" width="48" height="3.5" fill="#FF9500" />
+  <rect x="26" y="52" width="36" height="3.5" fill="#FF9500" />
 </svg>
