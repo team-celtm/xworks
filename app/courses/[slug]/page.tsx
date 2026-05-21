@@ -60,6 +60,7 @@ export default function CourseDetailPage() {
   const [user, setUser] = useState<any>(null);
   const [userLoading, setUserLoading] = useState(true);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
+  const [avatarFailed, setAvatarFailed] = useState(false);
 
   useEffect(() => {
     if (course) {
@@ -243,7 +244,7 @@ export default function CourseDetailPage() {
 
   return (
     <div className="catalogue-wrapper">
-      <div className="detail-page" style={{ background: 'var(--surface-2)', minHeight: '100vh', overflowY: 'auto' }}>
+      <div className="detail-page">
         <nav className="nav">
           <Logo />
         {/* Mobile Toggle */}
@@ -274,8 +275,12 @@ export default function CourseDetailPage() {
           <div className="detail-grid">
 
             <div className="detail-left">
-              <div className="crumb" style={{ fontSize: '13px', color: 'var(--text-3)', marginBottom: '16px' }}>
-                Workshops / <Link href={`/catalogue?cat=${course.categorySlug}`} style={{ color: 'var(--indigo)', textDecoration: 'none' }}>{course.categoryName}</Link> / {course.name}
+              <div className="crumb">
+                <Link href="/catalogue">Workshops</Link>
+                <span className="crumb-sep">/</span>
+                <Link href={`/catalogue?cat=${course.categorySlug}`}>{course.categoryName}</Link>
+                <span className="crumb-sep">/</span>
+                <span className="crumb-current">{course.name}</span>
               </div>
 
               <div className="detail-hero-card" style={{ background: '#fff', borderRadius: '24px', padding: '40px', border: '1px solid var(--border-md)', marginBottom: '32px' }}>
@@ -284,29 +289,60 @@ export default function CourseDetailPage() {
                     {course.emoji}
                   </div>
                   <div>
-                    <div style={{ fontSize: '12px', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase', color: 'var(--indigo)', marginBottom: '4px' }}>{course.tagLabel}</div>
-                    <h1 style={{ fontSize: '32px', fontFamily: 'var(--font-display)', fontWeight: 800, color: 'var(--ink)' }}>{course.name}</h1>
+                    <div className="hero-badge-wrap">
+                      {course.live && (
+                        <span className="live-pulse-badge">
+                          <span className="pulse-dot"></span>Live Workshop
+                        </span>
+                      )}
+                      <span className="category-tag">{course.tagLabel || course.categoryName}</span>
+                    </div>
+                    <h1 className="detail-hero-title">{course.name}</h1>
                   </div>
                 </div>
 
-                <div className="detail-stats" style={{ display: 'flex', gap: '24px', borderTop: '1px solid var(--border-md)', paddingTop: '24px', flexWrap: 'wrap' }}>
-                  <div className="dstat"><span>★ {course.rating}</span><label>Rating</label></div>
-                  <div className="dstat"><span>⏱ {course.dur} hrs</span><label>Duration</label></div>
-                  <div className="dstat"><span>📊 {course.level}</span><label>Level</label></div>
-                  <div className="dstat"><span>📺 {course.live ? 'Live' : 'Recorded'}</span><label>Format</label></div>
+                <div className="detail-stats">
+                  <div className="dstat-card">
+                    <span className="dstat-icon">★</span>
+                    <div className="dstat-content">
+                      <span className="dstat-value">{course.rating}</span>
+                      <span className="dstat-label">Rating</span>
+                    </div>
+                  </div>
+                  <div className="dstat-card">
+                    <span className="dstat-icon">⏱</span>
+                    <div className="dstat-content">
+                      <span className="dstat-value">{course.dur} hrs</span>
+                      <span className="dstat-label">Duration</span>
+                    </div>
+                  </div>
+                  <div className="dstat-card">
+                    <span className="dstat-icon">📊</span>
+                    <div className="dstat-content">
+                      <span className="dstat-value">{course.level}</span>
+                      <span className="dstat-label">Level</span>
+                    </div>
+                  </div>
+                  <div className="dstat-card">
+                    <span className="dstat-icon">📺</span>
+                    <div className="dstat-content">
+                      <span className="dstat-value">{course.live ? 'Live' : 'Recorded'}</span>
+                      <span className="dstat-label">Format</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               <div className="detail-section" style={{ marginBottom: '40px' }}>
-                <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>What you'll learn</h2>
-                <div style={{ background: '#fff', borderRadius: '20px', padding: '24px', border: '1px solid var(--border-md)', lineHeight: '1.6', color: 'var(--text-2)' }}>
+                <h2>What you'll learn</h2>
+                <div className="learn-card">
                   Master the intersection of financial markets and artificial intelligence. In this comprehensive session, we cover quantitative trading strategies using Python, risk management with neural networks, and the implementation of automated trading bots using real-time market APIs.
                 </div>
               </div>
 
               {sessions.length > 0 && (
                 <div className="detail-section" style={{ marginBottom: '40px' }}>
-                  <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>Live Sessions</h2>
+                  <h2>Live Sessions</h2>
                   <div className="sessions-list" style={{ display: 'grid', gap: '12px' }}>
                     {sessions.map(s => {
                       const isSelected = selectedSessionId === s.id;
@@ -314,21 +350,20 @@ export default function CourseDetailPage() {
                       return (
                         <div key={s.id}
                           onClick={() => !full && setSelectedSessionId(s.id)}
-                          style={{
-                            background: isSelected ? 'var(--indigo-light)' : '#fff',
-                            padding: '16px 20px', borderRadius: '16px',
-                            border: `1px solid ${isSelected ? 'var(--indigo-mid)' : 'var(--border-md)'}`,
-                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                            cursor: full ? 'not-allowed' : 'pointer',
-                            opacity: full ? 0.6 : 1
-                          }}>
+                          className={`session-item ${isSelected ? 'selected' : ''} ${full ? 'full' : ''}`}
+                        >
                           <div>
-                            <div style={{ fontWeight: 700, color: 'var(--ink)' }}>{s.title}</div>
-                            <div style={{ fontSize: '13px', color: 'var(--text-3)' }}>{new Date(s.scheduledStart).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })} · {new Date(s.scheduledStart).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</div>
+                            <div className="session-title">{s.title}</div>
+                            <div className="session-time">
+                              ⏱ {new Date(s.scheduledStart).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })} · {new Date(s.scheduledStart).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                            </div>
                           </div>
                           <div style={{ textAlign: 'right' }}>
-                            <div style={{ fontSize: '12px', fontWeight: 600, color: full ? '#EF4444' : '#16A34A' }}>{full ? 'Sold out' : `${s.maxSeats - s.registeredCount} seats left`}</div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>on {s.platform}</div>
+                            <div className={`session-status ${full ? 'status-soldout' : 'status-available'}`}>
+                              {!full && <span className="pulse-dot"></span>}
+                              {full ? 'Sold out' : `${s.maxSeats - s.registeredCount} seats left`}
+                            </div>
+                            <div className="session-platform">on {s.platform}</div>
                           </div>
                         </div>
                       );
@@ -337,11 +372,22 @@ export default function CourseDetailPage() {
                 </div>
               )}
 
-              <div className="detail-section">
-                <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>About the Instructor</h2>
-                <div style={{ background: '#fff', borderRadius: '24px', padding: '32px', border: '1px solid var(--border-md)', display: 'flex', gap: '24px' }}>
-                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', overflow: 'hidden', background: 'var(--surface-2)' }}>
-                    {course.instructorAvatar ? <img src={course.instructorAvatar} alt={course.instructor} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', background: 'var(--indigo)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' }}>{course.instructor[0]}</div>}
+              <div className="detail-section" style={{ marginBottom: '40px' }}>
+                <h2>About the Instructor</h2>
+                <div className="instructor-card">
+                  <div className="instructor-avatar-wrap">
+                    {course.instructorAvatar && !avatarFailed ? (
+                      <img 
+                        src={course.instructorAvatar} 
+                        alt={course.instructor} 
+                        onError={() => setAvatarFailed(true)}
+                        className="instructor-avatar-img" 
+                      />
+                    ) : (
+                      <div className="instructor-avatar-fallback">
+                        {course.instructor ? course.instructor.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase() : 'IN'}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <div style={{ fontSize: '20px', fontWeight: 800, marginBottom: '4px' }}>{course.instructor}</div>
@@ -354,21 +400,23 @@ export default function CourseDetailPage() {
 
             <div className="detail-right">
               <div style={{ position: 'sticky', top: '24px' }}>
-                <div className="price-card" style={{ background: '#fff', borderRadius: '24px', padding: '32px', border: '1px solid var(--border-md)', boxShadow: '0 20px 40px rgba(79,70,229,0.06)' }}>
-                  <div style={{ fontSize: '32px', fontWeight: 900, fontFamily: 'var(--font-display)', marginBottom: '24px' }}>{priceStr}</div>
+                <div className="price-card">
+                  <div className="price-val">{priceStr}</div>
 
-                  <ul style={{ padding: 0, listStyle: 'none', marginBottom: '32px' }}>
+                  <ul className="feature-list">
                     {['Lifetime access to recordings', 'Certificate of completion', 'Q&A session with instructor', 'Class notes & resources PDF'].map(t => (
-                      <li key={t} style={{ display: 'flex', gap: '10px', fontSize: '14px', marginBottom: '12px', color: 'var(--text-2)' }}>
-                        <span style={{ color: '#16A34A' }}>✓</span> {t}
+                      <li key={t} className="feature-item">
+                        <svg className="svg-check" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        <span>{t}</span>
                       </li>
                     ))}
                   </ul>
 
                   {userEnrol ? (
                     <button
-                      className="enrol-cta"
-                      style={{ width: '100%', padding: '18px', borderRadius: '16px', background: 'var(--blue)', color: '#fff', border: 'none', fontSize: '16px', fontWeight: 700, cursor: 'pointer' }}
+                      className="enrol-cta-btn continue-state"
                       onClick={() => {
                         if (course.live) {
                           router.push('/dashboard?view=upcoming');
@@ -382,26 +430,9 @@ export default function CourseDetailPage() {
                   ) : (
                     <>
                       <button
-                        className={`enrol-cta ${enrolling ? 'loading' : ''}`}
+                        className={`enrol-cta-btn ${success ? 'success-state' : ''}`}
                         onClick={handleEnrol}
                         disabled={enrolling || success}
-                        style={{
-                          width: '100%',
-                          padding: '18px',
-                          borderRadius: '16px',
-                          background: success ? '#16A34A' : 'var(--indigo)',
-                          color: '#fff',
-                          border: 'none',
-                          fontSize: '16px',
-                          fontWeight: 700,
-                          cursor: (enrolling || success) ? 'default' : 'pointer',
-                          marginBottom: '16px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '10px',
-                          opacity: enrolling ? 0.8 : 1
-                        }}
                       >
                         {enrolling ? (
                           <div className="btn-loader"></div>
@@ -412,11 +443,11 @@ export default function CourseDetailPage() {
                         )}
                       </button>
                       {error && !loading && (
-                        <div style={{ color: '#EF4444', fontSize: '13px', textAlign: 'center', marginBottom: '16px', fontWeight: 500 }}>
+                        <div style={{ color: '#EF4444', fontSize: '13px', textAlign: 'center', marginBottom: '16px', fontWeight: 500, marginTop: '16px' }}>
                           {error}
                         </div>
                       )}
-                      <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-3)' }}>100% money-back guarantee</div>
+                      <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-3)', marginTop: '16px' }}>100% money-back guarantee</div>
                     </>
                   )}
                 </div>
@@ -427,34 +458,409 @@ export default function CourseDetailPage() {
         </main>
 
         <style jsx>{`
-        .detail-grid { display: grid; grid-template-columns: 1fr 380px; gap: 40px; }
-        @media (max-width: 900px) { .detail-grid { grid-template-columns: 1fr; gap: 24px; } }
-        .dstat { display: flex; flex-direction: column; min-width: 100px; }
-        .dstat span { font-weight: 800; color: var(--ink); font-size: 16px; white-space: nowrap; }
-        .dstat label { font-size: 11px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px; }
-        .detail-emoji-box.ct-ai { background: linear-gradient(135deg,#fff,#E8F4FF); border: 1px solid #D0E8FF; }
-        .detail-emoji-box.ct-py { background: linear-gradient(135deg,#fff,#F0F9FF); border: 1px solid #E0F2FE; }
-        .detail-emoji-box.ct-da { background: linear-gradient(135deg,#fff,#FDF2F8); border: 1px solid #FBCFE8; }
-        .detail-emoji-box.ct-de { background: linear-gradient(135deg,#fff,#FFF7ED); border: 1px solid #FFEDD5; }
-        .detail-emoji-box.ct-ph { background: linear-gradient(135deg,#fff,#F5F3FF); border: 1px solid #DDD6FE; }
-        .detail-emoji-box.ct-we { background: linear-gradient(135deg,#fff,#ECFDF5); border: 1px solid #D1FAE5; }
-        .detail-emoji-box.ct-mu { background: linear-gradient(135deg,#fff,#FFFBEB); border: 1px solid #FEF3C7; }
-        .detail-emoji-box.ct-bu { background: linear-gradient(135deg,#fff,#F0FDFA); border: 1px solid #CCFBF1; }
-        .detail-emoji-box.ct-mi { background: linear-gradient(135deg,#fff,#FAF5FF); border: 1px solid #F3E8FF; }
-        .detail-emoji-box.ct-cy { background: linear-gradient(135deg,#fff,#F8FAFC); border: 1px solid #E2E8F0; }
+          .detail-page {
+            background-color: #fbfcff;
+            background-image: 
+              radial-gradient(circle at 10% 20%, rgba(79, 70, 229, 0.04) 0%, transparent 50%),
+              radial-gradient(circle at 90% 80%, rgba(251, 146, 60, 0.05) 0%, transparent 50%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            overflow-y: auto;
+          }
 
-        .btn-loader {
-          width: 20px;
-          height: 20px;
-          border: 2.5px solid rgba(255,255,255,0.3);
-          border-top-color: #fff;
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+          .detail-grid { display: grid; grid-template-columns: 1fr 380px; gap: 40px; }
+          @media (max-width: 900px) { .detail-grid { grid-template-columns: 1fr; gap: 32px; } }
+
+          /* Breadcrumbs */
+          .crumb {
+            font-family: var(--font-body);
+            font-size: 13px;
+            color: var(--text-3);
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+          }
+          .crumb a {
+            color: var(--text-2);
+            text-decoration: none;
+            transition: color 0.15s ease;
+          }
+          .crumb a:hover {
+            color: var(--indigo-mid);
+          }
+          .crumb-sep {
+            color: var(--text-3);
+            opacity: 0.6;
+          }
+          .crumb-current {
+            color: var(--indigo);
+            font-weight: 600;
+          }
+
+          /* Hero Badge pulse */
+          .hero-badge-wrap {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+          }
+          .live-pulse-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #DCFCE7;
+            color: #15803D;
+            padding: 5px 12px;
+            border-radius: 100px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 8px rgba(22, 163, 74, 0.08);
+          }
+          .pulse-dot {
+            width: 7px;
+            height: 7px;
+            background-color: #16A34A;
+            border-radius: 50%;
+            display: inline-block;
+            position: relative;
+          }
+          .pulse-dot::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: inherit;
+            animation: pulse 1.6s ease-in-out infinite;
+            opacity: 0.8;
+            top: 0;
+            left: 0;
+          }
+          @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            100% { transform: scale(2.8); opacity: 0; }
+          }
+          .category-tag {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--indigo-mid);
+            background: var(--indigo-light);
+            padding: 5px 12px;
+            border-radius: 100px;
+          }
+
+          /* Hero Title */
+          .detail-hero-title {
+            font-size: clamp(28px, 4.5vw, 38px);
+            font-family: var(--font-display);
+            font-weight: 800;
+            color: var(--ink);
+            line-height: 1.2;
+            letter-spacing: -0.8px;
+            margin: 0;
+          }
+
+          /* Stats Section */
+          .detail-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 16px;
+            border-top: 1px solid rgba(55, 48, 163, 0.08);
+            padding-top: 24px;
+            margin-top: 8px;
+          }
+          .dstat-card {
+            background: #fff;
+            border: 1px solid rgba(55, 48, 163, 0.06);
+            border-radius: 16px;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transition: all 0.2s ease;
+          }
+          .dstat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(55, 48, 163, 0.04);
+            border-color: rgba(55, 48, 163, 0.12);
+          }
+          .dstat-icon {
+            font-size: 20px;
+            width: 36px;
+            height: 36px;
+            border-radius: 12px;
+            background: var(--indigo-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--indigo);
+            flex-shrink: 0;
+          }
+          .dstat-content {
+            display: flex;
+            flex-direction: column;
+          }
+          .dstat-value {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--ink);
+            line-height: 1.2;
+          }
+          .dstat-label {
+            font-size: 11px;
+            color: var(--text-3);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+          }
+
+          /* What You'll Learn Card */
+          .learn-card {
+            background: #fff;
+            border: 1px solid rgba(55, 48, 163, 0.08);
+            border-left: 4px solid var(--coral);
+            border-radius: 20px;
+            padding: 24px 28px;
+            line-height: 1.7;
+            color: var(--text-2);
+            font-size: 15px;
+            box-shadow: 0 4px 20px rgba(55, 48, 163, 0.01);
+          }
+          .detail-section h2 {
+            font-family: var(--font-display);
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--ink);
+            margin-bottom: 16px;
+          }
+
+          /* Session Item styling */
+          .session-item {
+            background: #fff;
+            padding: 18px 24px;
+            border-radius: 16px;
+            border: 1px solid rgba(55, 48, 163, 0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(55, 48, 163, 0.01);
+          }
+          .session-item:hover:not(.full) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(55, 48, 163, 0.05);
+            border-color: rgba(79, 70, 229, 0.3);
+          }
+          .session-item.selected {
+            background: linear-gradient(135deg, #F5F7FF, #EEF2FF);
+            border-color: var(--indigo-mid);
+            box-shadow: 0 8px 24px rgba(79, 70, 229, 0.08);
+          }
+          .session-item.full {
+            cursor: not-allowed;
+            opacity: 0.65;
+            background: #FAFAFB;
+          }
+          .session-title {
+            font-weight: 700;
+            color: var(--ink);
+            font-size: 15px;
+            margin-bottom: 4px;
+          }
+          .session-time {
+            font-size: 13px;
+            color: var(--text-3);
+          }
+          .session-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 12px;
+            border-radius: 100px;
+          }
+          .status-available {
+            background: #DCFCE7;
+            color: #16A34A;
+          }
+          .status-soldout {
+            background: #FEE2E2;
+            color: #EF4444;
+          }
+          .session-platform {
+            font-size: 11px;
+            color: var(--text-3);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+          }
+
+          /* Instructor Card */
+          .instructor-card {
+            background: #fff;
+            border: 1px solid rgba(55, 48, 163, 0.08);
+            border-radius: 24px;
+            padding: 32px;
+            display: flex;
+            gap: 24px;
+            box-shadow: 0 4px 20px rgba(55, 48, 163, 0.01);
+          }
+          @media (max-width: 600px) {
+            .instructor-card {
+              flex-direction: column;
+              align-items: center;
+              text-align: center;
+              padding: 24px;
+              gap: 16px;
+            }
+          }
+          .instructor-avatar-wrap {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            overflow: hidden;
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.08);
+            border: 2px solid #fff;
+            background: var(--surface-2);
+            flex-shrink: 0;
+          }
+          .instructor-avatar-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+          .instructor-avatar-fallback {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--indigo), var(--indigo-mid));
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: 700;
+            font-family: var(--font-display);
+            letter-spacing: -0.5px;
+          }
+
+          /* Price & Sidebar card */
+          .price-card {
+            background: #fff;
+            border: 1px solid rgba(55, 48, 163, 0.08);
+            border-radius: 24px;
+            padding: 36px 32px;
+            box-shadow: 0 20px 40px rgba(79, 70, 229, 0.03);
+            transition: all 0.3s ease;
+          }
+          .price-card:hover {
+            box-shadow: 0 24px 48px rgba(79, 70, 229, 0.06);
+          }
+          .price-val {
+            font-size: 34px;
+            font-weight: 800;
+            font-family: var(--font-display);
+            color: var(--ink);
+            margin-bottom: 24px;
+            letter-spacing: -1px;
+            line-height: 1;
+          }
+          .feature-list {
+            padding: 0;
+            list-style: none;
+            margin: 0 0 32px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+          }
+          .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            color: var(--text-2);
+            font-weight: 500;
+          }
+          .svg-check {
+            color: #10B981;
+            background: #E6FDF4;
+            padding: 3px;
+            border-radius: 50%;
+            flex-shrink: 0;
+          }
+          .enrol-cta-btn {
+            width: 100%;
+            padding: 18px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, var(--indigo-mid), var(--indigo));
+            color: #fff;
+            border: none;
+            font-size: 16px;
+            font-weight: 700;
+            font-family: var(--font-display);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            box-shadow: 0 4px 14px rgba(79, 70, 229, 0.2);
+          }
+          .enrol-cta-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.3);
+            background: linear-gradient(135deg, #5b53e8, #3730A3);
+          }
+          .enrol-cta-btn:active:not(:disabled) {
+            transform: translateY(0);
+          }
+          .enrol-cta-btn:disabled {
+            opacity: 0.8;
+            cursor: not-allowed;
+            box-shadow: none;
+          }
+          .enrol-cta-btn.success-state {
+            background: #10B981;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.2);
+          }
+          .enrol-cta-btn.continue-state {
+            background: linear-gradient(135deg, #2563EB, #1D4ED8);
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.2);
+          }
+
+          .detail-emoji-box.ct-ai { background: linear-gradient(135deg,#fff,#E8F4FF); border: 1px solid #D0E8FF; }
+          .detail-emoji-box.ct-py { background: linear-gradient(135deg,#fff,#F0F9FF); border: 1px solid #E0F2FE; }
+          .detail-emoji-box.ct-da { background: linear-gradient(135deg,#fff,#FDF2F8); border: 1px solid #FBCFE8; }
+          .detail-emoji-box.ct-de { background: linear-gradient(135deg,#fff,#FFF7ED); border: 1px solid #FFEDD5; }
+          .detail-emoji-box.ct-ph { background: linear-gradient(135deg,#fff,#F5F3FF); border: 1px solid #DDD6FE; }
+          .detail-emoji-box.ct-we { background: linear-gradient(135deg,#fff,#ECFDF5); border: 1px solid #D1FAE5; }
+          .detail-emoji-box.ct-mu { background: linear-gradient(135deg,#fff,#FFFBEB); border: 1px solid #FEF3C7; }
+          .detail-emoji-box.ct-bu { background: linear-gradient(135deg,#fff,#F0FDFA); border: 1px solid #CCFBF1; }
+          .detail-emoji-box.ct-mi { background: linear-gradient(135deg,#fff,#FAF5FF); border: 1px solid #F3E8FF; }
+          .detail-emoji-box.ct-cy { background: linear-gradient(135deg,#fff,#F8FAFC); border: 1px solid #E2E8F0; }
+
+          .btn-loader {
+            width: 20px;
+            height: 20px;
+            border: 2.5px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+          }
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     </div>
   );
