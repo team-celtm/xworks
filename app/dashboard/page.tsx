@@ -8,6 +8,51 @@ import { useRouter } from "next/navigation";
 import Logo from "../components/Logo";
 import RoleTransitionOverlay from "../components/RoleTransitionOverlay";
 
+const triggerPromoConfetti = (elementId: string) => {
+  const anchor = document.getElementById(elementId);
+  if (!anchor) return;
+  const rect = anchor.getBoundingClientRect();
+  const container = document.createElement('div');
+  container.style.position = 'fixed';
+  container.style.top = `${rect.top}px`;
+  container.style.left = `${rect.left + rect.width / 2}px`;
+  container.style.width = '0';
+  container.style.height = '0';
+  container.style.pointerEvents = 'none';
+  container.style.zIndex = '99999';
+  document.body.appendChild(container);
+
+  const colors = ['#4F46E5', '#F59E0B', '#10B981', '#EC4899', '#3B82F6', '#8B5CF6'];
+  for (let i = 0; i < 40; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'confetti-particle';
+    
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const size = Math.random() * 6 + 5;
+    const angle = Math.random() * Math.PI * 2;
+    const velocity = Math.random() * 80 + 40;
+    const tx = Math.cos(angle) * velocity;
+    const ty = Math.sin(angle) * velocity - 30;
+    
+    particle.style.position = 'absolute';
+    particle.style.width = `${size}px`;
+    particle.style.height = `${size}px`;
+    particle.style.backgroundColor = color;
+    particle.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    particle.style.transform = 'translate(-50%, -50%)';
+    
+    particle.style.setProperty('--tx', `${tx}px`);
+    particle.style.setProperty('--ty', `${ty}px`);
+    particle.style.setProperty('--rot', `${Math.random() * 360}deg`);
+    
+    container.appendChild(particle);
+  }
+  
+  setTimeout(() => {
+    container.remove();
+  }, 1800);
+};
+
 /* ══ DATA ══ */
 interface Workshop {
   id: string | number;
@@ -79,6 +124,7 @@ export default function DashboardPage() {
   const [enrolData, setEnrolData] = useState<DashboardEnrolData>({});
   const [promoCode, setPromoCode] = useState("");
   const [promoOk, setPromoOk] = useState({ text: "", color: "", show: false });
+  const [promoLoading, setPromoLoading] = useState(false);
   const [playerContent, setPlayerContent] = useState<any>(null);
   const [loadingPlayer, setLoadingPlayer] = useState(false);
   const [sessions, setSessions] = useState<any[]>([]);
@@ -600,6 +646,7 @@ export default function DashboardPage() {
     const code = promoCode.trim().toUpperCase();
     if (!code) return;
 
+    setPromoLoading(true);
     try {
       const res = await fetch("/api/promo-codes/validate", {
         method: "POST",
@@ -617,11 +664,14 @@ export default function DashboardPage() {
           discount: (prev.basePrice || 0) - data.discountedPrice
         }));
         setPromoOk({ text: `✓ Code applied — ${data.discountPercentage}% off!`, color: "#16A34A", show: true });
+        setTimeout(() => triggerPromoConfetti('promo-apply-btn'), 50);
       } else {
         setPromoOk({ text: `✗ ${data.error || "Invalid code"}`, color: "#D84040", show: true });
       }
     } catch (err) {
       setPromoOk({ text: "✗ Connection error", color: "#D84040", show: true });
+    } finally {
+      setPromoLoading(false);
     }
   };
 
@@ -1990,7 +2040,7 @@ export default function DashboardPage() {
                     <span className="enrol-order-val">₹0</span>
                   </div>
                   {enrolData.promoApplied && (
-                    <div className="enrol-order-row">
+                    <div className="enrol-order-row promo-discount-row">
                       <span className="enrol-order-label" style={{ color: "#16A34A" }}>Promo discount</span>
                       <span className="enrol-order-val" style={{ color: "#16A34A" }}>−₹{(enrolData.discount as number)?.toLocaleString("en-IN")}</span>
                     </div>
@@ -1998,7 +2048,7 @@ export default function DashboardPage() {
                   <div className="enrol-divider"></div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
                     <span className="enrol-total">Total</span>
-                    <span className="enrol-total">₹{(enrolData.finalPrice as number)?.toLocaleString("en-IN")}</span>
+                    <span key={enrolData.finalPrice} className="enrol-total enrol-total-price-val">₹{(enrolData.finalPrice as number)?.toLocaleString("en-IN")}</span>
                   </div>
                   <div className="enrol-promo-row">
                     <input
@@ -2009,7 +2059,9 @@ export default function DashboardPage() {
                       onChange={(e) => setPromoCode(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && applyPromo()}
                     />
-                    <button className="enrol-promo-apply" onClick={applyPromo}>Apply</button>
+                    <button id="promo-apply-btn" className={`enrol-promo-apply ${promoLoading ? 'loading' : ''}`} onClick={applyPromo} disabled={promoLoading}>
+                      {promoLoading ? <span className="promo-spinner"></span> : 'Apply'}
+                    </button>
                   </div>
                   {promoOk.show && (
                     <div className="enrol-promo-ok" style={{ display: "flex", color: promoOk.color }}>

@@ -7,6 +7,52 @@ import { SUBJECTS, CAT_DATA } from './data';
 import Footer from './components/Footer';
 import Logo from './components/Logo';
 
+const triggerPromoConfetti = (elementId: string) => {
+  const anchor = document.getElementById(elementId);
+  if (!anchor) return;
+  const rect = anchor.getBoundingClientRect();
+  const container = document.createElement('div');
+  container.style.position = 'fixed';
+  container.style.top = `${rect.top}px`;
+  container.style.left = `${rect.left + rect.width / 2}px`;
+  container.style.width = '0';
+  container.style.height = '0';
+  container.style.pointerEvents = 'none';
+  container.style.zIndex = '99999';
+  document.body.appendChild(container);
+
+  const colors = ['#4F46E5', '#F59E0B', '#10B981', '#EC4899', '#3B82F6', '#8B5CF6'];
+  for (let i = 0; i < 40; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'confetti-particle';
+    
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const size = Math.random() * 6 + 5;
+    const angle = Math.random() * Math.PI * 2;
+    const velocity = Math.random() * 80 + 40;
+    const tx = Math.cos(angle) * velocity;
+    const ty = Math.sin(angle) * velocity - 30;
+    
+    particle.style.position = 'absolute';
+    particle.style.width = `${size}px`;
+    particle.style.height = `${size}px`;
+    particle.style.backgroundColor = color;
+    particle.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    particle.style.transform = 'translate(-50%, -50%)';
+    
+    particle.style.setProperty('--tx', `${tx}px`);
+    particle.style.setProperty('--ty', `${ty}px`);
+    particle.style.setProperty('--rot', `${Math.random() * 360}deg`);
+    
+    container.appendChild(particle);
+  }
+  
+  setTimeout(() => {
+    container.remove();
+  }, 1800);
+};
+
+
 export default function Home() {
   const router = useRouter();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
@@ -39,6 +85,7 @@ export default function Home() {
   });
   const [promoCode, setPromoCode] = useState('');
   const [promoMsg, setPromoMsg] = useState({ text: '', type: '' });
+  const [promoLoading, setPromoLoading] = useState(false);
 
   const [bsSlide, setBsSlide] = useState(0);
   const [naSlide, setNaSlide] = useState(0);
@@ -392,7 +439,7 @@ export default function Home() {
 
   const applyPromo = async () => {
     if (!promoCode.trim()) return;
-    setIsCatLoading(true); // temporary loader
+    setPromoLoading(true);
     try {
       const res = await fetch('/api/promo-codes/validate', {
         method: 'POST',
@@ -405,6 +452,7 @@ export default function Home() {
         const discount = Math.round(enrolData.basePrice * (discountPercentage / 100));
         setEnrolData(prev => ({ ...prev, promoApplied: true, finalPrice: prev.basePrice - discount }));
         setPromoMsg({ text: `✓ Code applied — ${discountPercentage}% off!`, type: 'success' });
+        setTimeout(() => triggerPromoConfetti('promo-apply-btn'), 50);
       } else {
         setPromoMsg({ text: data.error || 'Invalid code', type: 'error' });
         setEnrolData(prev => ({ ...prev, promoApplied: false, finalPrice: prev.basePrice }));
@@ -412,7 +460,7 @@ export default function Home() {
     } catch (err) {
       setPromoMsg({ text: 'Validation failed', type: 'error' });
     } finally {
-      setIsCatLoading(false);
+      setPromoLoading(false);
     }
   };
 
@@ -1035,15 +1083,17 @@ export default function Home() {
                 <div className="enrol-order-row"><span className="enrol-order-label">Workshop</span><span className="enrol-order-val">{enrolData.name}</span></div>
                 <div className="enrol-order-row"><span className="enrol-order-label">Format</span><span className="enrol-order-val">₹{enrolData.basePrice.toLocaleString('en-IN')}</span></div>
                 {enrolData.promoApplied && (
-                  <div className="enrol-order-row"><span className="enrol-order-label" style={{ color: '#16A34A' }}>Promo discount</span><span className="enrol-order-val" style={{ color: '#16A34A' }}>−₹{(enrolData.basePrice - enrolData.finalPrice).toLocaleString('en-IN')}</span></div>
+                  <div className="enrol-order-row promo-discount-row"><span className="enrol-order-label" style={{ color: '#16A34A' }}>Promo discount</span><span className="enrol-order-val" style={{ color: '#16A34A' }}>−₹{(enrolData.basePrice - enrolData.finalPrice).toLocaleString('en-IN')}</span></div>
                 )}
                 <div className="enrol-divider"></div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                  <span className="enrol-total">Total</span><span className="enrol-total">₹{enrolData.finalPrice.toLocaleString('en-IN')}</span>
+                  <span className="enrol-total">Total</span><span key={enrolData.finalPrice} className="enrol-total enrol-total-price-val">₹{enrolData.finalPrice.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="enrol-promo-row">
                   <input className="enrol-promo-input" value={promoCode} onChange={(e) => setPromoCode(e.target.value)} type="text" placeholder="Promo code (try XWORKS20)" />
-                  <button className="enrol-promo-apply" onClick={applyPromo}>Apply</button>
+                  <button id="promo-apply-btn" className={`enrol-promo-apply ${promoLoading ? 'loading' : ''}`} onClick={applyPromo} disabled={promoLoading}>
+                    {promoLoading ? <span className="promo-spinner"></span> : 'Apply'}
+                  </button>
                 </div>
                 {promoMsg.text && (
                   <div className="enrol-promo-ok" style={{ color: promoMsg.type === 'error' ? '#D84040' : '#16A34A' }}>{promoMsg.text}</div>

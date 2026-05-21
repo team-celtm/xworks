@@ -13,6 +13,52 @@ declare global {
   }
 }
 
+const triggerPromoConfetti = (elementId: string) => {
+  const anchor = document.getElementById(elementId);
+  if (!anchor) return;
+  const rect = anchor.getBoundingClientRect();
+  const container = document.createElement('div');
+  container.style.position = 'fixed';
+  container.style.top = `${rect.top}px`;
+  container.style.left = `${rect.left + rect.width / 2}px`;
+  container.style.width = '0';
+  container.style.height = '0';
+  container.style.pointerEvents = 'none';
+  container.style.zIndex = '99999';
+  document.body.appendChild(container);
+
+  const colors = ['#4F46E5', '#F59E0B', '#10B981', '#EC4899', '#3B82F6', '#8B5CF6'];
+  for (let i = 0; i < 40; i++) {
+    const particle = document.createElement('div');
+    particle.className = 'confetti-particle';
+    
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const size = Math.random() * 6 + 5;
+    const angle = Math.random() * Math.PI * 2;
+    const velocity = Math.random() * 80 + 40;
+    const tx = Math.cos(angle) * velocity;
+    const ty = Math.sin(angle) * velocity - 30;
+    
+    particle.style.position = 'absolute';
+    particle.style.width = `${size}px`;
+    particle.style.height = `${size}px`;
+    particle.style.backgroundColor = color;
+    particle.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    particle.style.transform = 'translate(-50%, -50%)';
+    
+    particle.style.setProperty('--tx', `${tx}px`);
+    particle.style.setProperty('--ty', `${ty}px`);
+    particle.style.setProperty('--rot', `${Math.random() * 360}deg`);
+    
+    container.appendChild(particle);
+  }
+  
+  setTimeout(() => {
+    container.remove();
+  }, 1800);
+};
+
+
 interface Workshop {
   id: number | string;
   slug: string;
@@ -210,6 +256,7 @@ function CatalogueContent() {
   const [promoCode, setPromoCode] = useState('');
   const [promoApplied, setPromoApplied] = useState(false);
   const [promoError, setPromoError] = useState('');
+  const [promoLoading, setPromoLoading] = useState(false);
   const [modalSessions, setModalSessions] = useState<any[]>([]);
 
   const openEnrol = async (w: Workshop) => {
@@ -410,7 +457,7 @@ function CatalogueContent() {
 
   const applyPromo = async () => {
     if (!promoCode.trim()) return;
-    setLoading(true);
+    setPromoLoading(true);
     try {
       const res = await fetch('/api/promo-codes/validate', {
         method: 'POST',
@@ -427,6 +474,7 @@ function CatalogueContent() {
           discountAmt: discount
         }));
         setPromoError('');
+        setTimeout(() => triggerPromoConfetti('promo-apply-btn'), 50);
       } else {
         setPromoError(data.error || 'Invalid code');
         setPromoApplied(false);
@@ -435,7 +483,7 @@ function CatalogueContent() {
     } catch (err) {
       setPromoError('Validation failed');
     } finally {
-      setLoading(false);
+      setPromoLoading(false);
     }
   };
 
@@ -903,7 +951,7 @@ function CatalogueContent() {
                   <div className="enrol-order-row"><span className="enrol-order-label">Platform fee</span><span className="enrol-order-val">₹0</span></div>
 
                   {promoApplied && (
-                    <div className="enrol-order-row">
+                    <div className="enrol-order-row promo-discount-row">
                       <span className="enrol-order-label" style={{ color: '#16A34A' }}>Promo discount</span>
                       <span className="enrol-order-val" style={{ color: '#16A34A' }}>−₹{(enrolData.discountAmt || 0).toLocaleString('en-IN')}</span>
                     </div>
@@ -912,7 +960,7 @@ function CatalogueContent() {
                   <div className="enrol-divider"></div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                     <span className="enrol-total">Total</span>
-                    <span className="enrol-total">₹{(enrolData.finalPrice || 0).toLocaleString('en-IN')}</span>
+                    <span key={enrolData.finalPrice} className="enrol-total enrol-total-price-val">₹{(enrolData.finalPrice || 0).toLocaleString('en-IN')}</span>
                   </div>
                   <div className="enrol-promo-row">
                     <input
@@ -922,11 +970,13 @@ function CatalogueContent() {
                       value={promoCode}
                       onChange={(e) => setPromoCode(e.target.value)}
                     />
-                    <button className="enrol-promo-apply" onClick={applyPromo}>Apply</button>
+                    <button id="promo-apply-btn" className={`enrol-promo-apply ${promoLoading ? 'loading' : ''}`} onClick={applyPromo} disabled={promoLoading}>
+                      {promoLoading ? <span className="promo-spinner"></span> : 'Apply'}
+                    </button>
                   </div>
 
                   {promoApplied && <div className="enrol-promo-ok" style={{ display: 'flex' }}>✓ Code applied — 20% off!</div>}
-                  {promoError && <div className="enrol-promo-ok" style={{ display: 'flex', color: promoError.includes('!') ? '#1E1B4B' : '#D84040' }}>{promoError}</div>}
+                  {promoError && <div className="enrol-promo-ok" style={{ display: 'flex', color: '#D84040' }}>{promoError}</div>}
 
                   <div className="enrol-section-label">Pay with</div>
                   <div className="enrol-pay-methods">
