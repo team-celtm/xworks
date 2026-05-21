@@ -336,16 +336,16 @@
 }
 
 .loader {
-  width: 40px;
-  height: 40px;
-  border: 3px solid var(--surface-3);
-  border-bottom-color: var(--indigo);
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(79, 70, 229, 0.12);
+  border-top-color: var(--indigo-mid, #4F46E5);
   border-radius: 50%;
   margin-bottom: 20px;
-  animation: rotation 1s linear infinite;
+  animation: loader-spin 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
-@keyframes rotation {
+@keyframes loader-spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
@@ -468,7 +468,7 @@
   background:#fff;cursor:pointer;text-align:center;transition:all 0.15s;
 }
 .enrol-date-btn:hover{border-color:#4F46E5;background:#EEF2FF}
-.enrol-date-btn.sel{border-color:#3730A3;background:#3730A3;color:#fff}
+.enrol-date-btn.selected{border-color:#3730A3;background:#3730A3;color:#fff}
 .enrol-date-btn.disabled{opacity:0.3;cursor:default;pointer-events:none}
 .enrol-date-day{font-size:10px;color:inherit;opacity:0.65}
 .enrol-date-num{font-size:16px;font-weight:700;line-height:1.2}
@@ -481,7 +481,7 @@
   background:#fff;color:#1E1B4B;font-family:var(--font-body,'DM Sans',sans-serif);
 }
 .enrol-time-btn:hover{border-color:#4F46E5;color:#3730A3;background:#EEF2FF}
-.enrol-time-btn.sel{border-color:#3730A3;background:#3730A3;color:#fff}
+.enrol-time-btn.selected{border-color:#3730A3;background:#3730A3;color:#fff}
 .enrol-time-btn.full{color:#9294B8;text-decoration:line-through;cursor:default;pointer-events:none}
 .enrol-session-info{
   background:#F5F6FF;border-radius:10px;padding:11px 14px;
@@ -518,7 +518,7 @@
   font-family:var(--font-body,'DM Sans',sans-serif);
 }
 .enrol-pay-btn:hover{border-color:#4F46E5;color:#3730A3}
-.enrol-pay-btn.sel{border-color:#3730A3;background:#EEF2FF;color:#3730A3}
+.enrol-pay-btn.selected{border-color:#3730A3;background:#EEF2FF;color:#3730A3}
 .enrol-upi-field{
   background:#F5F6FF;border-radius:8px;padding:10px 14px;
   font-size:13px;color:#4B5080;margin-bottom:14px;

@@ -46,6 +46,7 @@ interface DashboardEnrolData {
   payMethod?: string;
   thumbBg?: string;
   thumbEmoji?: string;
+  courseOriginalPrice?: number;
 }
 
 interface Note {
@@ -548,13 +549,15 @@ export default function DashboardPage() {
   const [modalSessions, setModalSessions] = useState<any[]>([]);
 
   const openEnrol = async (w: Workshop) => {
+    const basePrice = Number(w.price) || 0;
     setEnrolData({
       courseId: String(w.id),
       name: w.name,
       meta: `by Ananya Sharma · ★ ${w.rating} · ${w.dur} hrs · ${w.catLabel}`,
-      price: `₹${(Number(w.price) || 0).toLocaleString("en-IN")}`,
-      basePrice: Number(w.price) || 0,
-      finalPrice: Number(w.price) || 0,
+      price: `₹${basePrice.toLocaleString("en-IN")}`,
+      basePrice: basePrice,
+      finalPrice: basePrice,
+      courseOriginalPrice: basePrice,
       format: "live",
       formatLabel: "live session",
       date: "",
@@ -578,6 +581,7 @@ export default function DashboardPage() {
           const first = data[0];
           setEnrolData(prev => ({
             ...prev,
+            sessionId: first.id,
             date: new Date(first.scheduledStart).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }),
             time: new Date(first.scheduledStart).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
           }));
@@ -606,12 +610,11 @@ export default function DashboardPage() {
       const data = await res.json();
       
       if (res.ok && data.success) {
-        const baseAdjustedPrice = enrolData.finalPrice || enrolData.basePrice || 0;
         setEnrolData((prev: DashboardEnrolData) => ({
           ...prev,
           promoApplied: true,
           finalPrice: data.discountedPrice,
-          discount: Math.abs(baseAdjustedPrice - data.discountedPrice)
+          discount: (prev.basePrice || 0) - data.discountedPrice
         }));
         setPromoOk({ text: `✓ Code applied — ${data.discountPercentage}% off!`, color: "#16A34A", show: true });
       } else {
@@ -1843,19 +1846,33 @@ export default function DashboardPage() {
                       { id: "recorded", lbl: "Recorded", icon: "📹", sub: "Watch anytime · Self-paced", priceCalc: (b: number) => Math.round(b * 0.8) },
                       { id: "inperson", lbl: "In-person", icon: "📍", sub: "Nearby · Limited seats", priceCalc: (b: number) => b + 500 }
                     ].map((f) => {
-                      const calculatedPrice = f.priceCalc(enrolData.basePrice || 0);
+                      const calculatedPrice = f.priceCalc(enrolData.courseOriginalPrice || 0);
                       return (
                         <div
                           key={f.id}
                           className={`enrol-format-btn ${enrolData.format === f.id ? "selected" : ""}`}
-                          onClick={() => setEnrolData({
-                            ...enrolData,
-                            format: f.id,
-                            formatLabel: f.lbl.toLowerCase(),
-                            price: `₹${calculatedPrice.toLocaleString("en-IN")}`,
-                            finalPrice: calculatedPrice,
-                            promoApplied: false
-                          })}
+                          onClick={() => {
+                            const labels: Record<string, string> = { live: 'live session', recorded: 'recorded access', inperson: 'in-person session' };
+                            const original = enrolData.courseOriginalPrice || 0;
+                            let newBasePrice = original;
+                            if (f.id === 'recorded') {
+                              newBasePrice = Math.round(original * 0.8);
+                            } else if (f.id === 'inperson') {
+                              newBasePrice = original + 500;
+                            }
+                            setEnrolData({
+                              ...enrolData,
+                              format: f.id,
+                              formatLabel: labels[f.id] || f.id,
+                              price: `₹${newBasePrice.toLocaleString("en-IN")}`,
+                              basePrice: newBasePrice,
+                              finalPrice: newBasePrice,
+                              promoApplied: false,
+                              discount: 0
+                            });
+                            setPromoCode("");
+                            setPromoOk({ text: "", color: "", show: false });
+                          }}
                         >
                           <div className="enrol-format-icon">{f.icon}</div>
                           <div className="enrol-format-name">{f.lbl}</div>
@@ -1909,7 +1926,7 @@ export default function DashboardPage() {
                       return (
                         <div
                           key={s.id}
-                          className={`enrol-date-btn ${enrolData.date === fullStr && enrolData.time === timeStr ? 'sel' : ''}`}
+                          className={`enrol-date-btn ${enrolData.date === fullStr && enrolData.time === timeStr ? 'selected' : ''}`}
                           onClick={() => setEnrolData(prev => ({ ...prev, date: fullStr, time: timeStr, sessionId: s.id }))}
                           style={{ height: 'auto', padding: '12px 8px', cursor: 'pointer' }}
                         >
@@ -1961,8 +1978,12 @@ export default function DashboardPage() {
                 </div>
                 <div className="enrol-body">
                   <div className="enrol-order-row">
-                    <span className="enrol-order-label">{enrolData.name as string}</span>
-                    <span className="enrol-order-val">{enrolData.price as string}</span>
+                    <span className="enrol-order-label">Workshop</span>
+                    <span className="enrol-order-val">{enrolData.name as string}</span>
+                  </div>
+                  <div className="enrol-order-row">
+                    <span className="enrol-order-label">Format</span>
+                    <span className="enrol-order-val">₹{(enrolData.basePrice || 0).toLocaleString("en-IN")}</span>
                   </div>
                   <div className="enrol-order-row">
                     <span className="enrol-order-label">Platform fee</span>
@@ -1998,13 +2019,13 @@ export default function DashboardPage() {
                   <div className="enrol-section-label">Pay with</div>
                   <div className="enrol-pay-methods">
                     {["UPI", "Card", "Net banking", "EMI"].map((m) => (
-                      <div
+                      <button
                         key={m}
-                        className={`enrol-pay-btn ${enrolData.payMethod === m ? "sel" : ""}`}
+                        className={`enrol-pay-btn ${enrolData.payMethod === m ? "selected" : ""}`}
                         onClick={() => setEnrolData({ ...enrolData, payMethod: m })}
                       >
                         {m}
-                      </div>
+                      </button>
                     ))}
                   </div>
                   <div className="enrol-upi-field">

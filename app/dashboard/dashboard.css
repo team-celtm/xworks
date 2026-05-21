@@ -898,6 +898,30 @@ body {
   right: 8px
 }
 
+@media (max-width: 768px) {
+  .carousel-outer {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    padding: 16px 20px !important;
+  }
+  .carousel-outer::-webkit-scrollbar {
+    display: none !important;
+  }
+  .carousel-track {
+    transform: none !important;
+  }
+  .wcard {
+    scroll-snap-align: start;
+    flex: 0 0 220px !important;
+  }
+  .cbtn {
+    display: none !important;
+  }
+}
+
+
 /* ══ WORKSHOP CARD ══ */
 .wcard {
   flex: 0 0 220px;
@@ -2089,7 +2113,7 @@ body {
   background: #EEF2FF
 }
 
-.enrol-date-btn.sel {
+.enrol-date-btn.selected {
   border-color: #3730A3;
   background: #3730A3;
   color: #fff
@@ -2140,7 +2164,7 @@ body {
   background: #EEF2FF
 }
 
-.enrol-time-btn.sel {
+.enrol-time-btn.selected {
   border-color: #3730A3;
   background: #3730A3;
   color: #fff
@@ -2270,7 +2294,7 @@ body {
   color: #3730A3
 }
 
-.enrol-pay-btn.sel {
+.enrol-pay-btn.selected {
   border-color: #3730A3;
   background: #EEF2FF;
   color: #3730A3

@@ -478,7 +478,7 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
               </div>
               <div className="check-row">
                 <input type="checkbox" id="tc" checked={tcChecked} onChange={(e) => setTcChecked(e.target.checked)} />
-                <label className="check-lbl" htmlFor="tc">I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>. Happy to receive workshop recommendations.</label>
+                <label className="check-lbl" htmlFor="tc">I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>. Happy to receive workshop recommendations.</label>
               </div>
               <button className={`btn-cta ${loading ? 'loading' : ''} ${wiggleBtn ? 'shake' : ''}`} onClick={doSignup}>
                 <span className="spinner"></span><span className="btn-txt">Create My Account →</span>

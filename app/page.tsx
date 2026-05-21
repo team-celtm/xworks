@@ -24,6 +24,7 @@ export default function Home() {
     price: '₹1,299',
     basePrice: 1299,
     finalPrice: 1299,
+    courseOriginalPrice: 1299,
     format: 'live',
     formatLabel: 'Live session',
     date: '',
@@ -74,6 +75,14 @@ export default function Home() {
   useEffect(() => {
     setHasMounted(true);
   }, []);
+
+  useEffect(() => {
+    const shouldLock = isMobileNavOpen || isWorkshopModalOpen || catOverlay.isOpen || enrolData.isOpen;
+    document.body.style.overflow = shouldLock ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileNavOpen, isWorkshopModalOpen, catOverlay.isOpen, enrolData.isOpen]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -174,24 +183,32 @@ export default function Home() {
   // Mobile nav toggle
   const toggleMobileNav = () => {
     setIsMobileNavOpen(!isMobileNavOpen);
-    document.body.style.overflow = !isMobileNavOpen ? 'hidden' : '';
   };
+
+  const handleMobileNavScroll = (e: React.MouseEvent, targetId: string) => {
+    e.preventDefault();
+    setIsMobileNavOpen(false);
+    setTimeout(() => {
+      const el = document.getElementById(targetId);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 150);
+  };
+
 
   // Workshop Browser
   const openWorkshopBrowser = () => {
     setIsWorkshopModalOpen(true);
-    document.body.style.overflow = 'hidden';
   };
   const closeWorkshopBrowser = () => {
     setIsWorkshopModalOpen(false);
-    document.body.style.overflow = '';
   };
 
   // Category Overlay
   const openCatPage = async (key: string) => {
     setCatOverlay({ isOpen: true, key, isClosing: false });
     setIsCatLoading(true);
-    document.body.style.overflow = 'hidden';
 
     try {
       const res = await fetch(`/api/courses?category=${key}`);
@@ -207,7 +224,6 @@ export default function Home() {
     setCatOverlay(prev => ({ ...prev, isClosing: true }));
     setTimeout(() => {
       setCatOverlay({ isOpen: false, key: null, isClosing: false });
-      document.body.style.overflow = '';
     }, 300);
   };
 
@@ -219,6 +235,7 @@ export default function Home() {
       id,
       step: 1,
       name, meta, price, basePrice, finalPrice: basePrice,
+      courseOriginalPrice: basePrice,
       format: 'live', formatLabel: 'Live session',
       date: '', time: '',
       promoApplied: false, payMethod: 'UPI',
@@ -229,23 +246,35 @@ export default function Home() {
     });
     setPromoCode('');
     setPromoMsg({ text: '', type: '' });
-    document.body.style.overflow = 'hidden';
   };
   const closeEnrol = () => {
     setEnrolData(prev => ({ ...prev, isOpen: false }));
-    document.body.style.overflow = '';
   };
 
   const enrolGoStep = (step: number) => {
     setEnrolData(prev => ({ ...prev, step }));
   };
 
-  const enrolSelectFormat = (format: string, price: string) => {
-    const basePrice = parseInt(price.replace(/[^0-9]/g, '')) || 1299;
+  const enrolSelectFormat = (format: string) => {
     const labels: Record<string, string> = { live: 'live session', recorded: 'recorded access', inperson: 'in-person session' };
-    setEnrolData(prev => ({
-      ...prev, format, price, basePrice, finalPrice: basePrice, promoApplied: false, formatLabel: labels[format] || format
-    }));
+    setEnrolData(prev => {
+      const original = prev.courseOriginalPrice || prev.basePrice || 1299;
+      let newBasePrice = original;
+      if (format === 'recorded') {
+        newBasePrice = Math.round(original * 0.8);
+      } else if (format === 'inperson') {
+        newBasePrice = original + 500;
+      }
+      return {
+        ...prev,
+        format,
+        basePrice: newBasePrice,
+        finalPrice: newBasePrice,
+        promoApplied: false,
+        formatLabel: labels[format] || format
+      };
+    });
+    setPromoCode('');
     setPromoMsg({ text: '', type: '' });
   };
 
@@ -263,7 +292,9 @@ export default function Home() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             courseId: enrolData.id,
-            promoCode: enrolData.promoApplied ? promoCode : null
+            promoCode: enrolData.promoApplied ? promoCode : null,
+            format: enrolData.format,
+            sessionId: enrolData.selectedSessionId
           })
         });
 
@@ -366,7 +397,7 @@ export default function Home() {
       const res = await fetch('/api/promo-codes/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: promoCode, courseId: enrolData.id })
+        body: JSON.stringify({ code: promoCode, courseId: enrolData.id, format: enrolData.format })
       });
       const data = await res.json();
       if (res.ok) {
@@ -474,16 +505,16 @@ export default function Home() {
           <button className="mobile-nav-close" onClick={toggleMobileNav}>✕</button>
         </div>
         <a href="#" className="mobile-nav-link" onClick={(e) => { e.preventDefault(); toggleMobileNav(); openWorkshopBrowser(); }}>Workshops</a>
-        <a href="#footer" className="mobile-nav-link" onClick={() => setIsMobileNavOpen(false)}>About us</a>
-        <a href="#footer" className="mobile-nav-link" onClick={() => setIsMobileNavOpen(false)}>Contact us</a>
+        <a href="#footer" className="mobile-nav-link" onClick={(e) => handleMobileNavScroll(e, 'footer')}>About us</a>
+        <a href="#footer" className="mobile-nav-link" onClick={(e) => handleMobileNavScroll(e, 'footer')}>Contact us</a>
         {userLoading ? (
           <div className="skeleton" style={{ width: '100%', height: '44px', borderRadius: '12px' }}></div>
         ) : user ? (
-          <div className="mobile-nav-cta"><Link href={user.role === 'admin' ? "/admin" : "/dashboard"} className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>{user.role === 'admin' ? "Admin Portal →" : "Go to Dashboard →"}</Link></div>
+          <div className="mobile-nav-cta"><Link href={user.role === 'admin' ? "/admin" : "/dashboard"} className="btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setIsMobileNavOpen(false)}>{user.role === 'admin' ? "Admin Portal →" : "Go to Dashboard →"}</Link></div>
         ) : (
           <>
-            <Link href="/Login" className="mobile-nav-link">Login</Link>
-            <div className="mobile-nav-cta"><Link href="/Registration" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Sign up free →</Link></div>
+            <Link href="/Login" className="mobile-nav-link" onClick={() => setIsMobileNavOpen(false)}>Login</Link>
+            <div className="mobile-nav-cta"><Link href="/Registration" className="btn-primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setIsMobileNavOpen(false)}>Sign up free →</Link></div>
           </>
         )}
       </div>
@@ -792,7 +823,7 @@ export default function Home() {
                     No workshops found in this subject yet.
                   </div>
                 )}
-                {activeSubjectObj && (
+                {!isBrowserLoading && activeSubjectObj && (
                   <div style={{ textAlign: 'center', padding: '24px 0 8px' }}>
                     <button onClick={() => openCatPage(activeSubjectObj.slug)} style={{ background: 'none', border: 'none', fontSize: '13px', color: 'var(--indigo)', cursor: 'pointer', fontWeight: 600 }}>
                       View all {activeSubjectObj.course_count} {activeSubjectObj.name} workshops →
@@ -811,8 +842,8 @@ export default function Home() {
           {activeCat && (
             <>
               <div className="cat-page-nav">
-                <button className="cat-back-btn" onClick={closeCatPage}>← Back to XWORKS</button>
-                <div className="cat-page-crumb">Workshops / <span>{activeCat.label}</span></div>
+                <button className="cat-back-btn" onClick={closeCatPage}>← Back <span className="cat-back-extra">to XWORKS</span></button>
+                <div className="cat-page-crumb"><span className="crumb-prefix">Workshops / </span><span>{activeCat.label || activeCat.name}</span></div>
               </div>
               <div className="cat-hero">
                 <div className="cat-hero-left">
@@ -903,22 +934,30 @@ export default function Home() {
                     <div className="enrol-thumb" style={enrolData.thumbBg ? { background: enrolData.thumbBg } : {}}>{enrolData.thumbEmoji}</div>
                     <div><div className="enrol-course-name">{enrolData.name}</div><div className="enrol-course-meta">{enrolData.meta}</div></div>
                   </div>
-                  <div className="enrol-section-label">Choose your format</div>
                   <div className="enrol-format-grid">
-                    <div className={`enrol-format-btn ${enrolData.format === 'live' ? 'selected' : ''}`} onClick={() => enrolSelectFormat('live', enrolData.price)}>
-                      <div className="enrol-format-icon">🔴</div><div className="enrol-format-name">Live session</div><div className="enrol-format-sub">Interactive · Q&A included</div>
+                    <div className={`enrol-format-btn ${enrolData.format === 'live' ? 'selected' : ''}`} onClick={() => enrolSelectFormat('live')}>
+                      <div className="enrol-format-icon">🔴</div>
+                      <div className="enrol-format-name">Live session</div>
+                      <div className="enrol-format-sub">Interactive · Q&A included</div>
+                      <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '5px', color: '#3730A3' }}>₹{(enrolData.courseOriginalPrice || 1299).toLocaleString('en-IN')}</div>
                     </div>
-                    <div className={`enrol-format-btn ${enrolData.format === 'recorded' ? 'selected' : ''}`} onClick={() => enrolSelectFormat('recorded', enrolData.price)}>
-                      <div className="enrol-format-icon">📹</div><div className="enrol-format-name">Recorded</div><div className="enrol-format-sub">Watch anytime · Self-paced</div>
+                    <div className={`enrol-format-btn ${enrolData.format === 'recorded' ? 'selected' : ''}`} onClick={() => enrolSelectFormat('recorded')}>
+                      <div className="enrol-format-icon">📹</div>
+                      <div className="enrol-format-name">Recorded</div>
+                      <div className="enrol-format-sub">Watch anytime · Self-paced</div>
+                      <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '5px', color: '#3730A3' }}>₹{Math.round((enrolData.courseOriginalPrice || 1299) * 0.8).toLocaleString('en-IN')}</div>
                     </div>
-                    <div className={`enrol-format-btn ${enrolData.format === 'inperson' ? 'selected' : ''}`} onClick={() => enrolSelectFormat('inperson', enrolData.price)}>
-                      <div className="enrol-format-icon">📍</div><div className="enrol-format-name">In-person</div><div className="enrol-format-sub">Nearby · Limited seats</div>
+                    <div className={`enrol-format-btn ${enrolData.format === 'inperson' ? 'selected' : ''}`} onClick={() => enrolSelectFormat('inperson')}>
+                      <div className="enrol-format-icon">📍</div>
+                      <div className="enrol-format-name">In-person</div>
+                      <div className="enrol-format-sub">Nearby · Limited seats</div>
+                      <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '5px', color: '#3730A3' }}>₹{((enrolData.courseOriginalPrice || 1299) + 500).toLocaleString('en-IN')}</div>
                     </div>
                   </div>
                   <div className="enrol-divider"></div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
                     <div style={{ fontSize: '13px', color: '#4B5080' }}>Price for <span>{enrolData.formatLabel}</span></div>
-                    <div style={{ fontFamily: "'Syne',sans-serif", fontSize: '20px', fontWeight: 800, color: '#3730A3' }}>{enrolData.price}</div>
+                    <div style={{ fontFamily: "'Syne',sans-serif", fontSize: '20px', fontWeight: 800, color: '#3730A3' }}>₹{enrolData.basePrice.toLocaleString('en-IN')}</div>
                   </div>
                   <div style={{ fontSize: '12px', color: '#9294B8', marginBottom: '18px' }}>Includes certificate · Lifetime recording access · Class notes PDF</div>
                   <button className="enrol-cta" onClick={() => enrolGoStep(2)}>Continue to schedule →</button>
@@ -948,7 +987,7 @@ export default function Home() {
                       return (
                         <button
                           key={s.id}
-                          className={`enrol-date-btn ${enrolData.selectedSessionId === s.id ? 'sel' : ''} ${isFull ? 'disabled' : ''}`}
+                          className={`enrol-date-btn ${enrolData.selectedSessionId === s.id ? 'selected' : ''} ${isFull ? 'disabled' : ''}`}
                           disabled={isFull}
                           onClick={() => setEnrolData(prev => ({
                             ...prev,
@@ -994,9 +1033,9 @@ export default function Home() {
               </div>
               <div className="enrol-body">
                 <div className="enrol-order-row"><span className="enrol-order-label">Workshop</span><span className="enrol-order-val">{enrolData.name}</span></div>
-                <div className="enrol-order-row"><span className="enrol-order-label">Format</span><span className="enrol-order-val">{enrolData.price}</span></div>
+                <div className="enrol-order-row"><span className="enrol-order-label">Format</span><span className="enrol-order-val">₹{enrolData.basePrice.toLocaleString('en-IN')}</span></div>
                 {enrolData.promoApplied && (
-                  <div className="enrol-order-row"><span className="enrol-order-label" style={{ color: '#16A34A' }}>Promo discount</span><span className="enrol-order-val" style={{ color: '#16A34A' }}>−₹{Math.round(enrolData.basePrice * 0.20)}</span></div>
+                  <div className="enrol-order-row"><span className="enrol-order-label" style={{ color: '#16A34A' }}>Promo discount</span><span className="enrol-order-val" style={{ color: '#16A34A' }}>−₹{(enrolData.basePrice - enrolData.finalPrice).toLocaleString('en-IN')}</span></div>
                 )}
                 <div className="enrol-divider"></div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
@@ -1012,7 +1051,7 @@ export default function Home() {
                 <div className="enrol-section-label">Pay with</div>
                 <div className="enrol-pay-methods">
                   {['UPI', 'Card', 'Net banking', 'EMI'].map(method => (
-                    <button key={method} className={`enrol-pay-btn ${enrolData.payMethod === method ? 'sel' : ''}`} onClick={() => setEnrolData(prev => ({ ...prev, payMethod: method }))}>{method}</button>
+                    <button key={method} className={`enrol-pay-btn ${enrolData.payMethod === method ? 'selected' : ''}`} onClick={() => setEnrolData(prev => ({ ...prev, payMethod: method }))}>{method}</button>
                   ))}
                 </div>
                 <div className="enrol-upi-field">

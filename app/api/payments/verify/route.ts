@@ -53,20 +53,31 @@ export async function POST(req: NextRequest) {
       }
     } else {
       // 3. Create Enrolment
-      // Get original price from course
-      const courseRes = await pool.query('SELECT price FROM courses WHERE id = $1', [courseId]);
-      let price = parseFloat(courseRes.rows[0].price);
+      // Retrieve the database-recorded payment amount if exists
+      const paymentRes = await pool.query(
+        'SELECT amount FROM payments WHERE razorpay_order_id = $1',
+        [razorpay_order_id]
+      );
 
-      // Apply promo if any for price_paid_paise calculation
-      let finalPaise = Math.round(price * 100);
-      if (promoCode) {
-        const promoRes = await pool.query(
-          'SELECT discount_percentage FROM promo_codes WHERE code = $1',
-          [promoCode.toUpperCase()]
-        );
-        if (promoRes.rows.length > 0) {
-          const discount = (price * parseFloat(promoRes.rows[0].discount_percentage)) / 100;
-          finalPaise = Math.round((price - discount) * 100);
+      let finalPaise;
+      if (paymentRes.rows.length > 0) {
+        finalPaise = Math.round(Number(paymentRes.rows[0].amount) * 100);
+      } else {
+        // Fallback pricing calculation
+        const courseRes = await pool.query('SELECT price FROM courses WHERE id = $1', [courseId]);
+        let price = parseFloat(courseRes.rows[0].price);
+
+        // Apply promo if any for price_paid_paise calculation
+        finalPaise = Math.round(price * 100);
+        if (promoCode) {
+          const promoRes = await pool.query(
+            'SELECT discount_percentage FROM promo_codes WHERE code = $1',
+            [promoCode.toUpperCase()]
+          );
+          if (promoRes.rows.length > 0) {
+            const discount = (price * parseFloat(promoRes.rows[0].discount_percentage)) / 100;
+            finalPaise = Math.round((price - discount) * 100);
+          }
         }
       }
 

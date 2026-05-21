@@ -49,6 +49,7 @@ interface EnrolData {
   thumbEmoji?: string;
   discountAmt?: number;
   selectedSessionId?: string | null;
+  courseOriginalPrice?: number;
 }
 
 function CatalogueContent() {
@@ -212,15 +213,25 @@ function CatalogueContent() {
   const [modalSessions, setModalSessions] = useState<any[]>([]);
 
   const openEnrol = async (w: Workshop) => {
+    const basePrice = Number(w.price) || 0;
+    const format = w.nearby ? 'inperson' : 'live';
+    const formatLabel = w.nearby ? 'in-person session' : 'live session';
+    let initPrice = basePrice;
+    if (format === 'inperson') {
+      initPrice = basePrice + 500;
+    } else if (format === 'recorded') {
+      initPrice = Math.round(basePrice * 0.8);
+    }
     setEnrolData({
       id: w.id,
       name: w.name,
       meta: `by ${w.instructor} · ★ ${w.rating} · ${w.dur} hrs · ${w.level}`,
-      price: `₹${(Number(w.price) || 0).toLocaleString('en-IN')}`,
-      basePrice: w.price,
-      finalPrice: w.price,
-      format: w.nearby ? 'inperson' : 'live', // fallback init
-      formatLabel: w.nearby ? 'in-person session' : 'live session',
+      price: `₹${initPrice.toLocaleString('en-IN')}`,
+      basePrice: initPrice,
+      finalPrice: initPrice,
+      courseOriginalPrice: basePrice,
+      format,
+      formatLabel,
       date: '', // filled from sessions
       time: '',
       payMethod: 'UPI',
@@ -257,6 +268,29 @@ function CatalogueContent() {
     setShowEnrol(false);
   };
 
+  const enrolSelectFormat = (format: string) => {
+    const labels: Record<string, string> = { live: 'live session', recorded: 'recorded access', inperson: 'in-person session' };
+    const original = enrolData.courseOriginalPrice || enrolData.basePrice || 0;
+    let newBasePrice = original;
+    if (format === 'recorded') {
+      newBasePrice = Math.round(original * 0.8);
+    } else if (format === 'inperson') {
+      newBasePrice = original + 500;
+    }
+    setEnrolData((prev: EnrolData) => ({
+      ...prev,
+      format,
+      formatLabel: labels[format] || format,
+      price: `₹${newBasePrice.toLocaleString('en-IN')}`,
+      basePrice: newBasePrice,
+      finalPrice: newBasePrice,
+      discountAmt: 0
+    }));
+    setPromoCode('');
+    setPromoApplied(false);
+    setPromoError('');
+  };
+
   const [modalEnrolmentId, setModalEnrolmentId] = useState<string | null>(null);
 
   const handleModalEnrol = async () => {
@@ -271,7 +305,9 @@ function CatalogueContent() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             courseId: enrolData.id,
-            promoCode: promoApplied ? promoCode : null
+            promoCode: promoApplied ? promoCode : null,
+            format: enrolData.format,
+            sessionId: enrolData.selectedSessionId
           })
         });
 
@@ -304,7 +340,9 @@ function CatalogueContent() {
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
                 courseId: enrolData.id,
-                promoCode: promoApplied ? promoCode : null
+                promoCode: promoApplied ? promoCode : null,
+                format: enrolData.format,
+                sessionId: enrolData.selectedSessionId
               })
             });
             const verifyData = await verifyRes.json();
@@ -377,7 +415,7 @@ function CatalogueContent() {
       const res = await fetch('/api/promo-codes/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: promoCode, courseId: enrolData.id })
+        body: JSON.stringify({ code: promoCode, courseId: enrolData.id, format: enrolData.format })
       });
       const data = await res.json();
       if (res.ok) {
@@ -739,36 +777,38 @@ function CatalogueContent() {
                   <div className="enrol-section-label">Choose your format</div>
                   <div className="enrol-format-grid">
                     {[
-                      { id: 'live', icon: '🔴', name: 'Live session', sub: 'Interactive · Q&A included', p: '₹1,299' },
-                      { id: 'recorded', icon: '📹', name: 'Recorded', sub: 'Watch anytime · Self-paced', p: '₹999' },
-                      { id: 'inperson', icon: '📍', name: 'In-person', sub: 'Nearby · Limited seats', p: '₹849' }
-                    ].map(f => (
-                      <div
-                        key={f.id}
-                        className={`enrol-format-btn ${enrolData.format === f.id ? 'selected' : ''}`}
-                        onClick={() => {
-                          setEnrolData((prev: EnrolData) => ({
-                            ...prev,
-                            format: f.id,
-                            formatLabel: f.name.toLowerCase(),
-                            price: f.p,
-                            basePrice: parseInt(f.p.replace(/[^0-9]/g, '')),
-                            finalPrice: parseInt(f.p.replace(/[^0-9]/g, ''))
-                          }));
-                          setPromoApplied(false);
-                        }}
-                      >
-                        <div className="enrol-format-icon">{f.icon}</div>
-                        <div className="enrol-format-name">{f.name}</div>
-                        <div className="enrol-format-sub">{f.sub}</div>
-                      </div>
-                    ))}
+                      { id: 'live', icon: '🔴', name: 'Live session', sub: 'Interactive · Q&A included' },
+                      { id: 'recorded', icon: '📹', name: 'Recorded', sub: 'Watch anytime · Self-paced' },
+                      { id: 'inperson', icon: '📍', name: 'In-person', sub: 'Nearby · Limited seats' }
+                    ].map(f => {
+                      const original = enrolData.courseOriginalPrice || 0;
+                      let priceVal = original;
+                      if (f.id === 'recorded') {
+                        priceVal = Math.round(original * 0.8);
+                      } else if (f.id === 'inperson') {
+                        priceVal = original + 500;
+                      }
+                      return (
+                        <div
+                          key={f.id}
+                          className={`enrol-format-btn ${enrolData.format === f.id ? 'selected' : ''}`}
+                          onClick={() => enrolSelectFormat(f.id)}
+                        >
+                          <div className="enrol-format-icon">{f.icon}</div>
+                          <div className="enrol-format-name">{f.name}</div>
+                          <div className="enrol-format-sub">{f.sub}</div>
+                          <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '5px', color: '#3730A3' }}>
+                            ₹{priceVal.toLocaleString('en-IN')}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                   <div className="enrol-divider"></div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
                     <div style={{ fontSize: '13px', color: '#4B5080' }}>Price for <span>{enrolData.formatLabel}</span></div>
                     <div style={{ fontFamily: '"Syne", sans-serif', fontSize: '20px', fontWeight: 800, color: '#3730A3' }}>
-                      {enrolData.price}
+                      ₹{(enrolData.basePrice || 0).toLocaleString('en-IN')}
                     </div>
                   </div>
                   <div style={{ fontSize: '12px', color: '#9294B8', marginBottom: '18px' }}>Includes certificate · Lifetime recording access · Class notes PDF</div>
@@ -805,7 +845,7 @@ function CatalogueContent() {
                         return (
                           <button
                             key={s.id}
-                            className={`enrol-date-btn ${enrolData.selectedSessionId === s.id ? 'sel' : ''} ${isFull ? 'disabled' : ''}`}
+                            className={`enrol-date-btn ${enrolData.selectedSessionId === s.id ? 'selected' : ''} ${isFull ? 'disabled' : ''}`}
                             disabled={isFull}
                             style={{ height: 'auto', padding: '12px 8px' }}
                             onClick={() => setEnrolData((prev: EnrolData) => ({
@@ -859,6 +899,7 @@ function CatalogueContent() {
                 </div>
                 <div className="enrol-body">
                   <div className="enrol-order-row"><span className="enrol-order-label">Workshop</span><span className="enrol-order-val">{enrolData.name}</span></div>
+                  <div className="enrol-order-row"><span className="enrol-order-label">Format</span><span className="enrol-order-val">₹{(enrolData.basePrice || 0).toLocaleString('en-IN')}</span></div>
                   <div className="enrol-order-row"><span className="enrol-order-label">Platform fee</span><span className="enrol-order-val">₹0</span></div>
 
                   {promoApplied && (
@@ -890,13 +931,13 @@ function CatalogueContent() {
                   <div className="enrol-section-label">Pay with</div>
                   <div className="enrol-pay-methods">
                     {['UPI', 'Card', 'Net banking', 'EMI'].map(m => (
-                      <div
+                      <button
                         key={m}
-                        className={`enrol-pay-btn ${enrolData.payMethod === m ? 'sel' : ''}`}
+                        className={`enrol-pay-btn ${enrolData.payMethod === m ? 'selected' : ''}`}
                         onClick={() => setEnrolData((prev: EnrolData) => ({ ...prev, payMethod: m }))}
                       >
                         {m}
-                      </div>
+                      </button>
                     ))}
                   </div>
                   <div className="enrol-upi-field">

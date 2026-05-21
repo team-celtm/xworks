@@ -691,6 +691,28 @@
   right: -20px
 }
 
+@media (max-width: 768px) {
+  .carousel-track-outer {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .carousel-track-outer::-webkit-scrollbar {
+    display: none !important;
+  }
+  .carousel-track {
+    transform: none !important;
+  }
+  .course-card {
+    scroll-snap-align: start;
+  }
+  .carousel-btn {
+    display: none !important;
+  }
+}
+
+
 /* ══════════════════════════
    COURSE CARD
 ══════════════════════════ */
@@ -1668,11 +1690,30 @@
   border-color: rgba(255, 255, 255, 0.3);
 }
 
+.cat-page-crumb {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: var(--font-body);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cat-page-crumb span {
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.crumb-prefix {
+  color: rgba(255, 255, 255, 0.45);
+  font-weight: 400;
+}
 
 @media (max-width: 768px) {
   .cat-page-nav {
-    padding: 0 12px;
-    height: 64px;
+    padding: 0 16px;
+    height: 56px;
   }
 
   .cat-back-btn span {
@@ -1680,10 +1721,14 @@
   }
 
   .cat-back-btn {
-    font-size: 20px;
-    padding: 8px 12px;
-    background: none;
-    border: none;
+    font-size: 13px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .crumb-prefix {
+    display: none;
   }
 }
 
@@ -2273,7 +2318,7 @@
   background: #EEF2FF
 }
 
-.enrol-date-btn.sel {
+.enrol-date-btn.selected {
   border-color: #3730A3;
   background: #3730A3;
   color: #fff
@@ -2324,7 +2369,7 @@
   background: #EEF2FF
 }
 
-.enrol-time-btn.sel {
+.enrol-time-btn.selected {
   border-color: #3730A3;
   background: #3730A3;
   color: #fff
@@ -2454,7 +2499,7 @@
   color: #3730A3
 }
 
-.enrol-pay-btn.sel {
+.enrol-pay-btn.selected {
   border-color: #3730A3;
   background: #EEF2FF;
   color: #3730A3

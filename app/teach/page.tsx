@@ -135,7 +135,7 @@ export default function TeachPage() {
                 
                 <div className="check-row" style={{ marginTop: '16px' }}>
                   <input type="checkbox" id="tc" required />
-                  <label className="check-lbl" htmlFor="tc">I agree to the Instructor Revenue Share <a href="#">Terms of Service</a> and content guidelines.</label>
+                  <label className="check-lbl" htmlFor="tc">I agree to the Instructor Revenue Share <a href="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a> and content guidelines.</label>
                 </div>
 
                 <button type="submit" className={`btn-cta ${loading ? 'loading' : ''}`} disabled={loading} style={{ marginTop: '12px' }}>
