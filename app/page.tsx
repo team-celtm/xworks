@@ -438,16 +438,21 @@ export default function Home() {
   };
 
   const applyPromo = async () => {
-    if (!promoCode.trim()) return;
+    const code = promoCode.trim().toUpperCase();
+    if (!code) {
+      setPromoMsg({ text: 'Please enter a promo code', type: 'error' });
+      setEnrolData(prev => ({ ...prev, promoApplied: false, finalPrice: prev.basePrice }));
+      return;
+    }
     setPromoLoading(true);
     try {
       const res = await fetch('/api/promo-codes/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: promoCode, courseId: enrolData.id, format: enrolData.format })
+        body: JSON.stringify({ code, courseId: enrolData.id, format: enrolData.format })
       });
       const data = await res.json();
-      if (res.ok) {
+      if (res.ok && data.success) {
         const discountPercentage = parseFloat(data.discountPercentage);
         const discount = Math.round(enrolData.basePrice * (discountPercentage / 100));
         setEnrolData(prev => ({ ...prev, promoApplied: true, finalPrice: prev.basePrice - discount }));
@@ -459,6 +464,7 @@ export default function Home() {
       }
     } catch (err) {
       setPromoMsg({ text: 'Validation failed', type: 'error' });
+      setEnrolData(prev => ({ ...prev, promoApplied: false, finalPrice: prev.basePrice }));
     } finally {
       setPromoLoading(false);
     }
@@ -1090,7 +1096,21 @@ export default function Home() {
                   <span className="enrol-total">Total</span><span key={enrolData.finalPrice} className="enrol-total enrol-total-price-val">₹{enrolData.finalPrice.toLocaleString('en-IN')}</span>
                 </div>
                 <div className="enrol-promo-row">
-                  <input className="enrol-promo-input" value={promoCode} onChange={(e) => setPromoCode(e.target.value)} type="text" placeholder="Promo code (try XWORKS20)" />
+                  <input
+                    className="enrol-promo-input"
+                    value={promoCode}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setPromoCode(val);
+                      if (!val.trim()) {
+                        setPromoMsg({ text: '', type: '' });
+                        setEnrolData(prev => ({ ...prev, promoApplied: false, finalPrice: prev.basePrice }));
+                      }
+                    }}
+                    type="text"
+                    placeholder="Promo code (try XWORKS20)"
+                    disabled={promoLoading}
+                  />
                   <button id="promo-apply-btn" className={`enrol-promo-apply ${promoLoading ? 'loading' : ''}`} onClick={applyPromo} disabled={promoLoading}>
                     {promoLoading ? <span className="promo-spinner"></span> : 'Apply'}
                   </button>

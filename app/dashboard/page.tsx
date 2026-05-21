@@ -644,7 +644,16 @@ export default function DashboardPage() {
 
   const applyPromo = async () => {
     const code = promoCode.trim().toUpperCase();
-    if (!code) return;
+    if (!code) {
+      setPromoOk({ text: "✗ Please enter a promo code", color: "#D84040", show: true });
+      setEnrolData((prev: DashboardEnrolData) => ({
+        ...prev,
+        promoApplied: false,
+        finalPrice: prev.basePrice || 0,
+        discount: 0
+      }));
+      return;
+    }
 
     setPromoLoading(true);
     try {
@@ -667,9 +676,21 @@ export default function DashboardPage() {
         setTimeout(() => triggerPromoConfetti('promo-apply-btn'), 50);
       } else {
         setPromoOk({ text: `✗ ${data.error || "Invalid code"}`, color: "#D84040", show: true });
+        setEnrolData((prev: DashboardEnrolData) => ({
+          ...prev,
+          promoApplied: false,
+          finalPrice: prev.basePrice || 0,
+          discount: 0
+        }));
       }
     } catch (err) {
       setPromoOk({ text: "✗ Connection error", color: "#D84040", show: true });
+      setEnrolData((prev: DashboardEnrolData) => ({
+        ...prev,
+        promoApplied: false,
+        finalPrice: prev.basePrice || 0,
+        discount: 0
+      }));
     } finally {
       setPromoLoading(false);
     }
@@ -2056,8 +2077,21 @@ export default function DashboardPage() {
                       type="text"
                       placeholder="Promo code (try XWORKS20)"
                       value={promoCode}
-                      onChange={(e) => setPromoCode(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && applyPromo()}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setPromoCode(val);
+                        if (!val.trim()) {
+                          setPromoOk({ text: "", color: "", show: false });
+                          setEnrolData((prev: DashboardEnrolData) => ({
+                            ...prev,
+                            promoApplied: false,
+                            finalPrice: prev.basePrice || 0,
+                            discount: 0
+                          }));
+                        }
+                      }}
+                      onKeyDown={(e) => e.key === "Enter" && !promoLoading && applyPromo()}
+                      disabled={promoLoading}
                     />
                     <button id="promo-apply-btn" className={`enrol-promo-apply ${promoLoading ? 'loading' : ''}`} onClick={applyPromo} disabled={promoLoading}>
                       {promoLoading ? <span className="promo-spinner"></span> : 'Apply'}

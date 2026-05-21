@@ -456,16 +456,22 @@ function CatalogueContent() {
   };
 
   const applyPromo = async () => {
-    if (!promoCode.trim()) return;
+    const code = promoCode.trim().toUpperCase();
+    if (!code) {
+      setPromoError('Please enter a promo code');
+      setPromoApplied(false);
+      setEnrolData((prev: EnrolData) => ({ ...prev, finalPrice: prev.basePrice, discountAmt: 0 }));
+      return;
+    }
     setPromoLoading(true);
     try {
       const res = await fetch('/api/promo-codes/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: promoCode, courseId: enrolData.id, format: enrolData.format })
+        body: JSON.stringify({ code, courseId: enrolData.id, format: enrolData.format })
       });
       const data = await res.json();
-      if (res.ok) {
+      if (res.ok && data.success) {
         setPromoApplied(true);
         const discount = Math.round((enrolData.basePrice || 0) * (data.discountPercentage / 100));
         setEnrolData((prev: EnrolData) => ({
@@ -482,6 +488,8 @@ function CatalogueContent() {
       }
     } catch (err) {
       setPromoError('Validation failed');
+      setPromoApplied(false);
+      setEnrolData((prev: EnrolData) => ({ ...prev, finalPrice: prev.basePrice, discountAmt: 0 }));
     } finally {
       setPromoLoading(false);
     }
@@ -968,7 +976,16 @@ function CatalogueContent() {
                       type="text"
                       placeholder="Promo code (try XWORKS20)"
                       value={promoCode}
-                      onChange={(e) => setPromoCode(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setPromoCode(val);
+                        if (!val.trim()) {
+                          setPromoError('');
+                          setPromoApplied(false);
+                          setEnrolData((prev: EnrolData) => ({ ...prev, finalPrice: prev.basePrice, discountAmt: 0 }));
+                        }
+                      }}
+                      disabled={promoLoading}
                     />
                     <button id="promo-apply-btn" className={`enrol-promo-apply ${promoLoading ? 'loading' : ''}`} onClick={applyPromo} disabled={promoLoading}>
                       {promoLoading ? <span className="promo-spinner"></span> : 'Apply'}
