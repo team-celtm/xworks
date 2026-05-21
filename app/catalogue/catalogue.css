@@ -1,6 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap");
 
 .catalogue-wrapper {
+  overflow-x: hidden;
   --bg:#F5F6FF;
   --surface:#FFFFFF;
   --surface-2:#EEF2FF;
@@ -575,63 +576,158 @@
 .mob-menu-toggle { display: none; }
 
 @media (max-width: 768px) {
+  .logo-wrap {
+    position: relative;
+    z-index: 1001;
+  }
+
+  .nav {
+    backdrop-filter: none !important;
+  }
+
   .mob-menu-toggle {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
-    background: none;
-    border: none;
+    width: 42px;
+    height: 42px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
     color: #fff;
-    font-size: 24px;
+    font-size: 20px;
     cursor: pointer;
     z-index: 1001;
+    outline: none !important;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .mob-menu-toggle:focus,
+  .mob-menu-toggle:active {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  .mob-menu-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.25);
+    transform: scale(1.05);
   }
 
   .nav-right {
     position: fixed;
-    top: 64px;
+    top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(30, 27, 75, 0.98);
+    background: radial-gradient(circle at 80% 15%, rgba(251, 146, 60, 0.12), transparent 45%), 
+                linear-gradient(180deg, #1E1B4B 0%, #080521 100%) !important;
     display: none;
     flex-direction: column;
-    padding: 40px 20px;
-    gap: 20px;
+    padding: 110px 24px 40px;
+    gap: 16px;
     z-index: 1000;
+    align-items: center;
+    justify-content: flex-start;
   }
 
   .nav-right.open {
     display: flex;
+    animation: slideNavIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes slideNavIn {
+    from {
+      opacity: 0;
+      transform: translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .nav-link-sm {
+    font-family: var(--font-d);
     font-size: 18px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.85);
     width: 100%;
     text-align: center;
-    padding: 15px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding: 16px 20px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    background: rgba(255, 255, 255, 0.02);
+    text-decoration: none;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .nav-link-sm:hover,
+  .nav-link-sm:focus {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.08);
+    transform: translateY(-1px);
+    outline: none;
   }
 
   .nav-cta {
     width: 100%;
     text-align: center;
-    padding: 15px;
+    padding: 16px;
     font-size: 18px;
-    background: var(--coral);
-    border-radius: 12px;
+    font-family: var(--font-d);
+    font-weight: 700;
+    color: #fff;
+    background: linear-gradient(135deg, var(--coral) 0%, var(--coral-dark) 100%);
+    border-radius: 14px;
+    border: none;
+    text-decoration: none;
+    box-shadow: 0 4px 16px rgba(251, 146, 60, 0.3);
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .nav-cta:hover,
+  .nav-cta:focus {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(251, 146, 60, 0.45);
+    outline: none;
   }
 
   .nav-back {
     width: 100%;
     text-align: center;
-    padding: 15px;
-    background: rgba(255,255,255,0.05);
-    border-radius: 12px;
-    border: none;
+    padding: 16px;
+    font-size: 16px;
+    font-family: var(--font-d);
+    font-weight: 700;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 14px;
+    color: rgba(255, 255, 255, 0.85);
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .nav-back:hover,
+  .nav-back:focus {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
     color: #fff;
+    transform: translateY(-1px);
+    outline: none;
   }
 }
 

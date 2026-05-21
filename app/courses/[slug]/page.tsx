@@ -271,7 +271,7 @@ export default function CourseDetailPage() {
         </div>
       </nav>
 
-        <main className="detail-main" style={{ maxWidth: '1100px', margin: '40px auto', padding: '0 24px' }}>
+        <main className="detail-main">
           <div className="detail-grid">
 
             <div className="detail-left">
@@ -283,8 +283,8 @@ export default function CourseDetailPage() {
                 <span className="crumb-current">{course.name}</span>
               </div>
 
-              <div className="detail-hero-card" style={{ background: '#fff', borderRadius: '24px', padding: '40px', border: '1px solid var(--border-md)', marginBottom: '32px' }}>
-                <div style={{ display: 'flex', gap: '24px', alignItems: 'center', marginBottom: '24px' }}>
+              <div className="detail-hero-card">
+                <div className="detail-hero-header">
                   <div className={`detail-emoji-box ${course.g}`} style={{ width: '80px', height: '80px', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px' }}>
                     {course.emoji}
                   </div>
@@ -343,7 +343,7 @@ export default function CourseDetailPage() {
               {sessions.length > 0 && (
                 <div className="detail-section" style={{ marginBottom: '40px' }}>
                   <h2>Live Sessions</h2>
-                  <div className="sessions-list" style={{ display: 'grid', gap: '12px' }}>
+                  <div className="sessions-list">
                     {sessions.map(s => {
                       const isSelected = selectedSessionId === s.id;
                       const full = s.maxSeats - s.registeredCount <= 0;
@@ -358,7 +358,7 @@ export default function CourseDetailPage() {
                               ⏱ {new Date(s.scheduledStart).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })} · {new Date(s.scheduledStart).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                             </div>
                           </div>
-                          <div style={{ textAlign: 'right' }}>
+                          <div className="session-right">
                             <div className={`session-status ${full ? 'status-soldout' : 'status-available'}`}>
                               {!full && <span className="pulse-dot"></span>}
                               {full ? 'Sold out' : `${s.maxSeats - s.registeredCount} seats left`}
@@ -390,16 +390,16 @@ export default function CourseDetailPage() {
                     )}
                   </div>
                   <div>
-                    <div style={{ fontSize: '20px', fontWeight: 800, marginBottom: '4px' }}>{course.instructor}</div>
-                    <div style={{ fontSize: '13px', color: 'var(--indigo)', fontWeight: 600, marginBottom: '12px' }}>Platform Educator · 4.9★ Average</div>
-                    <div style={{ fontSize: '14px', lineHeight: '1.5', color: 'var(--text-2)' }}>{course.instructorBio || 'An experienced industry professional dedicated to sharing knowledge and helping the next generation of learners succeed in their career journey.'}</div>
+                    <div className="instructor-name">{course.instructor}</div>
+                    <div className="instructor-subtitle">Platform Educator · 4.9★ Average</div>
+                    <div className="instructor-bio">{course.instructorBio || 'An experienced industry professional dedicated to sharing knowledge and helping the next generation of learners succeed in their career journey.'}</div>
                   </div>
                 </div>
               </div>
             </div>
 
             <div className="detail-right">
-              <div style={{ position: 'sticky', top: '24px' }}>
+              <div className="sticky-container">
                 <div className="price-card">
                   <div className="price-val">{priceStr}</div>
 
@@ -443,11 +443,11 @@ export default function CourseDetailPage() {
                         )}
                       </button>
                       {error && !loading && (
-                        <div style={{ color: '#EF4444', fontSize: '13px', textAlign: 'center', marginBottom: '16px', fontWeight: 500, marginTop: '16px' }}>
+                        <div className="error-msg">
                           {error}
                         </div>
                       )}
-                      <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-3)', marginTop: '16px' }}>100% money-back guarantee</div>
+                      <div className="guarantee-text">100% money-back guarantee</div>
                     </>
                   )}
                 </div>
@@ -466,6 +466,77 @@ export default function CourseDetailPage() {
             background-attachment: fixed;
             min-height: 100vh;
             overflow-y: auto;
+            overflow-x: hidden;
+          }
+
+          .detail-main {
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 0 24px;
+          }
+
+          .detail-hero-card {
+            background: #fff;
+            border-radius: 24px;
+            padding: 40px;
+            border: 1px solid var(--border-md);
+            margin-bottom: 32px;
+          }
+
+          .detail-hero-header {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+            margin-bottom: 24px;
+          }
+
+          .sessions-list {
+            display: grid;
+            gap: 12px;
+          }
+
+          .session-right {
+            text-align: right;
+          }
+
+          .instructor-name {
+            font-size: 20px;
+            font-weight: 800;
+            margin-bottom: 4px;
+          }
+
+          .instructor-subtitle {
+            font-size: 13px;
+            color: var(--indigo);
+            font-weight: 600;
+            margin-bottom: 12px;
+          }
+
+          .instructor-bio {
+            font-size: 14px;
+            line-height: 1.5;
+            color: var(--text-2);
+          }
+
+          .sticky-container {
+            position: sticky;
+            top: 24px;
+          }
+
+          .error-msg {
+            color: #EF4444;
+            font-size: 13px;
+            text-align: center;
+            margin-bottom: 16px;
+            font-weight: 500;
+            margin-top: 16px;
+          }
+
+          .guarantee-text {
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-3);
+            margin-top: 16px;
           }
 
           .detail-grid { display: grid; grid-template-columns: 1fr 380px; gap: 40px; }
@@ -859,6 +930,73 @@ export default function CourseDetailPage() {
           }
           @keyframes spin {
             to { transform: rotate(360deg); }
+          }
+
+          @media (max-width: 768px) {
+            .detail-main {
+              margin: 20px auto;
+              padding: 0 16px;
+            }
+            .detail-hero-card {
+              padding: 24px;
+              margin-bottom: 24px;
+            }
+            .detail-hero-header {
+              flex-direction: column;
+              align-items: flex-start;
+              gap: 16px;
+            }
+            .price-card {
+              padding: 24px 20px;
+            }
+            .learn-card {
+              padding: 20px;
+            }
+            .instructor-card {
+              padding: 24px;
+              gap: 16px;
+            }
+          }
+
+          @media (max-width: 600px) {
+            .session-item {
+              flex-direction: column;
+              align-items: flex-start;
+              gap: 12px;
+            }
+            .session-right {
+              text-align: left !important;
+              width: 100%;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            }
+          }
+
+          @media (max-width: 480px) {
+            .detail-main {
+              padding: 0 12px;
+            }
+            .detail-hero-card {
+              padding: 20px 16px;
+              border-radius: 16px;
+            }
+            .price-card {
+              padding: 20px 16px;
+              border-radius: 16px;
+            }
+            .learn-card {
+              padding: 16px;
+              border-radius: 16px;
+            }
+            .instructor-card {
+              padding: 20px 16px;
+              border-radius: 16px;
+            }
+            .session-item {
+              padding: 14px 16px;
+              border-radius: 12px;
+            }
           }
         `}</style>
       </div>
