@@ -19,6 +19,11 @@ export async function POST(req: NextRequest) {
 
     const { payload } = await jwtVerify(accessToken, new TextEncoder().encode(SESSION_SECRET));
     const userId = (payload as any).id;
+    const role = (payload as any).role;
+
+    if (role === 'admin' || role === 'instructor') {
+      return NextResponse.json({ error: 'Administrators and Instructors are not allowed to make payments.' }, { status: 403 });
+    }
 
     const { courseId, promoCode, format, sessionId } = await req.json();
     console.log('Payment Order Request:', { courseId, promoCode, format, sessionId, userId });

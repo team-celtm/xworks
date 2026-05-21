@@ -595,6 +595,10 @@ export default function DashboardPage() {
   const [modalSessions, setModalSessions] = useState<any[]>([]);
 
   const openEnrol = async (w: Workshop) => {
+    if (user && (user.role === 'admin' || user.role === 'instructor')) {
+      alert('Administrators and Instructors are not allowed to enrol in or make payments for courses.');
+      return;
+    }
     const basePrice = Number(w.price) || 0;
     setEnrolData({
       courseId: String(w.id),
@@ -717,6 +721,10 @@ export default function DashboardPage() {
       if (!user) {
         alert("Please login first");
         router.push("/Login");
+        return;
+      }
+      if (user.role === 'admin' || user.role === 'instructor') {
+        alert('Administrators and Instructors are not allowed to enrol in or make payments for courses.');
         return;
       }
 

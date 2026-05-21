@@ -130,6 +130,10 @@ export default function CourseDetailPage() {
 
   const handleEnrol = async () => {
     if (!course) return;
+    if (user && (user.role === 'admin' || user.role === 'instructor')) {
+      alert('Administrators and Instructors are not allowed to enrol in or make payments for courses.');
+      return;
+    }
     if (course.live && !selectedSessionId && sessions.length > 0) {
       setError('Please select a live session first.');
       return;

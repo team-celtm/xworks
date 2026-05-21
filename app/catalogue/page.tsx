@@ -260,6 +260,10 @@ function CatalogueContent() {
   const [modalSessions, setModalSessions] = useState<any[]>([]);
 
   const openEnrol = async (w: Workshop) => {
+    if (user && (user.role === 'admin' || user.role === 'instructor')) {
+      alert('Administrators and Instructors are not allowed to enrol in or make payments for courses.');
+      return;
+    }
     const basePrice = Number(w.price) || 0;
     const format = w.nearby ? 'inperson' : 'live';
     const formatLabel = w.nearby ? 'in-person session' : 'live session';
