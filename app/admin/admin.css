@@ -375,12 +375,53 @@
     display: none;
   }
   .topbar {
-    padding: 0 16px;
-    height: 56px;
-    min-height: 56px;
-    background: var(--surface);
+    display: none !important;
   }
   .sb-mobile-hd {
     background: var(--indigo-dark);
   }
+}
+
+@media(max-width:480px) {
+  .content {
+    padding: 16px 12px !important;
+  }
+}
+
+/* Spinner and loading indicator styling */
+.btn-loader {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2.5px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: #ffffff;
+  animation: admin-spin 0.6s linear infinite;
+  vertical-align: middle;
+  margin: 0 auto;
+}
+
+.dashboard-loader {
+  display: block;
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(79, 70, 229, 0.15);
+  border-radius: 50%;
+  border-top-color: var(--indigo);
+  animation: admin-spin 0.8s linear infinite;
+}
+
+@keyframes admin-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.admin-btn:disabled,
+.enrol-cta:disabled,
+.qa-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed !important;
+  transform: none !important;
+  pointer-events: none;
 }
