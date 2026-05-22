@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import Logo from "../components/Logo";
 import RoleTransitionOverlay from "../components/RoleTransitionOverlay";
 import AlertModal from "../components/AlertModal";
+import { formatDuration } from '@/lib/utils';
 
 const triggerPromoConfetti = (elementId: string) => {
   const anchor = document.getElementById(elementId);
@@ -110,6 +111,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [activeView, setActiveView] = useState("home");
   const [promptQuery, setPromptQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<{ query: string; recorded: Workshop[]; live: Workshop[] } | null>(null);
   const [enrolments, setEnrolments] = useState<any[]>([]);
   const [loadingEnrolments, setLoadingEnrolments] = useState(true);
@@ -458,8 +460,8 @@ export default function DashboardPage() {
         bg: e.thumbBg || "g-ai",
         name: e.name,
         meta: e.progressPct === 100
-          ? `Completed ${new Date(e.completedAt || e.enrolledAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} · ${e.dur} hrs`
-          : `In progress · ${Math.round((e.progressPct / 100) * e.dur)} of ${e.dur} hrs done`,
+          ? `Completed ${new Date(e.completedAt || e.enrolledAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} · ${formatDuration(e.dur)}`
+          : `In progress · ${formatDuration(Math.round((e.progressPct / 100) * e.dur))} of ${formatDuration(e.dur)} done`,
         pct: Math.round(e.progressPct),
         rating: e.rating,
         dur: e.dur,
@@ -474,10 +476,14 @@ export default function DashboardPage() {
 
   const continueLearningList = enrolments.filter(e => e.progressPct > 0 && e.progressPct < 100);
 
-  const handleSearch = async () => {
-    const q = promptQuery.trim();
-    if (!q) return;
+  const handleSearch = async (queryToSearch?: string) => {
+    const q = (typeof queryToSearch === 'string' ? queryToSearch : promptQuery).trim();
+    if (!q) {
+      setSearchResults(null);
+      return;
+    }
 
+    setIsSearching(true);
     try {
       const res = await fetch(`/api/courses?q=${encodeURIComponent(q)}`);
       const results = await res.json();
@@ -508,25 +514,28 @@ export default function DashboardPage() {
       const recorded = mappedResults.filter((w) => !w.live);
       const live = mappedResults.filter((w) => w.live);
 
-      // We maintain the results even if few for now, or we can still do a fill if needed.
-      // But for real search, we should show what we found.
       setSearchResults({ query: q, recorded, live });
       setCState((prev) => ({ ...prev, rec: 0, live: 0 }));
-
-      setTimeout(() => {
-        document.getElementById("searchResults")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-      }, 100);
     } catch (err) {
       console.error("Search failed:", err);
+    } finally {
+      setIsSearching(false);
     }
   };
 
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (promptQuery.trim()) {
+        handleSearch(promptQuery);
+      } else {
+        setSearchResults(null);
+      }
+    }, 400); // Debounce search
+    return () => clearTimeout(handler);
+  }, [promptQuery]);
+
   const handleQuickSearch = (text: string) => {
     setPromptQuery(text);
-    // Needed to wait for state update before searching
-    setTimeout(() => {
-      document.getElementById("promptBtn")?.click();
-    }, 0);
   };
 
   const handleOpenBooking = async (courseId: string, courseName: string, regId?: string) => {
@@ -605,7 +614,7 @@ export default function DashboardPage() {
     setEnrolData({
       courseId: String(w.id),
       name: w.name,
-      meta: `by Ananya Sharma · ★ ${w.rating} · ${w.dur} hrs · ${w.catLabel}`,
+      meta: `by Ananya Sharma · ★ ${w.rating} · ${formatDuration(w.dur)} · ${w.catLabel}`,
       price: `₹${basePrice.toLocaleString("en-IN")}`,
       basePrice: basePrice,
       finalPrice: basePrice,
@@ -888,7 +897,7 @@ export default function DashboardPage() {
           <div className="wcard-name">{w.name}</div>
           <div className="wcard-meta">
             <span className="wcard-rating">★ {w.rating}</span>
-            <span>{w.dur} hrs</span>
+            <span>{formatDuration(w.dur)}</span>
           </div>
           {userEnrol ? (
             <button className="wcard-enrol-btn blue" onClick={(e) => { 
@@ -1136,7 +1145,7 @@ export default function DashboardPage() {
                 <div className="stat-card">
                   <div className="stat-icon" style={{ background: "var(--indigo-light)" }}>⏱️</div>
                   <div>
-                    <div className="stat-num">{loadingEnrolments ? <div className="skeleton" style={{ width: '60px', height: '28px' }}></div> : `${enrolments.reduce((sum, e) => sum + (e.dur || 0), 0)}h`}</div>
+                    <div className="stat-num">{loadingEnrolments ? <div className="skeleton" style={{ width: '60px', height: '28px' }}></div> : `${Math.round(enrolments.reduce((sum, e) => sum + (e.dur || 0), 0) / 3600)}h`}</div>
                     <div className="stat-label">Learning time</div>
                   </div>
                 </div>
@@ -1162,8 +1171,8 @@ export default function DashboardPage() {
                     onChange={(e) => setPromptQuery(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleSearch()}
                   />
-                  <button id="promptBtn" className="prompt-btn" onClick={handleSearch}>
-                    Find workshops →
+                  <button id="promptBtn" className="prompt-btn" onClick={() => handleSearch()}>
+                    {isSearching ? "Searching..." : "Find workshops →"}
                   </button>
                 </div>
                 <div className="prompt-chips">
@@ -1177,7 +1186,7 @@ export default function DashboardPage() {
 
               {/* Search results or Default home */}
               {searchResults ? (
-                <div id="searchResults" style={{ display: "flex", flexDirection: "column", gap: "24px", animationDelay: "0.12s" }} className="fade-up">
+                <div id="searchResults" style={{ display: "flex", flexDirection: "column", gap: "24px", animationDelay: "0.12s", opacity: isSearching ? 0.6 : 1, transition: 'opacity 0.2s' }} className="fade-up">
                   <div className="results-header">
                     <div>
                       <div className="results-query">Results for <span>{searchResults.query}</span></div>
@@ -1186,46 +1195,59 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   </div>
-
-                  {/* Section 1: Recorded */}
-                  <div>
-                    <div className="section-hd">
-                      <div className="section-hd-left">
-                        <div className="section-label">Section 1</div>
-                        <div className="section-title">🎬 Recorded Workshops</div>
-                      </div>
-                      <Link className="section-pill" href="/catalogue">View all →</Link>
+                  {searchResults.recorded.length === 0 && searchResults.live.length === 0 ? (
+                    <div className="empty-state" style={{ padding: '60px 20px', textAlign: 'center', color: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div style={{ fontSize: '40px', marginBottom: '16px', opacity: 0.8 }}>🔍</div>
+                      <h3 style={{ margin: '0 0 8px 0', color: '#fff', fontSize: '1.25rem', fontWeight: 600 }}>No workshops found</h3>
+                      <p style={{ margin: 0, fontSize: '0.95rem' }}>Try adjusting your search terms or try a different topic.</p>
                     </div>
-                    <div className="carousel-wrap">
-                      <button className="cbtn cbtn-l" onClick={() => slide("rec", -1)}>‹</button>
-                      <div className="carousel-outer">
-                        <div className="carousel-track" id="rec-track">
-                          {searchResults.recorded.map(renderWorkshopCard)}
+                  ) : (
+                    <>
+                      {/* Section 1: Recorded */}
+                      {searchResults.recorded.length > 0 && (
+                        <div>
+                          <div className="section-hd">
+                            <div className="section-hd-left">
+                              <div className="section-label">Section 1</div>
+                              <div className="section-title">🎬 Recorded Workshops</div>
+                            </div>
+                            <Link className="section-pill" href="/catalogue">View all →</Link>
+                          </div>
+                          <div className="carousel-wrap">
+                            <button className="cbtn cbtn-l" onClick={() => slide("rec", -1)}>‹</button>
+                            <div className="carousel-outer">
+                              <div className="carousel-track" id="rec-track">
+                                {searchResults.recorded.map(renderWorkshopCard)}
+                              </div>
+                            </div>
+                            <button className="cbtn cbtn-r" onClick={() => slide("rec", 1)}>›</button>
+                          </div>
                         </div>
-                      </div>
-                      <button className="cbtn cbtn-r" onClick={() => slide("rec", 1)}>›</button>
-                    </div>
-                  </div>
+                      )}
 
-                  {/* Section 2: Live */}
-                  <div>
-                    <div className="section-hd">
-                      <div className="section-hd-left">
-                        <div className="section-label">Section 2</div>
-                        <div className="section-title">🔴 Live Workshops</div>
-                      </div>
-                      <Link className="section-pill" href="/catalogue">View all →</Link>
-                    </div>
-                    <div className="carousel-wrap">
-                      <button className="cbtn cbtn-l" onClick={() => slide("live", -1)}>‹</button>
-                      <div className="carousel-outer">
-                        <div className="carousel-track" id="live-track">
-                          {searchResults.live.map(renderWorkshopCard)}
+                      {/* Section 2: Live */}
+                      {searchResults.live.length > 0 && (
+                        <div>
+                          <div className="section-hd">
+                            <div className="section-hd-left">
+                              <div className="section-label">Section 2</div>
+                              <div className="section-title">🔴 Live Workshops</div>
+                            </div>
+                            <Link className="section-pill" href="/catalogue">View all →</Link>
+                          </div>
+                          <div className="carousel-wrap">
+                            <button className="cbtn cbtn-l" onClick={() => slide("live", -1)}>‹</button>
+                            <div className="carousel-outer">
+                              <div className="carousel-track" id="live-track">
+                                {searchResults.live.map(renderWorkshopCard)}
+                              </div>
+                            </div>
+                            <button className="cbtn cbtn-r" onClick={() => slide("live", 1)}>›</button>
+                          </div>
                         </div>
-                      </div>
-                      <button className="cbtn cbtn-r" onClick={() => slide("live", 1)}>›</button>
-                    </div>
-                  </div>
+                      )}
+                    </>
+                  )}
                 </div>
               ) : (
                 <div id="homeCarousels" style={{ display: "flex", flexDirection: "column", gap: "24px", animationDelay: "0.12s" }} className="fade-up">
@@ -1382,7 +1404,7 @@ export default function DashboardPage() {
                   Courses Completed
                 </div>
                 <div style={{ fontSize: "13px", color: "var(--text-3)" }}>
-                  You&apos;ve completed {completedDisplayList.length} workshops · {completedDisplayList.reduce((s, c) => s + (Number(c.dur) || 0), 0)} hours of learning
+                  You&apos;ve completed {completedDisplayList.length} workshops · {Math.round(completedDisplayList.reduce((s, c) => s + (Number(c.dur) || 0), 0) / 3600)} hours of learning
                 </div>
               </div>
               <div className="completed-grid fade-up" style={{ animationDelay: '0.06s' }}>

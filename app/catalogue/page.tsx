@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Suspense } from 'react';
+import { formatDuration } from '@/lib/utils';
 import './catalogue.css';
 import Logo from '../components/Logo';
 import AlertModal from '../components/AlertModal';
@@ -267,8 +268,8 @@ function CatalogueContent() {
       return;
     }
     const basePrice = Number(w.price) || 0;
-    const format = w.nearby ? 'inperson' : 'live';
-    const formatLabel = w.nearby ? 'in-person session' : 'live session';
+    const format = w.nearby ? 'inperson' : (w.live ? 'live' : 'recorded');
+    const formatLabel = w.nearby ? 'in-person session' : (w.live ? 'live session' : 'recorded session');
     let initPrice = basePrice;
     if (format === 'inperson') {
       initPrice = basePrice + 500;
@@ -278,7 +279,7 @@ function CatalogueContent() {
     setEnrolData({
       id: w.id,
       name: w.name,
-      meta: `by ${w.instructor} · ★ ${w.rating} · ${w.dur} hrs · ${w.level}`,
+      meta: `by ${w.instructor} · ★ ${w.rating} · ${formatDuration(w.dur)} · ${w.level}`,
       price: `₹${initPrice.toLocaleString('en-IN')}`,
       basePrice: initPrice,
       finalPrice: initPrice,
@@ -763,7 +764,7 @@ function CatalogueContent() {
                       <div className="wcard-instructor">{w.instructor}</div>
                       {isNearby && <div className="wcard-distance">📍 {w.distance} away</div>}
                       <div className="wcard-meta-row">
-                        <span>⏱ {w.dur} hrs · {w.level}</span>
+                        <span>⏱ {formatDuration(w.dur)} · {w.level}</span>
                         <span className="wcard-rating">★ {w.rating}</span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>

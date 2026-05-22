@@ -23,9 +23,9 @@ export async function POST(req: NextRequest) {
     const user = rows[0];
     const resetToken = crypto.randomBytes(32).toString('hex');
 
-    // Update DB with reset token and 1-hour expiration
+    // Update DB with reset token and 10-minute expiration
     await pool.query(
-      `UPDATE users SET reset_password_token = $1, reset_password_expires_at = NOW() + INTERVAL '1 hour' WHERE id = $2`,
+      `UPDATE users SET reset_password_token = $1, reset_password_expires_at = NOW() + INTERVAL '10 minutes' WHERE id = $2`,
       [resetToken, user.id]
     );
 
@@ -38,11 +38,12 @@ export async function POST(req: NextRequest) {
         subject: 'Reset your XWORKS password',
         html: `
           <div style="font-family: sans-serif; padding: 20px; color: #333;">
+            <img src="${baseUrl}/favicon.svg" alt="XWORKS Logo" style="max-height: 40px; margin-bottom: 20px;" />
             <h2>Hello ${user.first_name},</h2>
             <p>We received a request to reset your XWORKS password.</p>
             <a href="${resetUrl}" style="display: inline-block; padding: 12px 24px; background: #000; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0;">Reset Password →</a>
             <p>Or copy this link: ${resetUrl}</p>
-            <p>This link will expire in 1 hour.</p>
+            <p>This link will expire in 10 minutes.</p>
             <br/>
             <p>If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.</p>
           </div>

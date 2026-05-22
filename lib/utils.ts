@@ -45,3 +45,16 @@ export function getBaseUrl(req?: NextRequest): string {
   return envBaseUrl || 'http://localhost:3000';
 }
 
+
+export function formatDuration(totalSeconds: number): string {
+  if (!totalSeconds) return '0s';
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  
+  const parts = [];
+  if (h > 0) parts.push(`${h}h`);
+  if (m > 0) parts.push(`${m}m`);
+  if (s > 0 || parts.length === 0) parts.push(`${s}s`);
+  return parts.join(' ');
+}

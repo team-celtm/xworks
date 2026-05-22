@@ -7,6 +7,7 @@ import { SUBJECTS, CAT_DATA } from './data';
 import Footer from './components/Footer';
 import Logo from './components/Logo';
 import AlertModal from './components/AlertModal';
+import { formatDuration } from '@/lib/utils';
 
 const triggerPromoConfetti = (elementId: string) => {
   const anchor = document.getElementById(elementId);
@@ -538,7 +539,7 @@ export default function Home() {
       id: course.id,
       icon: course.emoji,
       name: course.name,
-      meta: `${course.dur} hrs · ${course.level}`,
+      meta: `${formatDuration(course.dur)} · ${course.level}`,
       tag: course.tag,
       tagLabel: course.tagLabel,
       price: course.price,
@@ -688,7 +689,7 @@ export default function Home() {
                   hasMounted && bestSellers.map((c: any) => {
                     const priceStr = '₹' + c.price.toLocaleString('en-IN');
                     return (
-                      <div key={c.id} className="course-card" onClick={() => openEnrol(c.id, c.name, `by ${c.instructor} · ★ ${c.rating} · ${c.dur} hrs · ${c.level}`, priceStr, c.g || 't-amber', c.emoji)}>
+                      <div key={c.id} className="course-card" onClick={() => openEnrol(c.id, c.name, `by ${c.instructor} · ★ ${c.rating} · ${formatDuration(c.dur)} · ${c.level}`, priceStr, c.g || 't-amber', c.emoji)}>
                         <div className="course-thumb">
                           <div className={`course-thumb-bg ${c.g || 't-amber'}`}></div>
                           <div className="course-thumb-label">{c.emoji}</div>
@@ -697,7 +698,7 @@ export default function Home() {
                         <div className="course-body">
                           <div className="course-category">{c.catLabel}</div>
                           <div className="course-name">{c.name}</div>
-                          <div className="course-meta"><span className="course-rating">★ {c.rating}</span><span className="course-duration">⏱ {c.dur} hrs</span></div>
+                          <div className="course-meta"><span className="course-rating">★ {c.rating}</span><span className="course-duration">⏱ {formatDuration(c.dur)}</span></div>
                         </div>
                       </div>
                     );
@@ -730,7 +731,7 @@ export default function Home() {
                   hasMounted && newlyAdded.map((c: any) => {
                     const priceStr = '₹' + c.price.toLocaleString('en-IN');
                     return (
-                      <div key={c.id} className="course-card" onClick={() => openEnrol(c.id, c.name, `by ${c.instructor} · ★ ${c.rating} · ${c.dur} hrs · ${c.level}`, priceStr, c.g || 't-amber', c.emoji)}>
+                      <div key={c.id} className="course-card" onClick={() => openEnrol(c.id, c.name, `by ${c.instructor} · ★ ${c.rating} · ${formatDuration(c.dur)} · ${c.level}`, priceStr, c.g || 't-amber', c.emoji)}>
                         <div className="course-thumb">
                           <div className={`course-thumb-bg ${c.g || 't-amber'}`}></div>
                           <div className="course-thumb-label">{c.emoji}</div>
@@ -739,7 +740,7 @@ export default function Home() {
                         <div className="course-body">
                           <div className="course-category">{c.catLabel}</div>
                           <div className="course-name">{c.name}</div>
-                          <div className="course-meta"><span className="course-rating">★ {c.rating}</span><span className="course-duration">⏱ {c.dur} hrs</span></div>
+                          <div className="course-meta"><span className="course-rating">★ {c.rating}</span><span className="course-duration">⏱ {formatDuration(c.dur)}</span></div>
                         </div>
                       </div>
                     );
@@ -961,7 +962,7 @@ export default function Home() {
                       {catCourses.map((c: any) => {
                         const priceStr = '₹' + c.price.toLocaleString('en-IN');
                         return (
-                          <div key={c.id} className="cat-course-card" onClick={() => openEnrol(c.id, c.name, `by ${c.instructor} · ★ ${c.rating} · ${c.dur} hrs · ${c.level}`, priceStr, c.g || 't-amber', c.emoji)}>
+                          <div key={c.id} className="cat-course-card" onClick={() => openEnrol(c.id, c.name, `by ${c.instructor} · ★ ${c.rating} · ${formatDuration(c.dur)} · ${c.level}`, priceStr, c.g || 't-amber', c.emoji)}>
                             <div className="cat-card-thumb">
                               <div className={`cat-card-thumb-bg ${c.g || 't-amber'}`}></div>
                               <div className="cat-card-emoji">{c.emoji}</div>

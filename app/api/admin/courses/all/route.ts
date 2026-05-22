@@ -55,7 +55,7 @@ export async function GET(req: Request) {
 
     const query = `
       SELECT 
-        courses.id, courses.name, courses.slug, courses.price, courses.level, courses.dur, courses.emoji, courses.g, courses.tag, courses.tag_label, courses.status, courses.certificate_type, courses.created_at,
+        courses.id, courses.name, courses.slug, courses.price, courses.level, courses.dur, courses.emoji, courses.g, courses.tag, courses.tag_label, courses.status, courses.certificate_type, courses.created_at, courses.category_id, courses.instructor_id,
         cat.name as category_name, 
         u.first_name, u.last_name, u.email,
         (SELECT COUNT(*) FROM certificates WHERE course_id = courses.id) as issued_count
@@ -115,6 +115,47 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ success: true, message: 'Course soft-deleted successfully' });
   } catch (err) {
     console.error(err);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+export async function PUT(req: Request) {
+  const admin = await checkAdmin();
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  try {
+    const body = await req.json();
+    const {
+      id, name, slug, category_id, instructor_id, price,
+      level, dur, emoji, g, tag, tag_label, certificate_type
+    } = body;
+
+    if (!id || !name || !slug || !category_id || !instructor_id) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    const updateRes = await pool.query(
+      `UPDATE courses SET 
+        name = $1, slug = $2, category_id = $3, instructor_id = $4, price = $5, 
+        level = $6, dur = $7, emoji = $8, g = $9, tag = $10, tag_label = $11, certificate_type = $12, updated_at = NOW()
+       WHERE id = $13 RETURNING id`,
+      [
+        name, slug, category_id, instructor_id, price || 0,
+        level || 'Beginner', dur || 0, emoji || '🎓', g || 't-indigo',
+        tag || null, tag_label || null, certificate_type || 'default', id
+      ]
+    );
+
+    if (updateRes.rows.length === 0) {
+      return NextResponse.json({ error: 'Course not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, message: 'Course updated successfully' });
+  } catch (err: any) {
+    console.error(err);
+    if (err.code === '23505') {
+      return NextResponse.json({ error: 'Slug already exists. Please choose a different slug.' }, { status: 400 });
+    }
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

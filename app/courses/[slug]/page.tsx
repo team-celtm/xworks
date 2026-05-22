@@ -2,9 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Logo from '../../components/Logo';
+import { Suspense } from 'react';
 import '../../catalogue/catalogue.css';
+import Logo from '../../components/Logo';
 import AlertModal from '../../components/AlertModal';
+import { formatDuration } from '@/lib/utils';
 
 declare global {
   interface Window {
@@ -318,7 +320,7 @@ export default function CourseDetailPage() {
                   <div className="dstat-card">
                     <span className="dstat-icon">⏱</span>
                     <div className="dstat-content">
-                      <span className="dstat-value">{course.dur} hrs</span>
+                      <span className="dstat-value">{formatDuration(course.dur)}</span>
                       <span className="dstat-label">Duration</span>
                     </div>
                   </div>

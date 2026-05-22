@@ -35,9 +35,51 @@ export async function GET(req: NextRequest) {
     const where: string[] = [];
     
     if (query) {
+      // 1. Process query for FTS tsquery (strip punctuation, keep words > 2 chars, join with | for OR logic)
+      const words = query.replace(/[^\w\s]/g, '').split(/\s+/).filter(w => w.length > 2);
+      const tsquery = words.join(' | ');
+
+      // Keep raw query and wildcard query for trigram/ILIKE fallback
       values.push(query, `%${query}%`);
-      select += `, similarity(c.name, $1) as rank`;
-      where.push(`(c.name % $${values.length - 1} OR c.name ILIKE $${values.length})`);
+      const qIdx = values.length - 1;
+      const likeIdx = values.length;
+
+      if (tsquery) {
+        values.push(tsquery);
+        const tsIdx = values.length;
+
+        select += `, 
+          (
+            ts_rank(
+              setweight(to_tsvector('english', coalesce(c.name, '')), 'A') || 
+              setweight(to_tsvector('english', coalesce(cat.name, '')), 'B') ||
+              setweight(to_tsvector('english', coalesce(u.first_name, '') || ' ' || coalesce(u.last_name, '')), 'C'),
+              to_tsquery('english', $${tsIdx})
+            ) 
+            + (similarity(c.name, $${qIdx}) * 0.5)
+          ) as rank`;
+        
+        where.push(`(
+          (
+            setweight(to_tsvector('english', coalesce(c.name, '')), 'A') || 
+            setweight(to_tsvector('english', coalesce(cat.name, '')), 'B') || 
+            setweight(to_tsvector('english', coalesce(u.first_name, '') || ' ' || coalesce(u.last_name, '')), 'C')
+          ) @@ to_tsquery('english', $${tsIdx})
+          OR c.name % $${qIdx} 
+          OR c.name ILIKE $${likeIdx}
+          OR cat.name ILIKE $${likeIdx}
+          OR (u.first_name || ' ' || u.last_name) ILIKE $${likeIdx}
+        )`);
+      } else {
+        // Fallback if query was too short/no words left after filter
+        select += `, similarity(c.name, $${qIdx}) as rank`;
+        where.push(`(
+          c.name % $${qIdx} 
+          OR c.name ILIKE $${likeIdx} 
+          OR cat.name ILIKE $${likeIdx}
+          OR (u.first_name || ' ' || u.last_name) ILIKE $${likeIdx}
+        )`);
+      }
     }
 
     if (category) {

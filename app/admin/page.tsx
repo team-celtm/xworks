@@ -7,6 +7,7 @@ import "../dashboard/dashboard.css";
 import "./admin.css";
 import Logo from "../components/Logo";
 import RoleTransitionOverlay from "../components/RoleTransitionOverlay";
+import { formatDuration } from '@/lib/utils';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -41,6 +42,19 @@ export default function AdminDashboard() {
   const [actioningCourseId, setActioningCourseId] = useState<string | null>(null);
   const [courseAction, setCourseAction] = useState<'approve' | 'reject' | null>(null);
   const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
+  const [editingCourse, setEditingCourse] = useState<any>(null);
+  const [updatingCourse, setUpdatingCourse] = useState(false);
+
+  // Toast state
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | null; hiding: boolean }>({ message: '', type: null, hiding: false });
+
+  const showToast = (message: string, type: 'success' | 'error') => {
+    setToast({ message, type, hiding: false });
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, hiding: true }));
+      setTimeout(() => setToast({ message: '', type: null, hiding: false }), 300);
+    }, 3000);
+  };
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -78,7 +92,7 @@ export default function AdminDashboard() {
     if (activeView === 'admin_promos') {
       fetch('/api/admin/promo_codes').then(r => r.json()).then(d => setPromos(d.promos || []));
     }
-    if (activeView === 'admin_create_course' || activeView === 'admin_manage_courses' || activeView === 'admin_cert_repo') {
+    if (activeView === 'admin_create_course' || activeView === 'admin_manage_courses' || activeView === 'admin_cert_repo' || activeView === 'admin_edit_course') {
       if (allCategories.length === 0) fetch('/api/categories').then(r => r.json()).then(d => setAllCategories(d || []));
       if (allInstructors.length === 0) fetch('/api/admin/all-instructors').then(r => r.json()).then(d => setAllInstructors(d.instructors || []));
     }
@@ -100,14 +114,18 @@ export default function AdminDashboard() {
     try {
       const res = await fetch(`/api/admin/courses/all?id=${id}`, { method: 'DELETE' });
       if (res.ok) {
-        setAllCourses(prev => prev.filter(c => c.id !== id));
+        showToast('Course deleted successfully', 'success');
+        setTimeout(() => {
+          setAllCourses(prev => prev.filter(c => c.id !== id));
+          setDeletingCourseId(null);
+        }, 300);
       } else {
-        alert('Failed to delete course');
+        showToast('Failed to delete course', 'error');
+        setDeletingCourseId(null);
       }
     } catch (err) {
       console.error(err);
-      alert('Failed to delete course due to network/server error');
-    } finally {
+      showToast('Failed to delete course due to network/server error', 'error');
       setDeletingCourseId(null);
     }
   };
@@ -238,7 +256,14 @@ export default function AdminDashboard() {
     setCreatingCourse(true);
     const form = e.currentTarget;
     const formData = new FormData(form);
-    const payload = Object.fromEntries(formData.entries());
+    const payload: any = Object.fromEntries(formData.entries());
+    const dur_h = Number(payload.dur_h) || 0;
+    const dur_m = Number(payload.dur_m) || 0;
+    const dur_s = Number(payload.dur_s) || 0;
+    payload.dur = dur_h * 3600 + dur_m * 60 + dur_s;
+    delete payload.dur_h;
+    delete payload.dur_m;
+    delete payload.dur_s;
     try {
       const res = await fetch('/api/admin/courses', {
         method: 'POST',
@@ -247,17 +272,54 @@ export default function AdminDashboard() {
       });
       const data = await res.json();
       if (res.ok) {
-        alert('Course created successfully!');
+        showToast('Course created successfully!', 'success');
         form.reset();
         setActiveView('admin_courses');
       } else {
-        alert(data.error || 'Failed to create course');
+        showToast(data.error || 'Failed to create course', 'error');
       }
     } catch (err) {
       console.error(err);
-      alert('Failed to create course due to network/server error');
+      showToast('Failed to create course due to network/server error', 'error');
     } finally {
       setCreatingCourse(false);
+    }
+  };
+
+  const handleEditCourse = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setUpdatingCourse(true);
+    const form = e.currentTarget;
+    const formData = new FormData(form);
+    const payload: any = Object.fromEntries(formData.entries());
+    const dur_h = Number(payload.dur_h) || 0;
+    const dur_m = Number(payload.dur_m) || 0;
+    const dur_s = Number(payload.dur_s) || 0;
+    payload.dur = dur_h * 3600 + dur_m * 60 + dur_s;
+    delete payload.dur_h;
+    delete payload.dur_m;
+    delete payload.dur_s;
+    payload.id = editingCourse?.id;
+    try {
+      const res = await fetch('/api/admin/courses/all', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast('Course updated successfully!', 'success');
+        setEditingCourse(null);
+        setActiveView('admin_manage_courses');
+        setCoursePage(1); // Refresh the list
+      } else {
+        showToast(data.error || 'Failed to update course', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to update course due to network/server error', 'error');
+    } finally {
+      setUpdatingCourse(false);
     }
   };
 
@@ -272,6 +334,12 @@ export default function AdminDashboard() {
 
   return (
     <div className={`shell ${isMobileMenuOpen ? 'menu-open' : ''}`}>
+      {toast.type && (
+        <div className={`admin-toast ${toast.type} ${toast.hiding ? 'hiding' : ''}`}>
+          <span style={{ fontSize: '18px' }}>{toast.type === 'success' ? '✅' : '❌'}</span>
+          {toast.message}
+        </div>
+      )}
       {isLoggingOut && <RoleTransitionOverlay role="admin" type="logout" />}
       {/* SIDEBAR */}
       <aside className={`sidebar ${isMobileMenuOpen ? 'open' : ''}`}>
@@ -506,7 +574,7 @@ export default function AdminDashboard() {
                           <tr key={c.id}>
                             <td data-label="Course Name">
                               <div style={{ fontWeight: '700' }}>{c.name}</div>
-                              <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>{c.cat} • {c.dur} hrs</div>
+                              <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>{c.cat} • {formatDuration(c.dur)}</div>
                             </td>
                             <td data-label="Price" style={{ fontWeight: '700', color: 'var(--indigo)' }}>₹{c.price}</td>
                             <td data-label="Instructor">
@@ -782,8 +850,12 @@ export default function AdminDashboard() {
                       </select>
                     </div>
                     <div className="form-group">
-                      <label className="admin-label">Duration (hrs)</label>
-                      <input name="dur" type="number" className="prompt-input" required placeholder="10" disabled={creatingCourse} />
+                      <label className="admin-label">Duration</label>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <input name="dur_h" type="number" min="0" className="prompt-input" placeholder="Hrs" disabled={creatingCourse} />
+                        <input name="dur_m" type="number" min="0" max="59" className="prompt-input" placeholder="Mins" disabled={creatingCourse} />
+                        <input name="dur_s" type="number" min="0" max="59" className="prompt-input" placeholder="Secs" disabled={creatingCourse} />
+                      </div>
                     </div>
                   </div>
 
@@ -827,6 +899,124 @@ export default function AdminDashboard() {
 
                   <button type="submit" className="enrol-cta coral" style={{ width: 'auto', justifySelf: 'start', padding: '14px 60px', marginTop: '12px' }} disabled={creatingCourse}>
                     {creatingCourse ? <div className="btn-loader" style={{ borderTopColor: '#fff' }}></div> : 'Create Course Now →'}
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* ---- EDIT COURSE ---- */}
+          {activeView === "admin_edit_course" && editingCourse && (
+            <div className="view active fade-up">
+              <div className="section-hd">
+                <div>
+                  <div className="section-label">Owner Operations</div>
+                  <div className="section-title">Edit Course: {editingCourse.name}</div>
+                </div>
+                <button type="button" className="admin-btn" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--ink)' }} onClick={() => { setEditingCourse(null); setActiveView('admin_manage_courses'); }}>← Back to Courses</button>
+              </div>
+
+              <div className="admin-card">
+                <form
+                  key={editingCourse?.id}
+                  onSubmit={handleEditCourse}
+                  style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', width: '100%' }}
+                >
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
+                    <div className="form-group">
+                      <label className="admin-label">Course Name</label>
+                      <input name="name" type="text" className="prompt-input" required defaultValue={editingCourse.name} disabled={updatingCourse} />
+                    </div>
+                    <div className="form-group">
+                      <label className="admin-label">Slug (URL)</label>
+                      <input name="slug" type="text" className="prompt-input" required defaultValue={editingCourse.slug} disabled={updatingCourse} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
+                    <div className="form-group">
+                      <label className="admin-label">Category</label>
+                      <select name="category_id" className="prompt-input" required defaultValue={editingCourse.category_id} disabled={updatingCourse}>
+                        <option value="">Select Category</option>
+                        {allCategories.map(cat => (
+                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="admin-label">Instructor</label>
+                      <select name="instructor_id" className="prompt-input" required defaultValue={editingCourse.instructor_id} disabled={updatingCourse}>
+                        <option value="">Select Instructor</option>
+                        {allInstructors.map(inst => (
+                          <option key={inst.id} value={inst.id}>{inst.first_name} {inst.last_name} ({inst.email})</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
+                    <div className="form-group">
+                      <label className="admin-label">Price (₹)</label>
+                      <input name="price" type="number" className="prompt-input" required defaultValue={editingCourse.price} disabled={updatingCourse} />
+                    </div>
+                    <div className="form-group">
+                      <label className="admin-label">Level</label>
+                      <select name="level" className="prompt-input" required defaultValue={editingCourse.level} disabled={updatingCourse}>
+                        <option value="Beginner">Beginner</option>
+                        <option value="Intermediate">Intermediate</option>
+                        <option value="Advanced">Advanced</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="admin-label">Duration</label>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <input name="dur_h" type="number" min="0" className="prompt-input" placeholder="Hrs" defaultValue={Math.floor(editingCourse.dur / 3600)} disabled={updatingCourse} />
+                        <input name="dur_m" type="number" min="0" max="59" className="prompt-input" placeholder="Mins" defaultValue={Math.floor((editingCourse.dur % 3600) / 60)} disabled={updatingCourse} />
+                        <input name="dur_s" type="number" min="0" max="59" className="prompt-input" placeholder="Secs" defaultValue={editingCourse.dur % 60} disabled={updatingCourse} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
+                    <div className="form-group">
+                      <label className="admin-label">Emoji</label>
+                      <input name="emoji" type="text" className="prompt-input" defaultValue={editingCourse.emoji} disabled={updatingCourse} />
+                    </div>
+                    <div className="form-group">
+                      <label className="admin-label">Gradient Class</label>
+                      <select name="g" className="prompt-input" defaultValue={editingCourse.g} disabled={updatingCourse}>
+                        <option value="t-indigo">Indigo</option>
+                        <option value="t-coral">Coral</option>
+                        <option value="t-amber">Amber</option>
+                        <option value="t-cyan">Cyan</option>
+                        <option value="t-emerald">Emerald</option>
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="admin-label">Badge (optional)</label>
+                      <input name="tag" type="text" className="prompt-input" defaultValue={editingCourse.tag} disabled={updatingCourse} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
+                    <div className="form-group">
+                      <label className="admin-label">Badge Label (optional)</label>
+                      <input name="tag_label" type="text" className="prompt-input" defaultValue={editingCourse.tag_label} disabled={updatingCourse} />
+                    </div>
+                    <div className="form-group">
+                      <label className="admin-label">Certificate Template</label>
+                      <select name="certificate_type" className="prompt-input" required defaultValue={editingCourse.certificate_type || 'default'} disabled={updatingCourse}>
+                        <option value="default">Default Template</option>
+                        <option value="tech_mastery">Tech Mastery (Premium)</option>
+                        <option value="creative_expert">Creative Expert</option>
+                        <option value="business_pro">Business Pro</option>
+                        <option value="completion_standard">Standard Completion</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <button type="submit" className="enrol-cta coral" style={{ width: 'auto', justifySelf: 'start', padding: '14px 60px', marginTop: '12px' }} disabled={updatingCourse}>
+                    {updatingCourse ? <div className="btn-loader" style={{ borderTopColor: '#fff' }}></div> : 'Save Changes'}
                   </button>
                 </form>
               </div>
@@ -899,8 +1089,8 @@ export default function AdminDashboard() {
                         </tr>
                       </thead>
                       <tbody>
-                        {allCourses.map(c => (
-                          <tr key={c.id}>
+                        {allCourses.map((c, idx) => (
+                          <tr key={c.id} className={`${deletingCourseId === c.id ? 'row-deleting' : ''} ${idx === 0 && coursePage === 1 ? 'row-adding' : ''}`} style={{ animationDelay: `${idx * 0.05}s` }}>
                             <td data-label="Course">
                               <div style={{ fontWeight: '700' }}>{c.name}</div>
                               <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>{c.category_name} • ₹{c.price}</div>
@@ -916,6 +1106,12 @@ export default function AdminDashboard() {
                             </td>
                             <td data-label="Action">
                               <div style={{ display: 'flex', gap: '8px' }}>
+                                <button 
+                                  className="admin-btn admin-btn-primary" 
+                                  onClick={() => { setEditingCourse(c); setActiveView('admin_edit_course'); }}
+                                >
+                                  Edit
+                                </button>
                                 <button 
                                   className="admin-btn admin-btn-danger" 
                                   disabled={deletingCourseId === c.id} 

@@ -281,12 +281,16 @@ export default function InstructorDashboard() {
                   onSubmit={async (e) => { 
                     e.preventDefault(); 
                     const formData = new FormData(e.currentTarget);
+                    const dur_h = Number(formData.get('dur_h')) || 0;
+                    const dur_m = Number(formData.get('dur_m')) || 0;
+                    const dur_s = Number(formData.get('dur_s')) || 0;
+                    const totalSecs = dur_h * 3600 + dur_m * 60 + dur_s;
                     const res = await fetch('/api/teach/courses', { 
                       method: 'POST', 
                       headers: {'Content-Type':'application/json'}, 
                       body: JSON.stringify({ 
                         name: formData.get('name'), category_id: formData.get('category_id'), 
-                        dur: formData.get('dur'), price: formData.get('price'),
+                        dur: totalSecs, price: formData.get('price'),
                         slug: formData.get('name')?.toString().toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substring(2, 7)
                       }) 
                     }); 
@@ -315,8 +319,12 @@ export default function InstructorDashboard() {
                        </select>
                      </div>
                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                       <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Duration (hrs)</label>
-                       <input name="dur" type="number" className="prompt-input" required placeholder="e.g. 5" style={{ width: '100%' }} />
+                       <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Duration</label>
+                       <div style={{ display: 'flex', gap: '8px' }}>
+                         <input name="dur_h" type="number" min="0" className="prompt-input" placeholder="Hrs" style={{ width: '100%' }} />
+                         <input name="dur_m" type="number" min="0" max="59" className="prompt-input" placeholder="Min" style={{ width: '100%' }} />
+                         <input name="dur_s" type="number" min="0" max="59" className="prompt-input" placeholder="Sec" style={{ width: '100%' }} />
+                       </div>
                      </div>
                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                        <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Price (₹)</label>
