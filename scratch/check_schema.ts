@@ -1,5 +1,6 @@
-const { Pool } = require('pg');
-require('dotenv').config();
+import 'dotenv/config';
+import { Pool } from 'pg';
+
 const pool = new Pool();
 async function run() {
   try {

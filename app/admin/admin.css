@@ -310,10 +310,14 @@
 }
 
 .overview-value {
-  font-size: 42px;
+  font-size: clamp(20px, 2.5vw, 32px);
   font-weight: 800;
   color: var(--indigo-dark);
   font-family: var(--font-display);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
 }
 
 .quick-actions-wrap {

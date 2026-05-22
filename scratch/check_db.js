@@ -1,44 +1,29 @@
 const { Pool } = require('pg');
 const fs = require('fs');
-const path = require('path');
 
-// Manually parse .env file
-const envPath = path.join(__dirname, '../.env');
-if (fs.existsSync(envPath)) {
-  const envContent = fs.readFileSync(envPath, 'utf-8');
-  envContent.split('\n').forEach(line => {
-    const parts = line.split('=');
-    if (parts.length >= 2) {
-      const key = parts[0].trim();
-      const val = parts.slice(1).join('=').trim();
-      process.env[key] = val;
-    }
-  });
-}
+const env = fs.readFileSync('.env', 'utf8').split('\n').reduce((acc, line) => {
+  const [k, v] = line.split('=');
+  if (k && v) acc[k.trim()] = v.trim();
+  return acc;
+}, {});
 
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+const pool = new Pool({ connectionString: env.DATABASE_URL });
 
 async function run() {
   try {
-    console.log('--- COURSES TABLE COLUMNS ---');
-    let res = await pool.query("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'courses'");
-    console.log(res.rows);
+    const res = await pool.query(`
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'payments'
+    `);
+    console.log("PAYMENTS COLUMNS:", JSON.stringify(res.rows, null, 2));
 
-    console.log('--- ENROLMENTS TABLE COLUMNS ---');
-    res = await pool.query("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'enrolments'");
-    console.log(res.rows);
-
-    console.log('--- FORMAT VALUES IN ENROLMENTS ---');
-    res = await pool.query("SELECT DISTINCT format FROM enrolments");
-    console.log(res.rows);
-
-    console.log('--- COURSES SAMPLE DATA ---');
-    res = await pool.query("SELECT id, name, live, nearby FROM courses LIMIT 5");
-    console.log(res.rows);
-
+    const res2 = await pool.query(`
+      SELECT column_name, data_type 
+      FROM information_schema.columns 
+      WHERE table_name = 'enrolments'
+    `);
+    console.log("ENROLMENTS COLUMNS:", JSON.stringify(res2.rows, null, 2));
   } catch (err) {
     console.error(err);
   } finally {

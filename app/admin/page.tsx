@@ -8,6 +8,13 @@ import "./admin.css";
 import Logo from "../components/Logo";
 import RoleTransitionOverlay from "../components/RoleTransitionOverlay";
 import { formatDuration } from '@/lib/utils';
+import dynamic from 'next/dynamic';
+
+const TransactionTable = dynamic(() => import('../components/admin/payments/TransactionTable'), { ssr: false });
+const PaymentFilters = dynamic(() => import('../components/admin/payments/PaymentFilters'), { ssr: false });
+const RevenueCards = dynamic(() => import('../components/admin/payments/RevenueCards'), { ssr: false });
+const PaymentDetails = dynamic(() => import('../components/admin/payments/PaymentDetails'), { ssr: false });
+const AuditLogs = dynamic(() => import('../components/admin/payments/AuditLogs'), { ssr: false });
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -44,6 +51,15 @@ export default function AdminDashboard() {
   const [deletingCourseId, setDeletingCourseId] = useState<string | null>(null);
   const [editingCourse, setEditingCourse] = useState<any>(null);
   const [updatingCourse, setUpdatingCourse] = useState(false);
+
+  // Financial states
+  const [payments, setPayments] = useState<any[]>([]);
+  const [paymentAnalytics, setPaymentAnalytics] = useState<any>(null);
+  const [paymentChartData, setPaymentChartData] = useState<any[]>([]);
+  const [paymentFilters, setPaymentFilters] = useState({ search: '', status: '', method: '', from: '', to: '', page: 1, limit: 10 });
+  const [paymentPagination, setPaymentPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
+  const [isPaymentsLoading, setIsPaymentsLoading] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState<any>(null);
 
   // Toast state
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | null; hiding: boolean }>({ message: '', type: null, hiding: false });
@@ -106,7 +122,24 @@ export default function AdminDashboard() {
         })
         .finally(() => setIsCoursesLoading(false));
     }
-  }, [activeView, user, coursePage, courseSearch, courseStatus, courseCategory]);
+
+    if (['admin_transactions', 'admin_failed_payments', 'admin_refunds_history', 'admin_revenue_analytics'].includes(activeView)) {
+      setIsPaymentsLoading(true);
+      const queryParams = new URLSearchParams(paymentFilters as any);
+      if (activeView === 'admin_failed_payments') queryParams.set('status', 'failed');
+      if (activeView === 'admin_refunds_history') queryParams.set('status', 'refunded');
+      
+      fetch(`/api/admin/payments?${queryParams.toString()}`)
+        .then(r => r.json())
+        .then(d => {
+          setPayments(d.payments || []);
+          setPaymentAnalytics(d.analytics || null);
+          setPaymentChartData(d.chartData || []);
+          setPaymentPagination(d.pagination || { total: 0, page: 1, limit: 10, totalPages: 1 });
+        })
+        .finally(() => setIsPaymentsLoading(false));
+    }
+  }, [activeView, user, coursePage, courseSearch, courseStatus, courseCategory, paymentFilters]);
 
   const handleDeleteCourse = async (id: string) => {
     if (!confirm('Are you sure you want to delete this course? This action cannot be undone.')) return;
@@ -405,6 +438,28 @@ export default function AdminDashboard() {
           <button className={`sb-item ${activeView === "admin_certificates" ? "active" : ""}`} onClick={() => { setActiveView("admin_certificates"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">❌</span>
             <span className="sb-item-label">Revoke Certs</span>
+          </button>
+
+          <div className="sb-section-label" style={{ marginTop: '24px' }}>Financial Operations</div>
+          <button className={`sb-item ${activeView === "admin_transactions" ? "active" : ""}`} onClick={() => { setActiveView("admin_transactions"); setIsMobileMenuOpen(false); }}>
+            <span className="sb-item-icon">💳</span>
+            <span className="sb-item-label">Transactions</span>
+          </button>
+          <button className={`sb-item ${activeView === "admin_revenue_analytics" ? "active" : ""}`} onClick={() => { setActiveView("admin_revenue_analytics"); setIsMobileMenuOpen(false); }}>
+            <span className="sb-item-icon">📈</span>
+            <span className="sb-item-label">Revenue Analytics</span>
+          </button>
+          <button className={`sb-item ${activeView === "admin_refunds_history" ? "active" : ""}`} onClick={() => { setActiveView("admin_refunds_history"); setIsMobileMenuOpen(false); }}>
+            <span className="sb-item-icon">💸</span>
+            <span className="sb-item-label">Refunds History</span>
+          </button>
+          <button className={`sb-item ${activeView === "admin_failed_payments" ? "active" : ""}`} onClick={() => { setActiveView("admin_failed_payments"); setIsMobileMenuOpen(false); }}>
+            <span className="sb-item-icon">❌</span>
+            <span className="sb-item-label">Failed Payments</span>
+          </button>
+          <button className={`sb-item ${activeView === "admin_payment_audit" ? "active" : ""}`} onClick={() => { setActiveView("admin_payment_audit"); setIsMobileMenuOpen(false); }}>
+            <span className="sb-item-icon">🛡️</span>
+            <span className="sb-item-label">Audit Logs</span>
           </button>
         </nav>
 
@@ -1150,7 +1205,111 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {/* ---- TRANSACTIONS & FINANCIALS ---- */}
+          {['admin_transactions', 'admin_failed_payments', 'admin_refunds_history'].includes(activeView) && (
+            <div className="view active fade-up">
+              <div className="section-hd">
+                <div>
+                  <div className="section-label">Financial Operations</div>
+                  <div className="section-title">
+                    {activeView === 'admin_transactions' && 'All Transactions'}
+                    {activeView === 'admin_failed_payments' && 'Failed Payments'}
+                    {activeView === 'admin_refunds_history' && 'Refunds History'}
+                  </div>
+                </div>
+              </div>
+              <div className="admin-card">
+                <PaymentFilters filters={paymentFilters} setFilters={setPaymentFilters} />
+                {isPaymentsLoading ? (
+                  <div style={{ padding: '40px', textAlign: 'center' }}><div className="dashboard-loader"></div></div>
+                ) : (
+                  <>
+                    <TransactionTable 
+                      payments={payments} 
+                      onViewDetails={p => setSelectedPayment(p)} 
+                    />
+                    {paymentPagination.totalPages > 1 && (
+                      <div className="admin-pagination" style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '20px', borderTop: '1px solid var(--border)', marginTop: '20px', justifyContent: 'center' }}>
+                        <button 
+                          disabled={paymentPagination.page === 1} 
+                          onClick={() => setPaymentFilters({ ...paymentFilters, page: paymentPagination.page - 1 })}
+                          className="admin-btn"
+                          style={{ opacity: paymentPagination.page === 1 ? 0.5 : 1, cursor: paymentPagination.page === 1 ? 'not-allowed' : 'pointer' }}
+                        >← Prev</button>
+                        <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-2)' }}>Page {paymentPagination.page} of {paymentPagination.totalPages}</span>
+                        <button 
+                          disabled={paymentPagination.page === paymentPagination.totalPages} 
+                          onClick={() => setPaymentFilters({ ...paymentFilters, page: paymentPagination.page + 1 })}
+                          className="admin-btn"
+                          style={{ opacity: paymentPagination.page === paymentPagination.totalPages ? 0.5 : 1, cursor: paymentPagination.page === paymentPagination.totalPages ? 'not-allowed' : 'pointer' }}
+                        >Next →</button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeView === 'admin_revenue_analytics' && (
+            <div className="view active fade-up">
+              <div className="section-hd">
+                <div>
+                  <div className="section-label">Financial Operations</div>
+                  <div className="section-title">Revenue Analytics</div>
+                </div>
+              </div>
+              {isPaymentsLoading ? (
+                 <div style={{ padding: '40px', textAlign: 'center' }}><div className="dashboard-loader"></div></div>
+              ) : (
+                 <RevenueCards analytics={paymentAnalytics} chartData={paymentChartData} />
+              )}
+            </div>
+          )}
+
+          {activeView === 'admin_payment_audit' && (
+            <div className="view active fade-up">
+              <div className="section-hd">
+                <div>
+                  <div className="section-label">Financial Operations</div>
+                  <div className="section-title">Payment Audit Logs</div>
+                </div>
+              </div>
+              <div className="admin-card">
+                <AuditLogs />
+              </div>
+            </div>
+          )}
+
         </div>
+
+        {selectedPayment && (
+          <PaymentDetails 
+            payment={selectedPayment} 
+            onClose={() => setSelectedPayment(null)} 
+            onRefund={async (orderId, amount) => {
+              // Trigger refund API
+              try {
+                const res = await fetch('/api/admin/refunds', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ orderId, refundAmount: amount, reason: 'Admin UI Refund' })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                  showToast('Refund processed successfully', 'success');
+                  setSelectedPayment(null);
+                  // Trigger reload by updating filter state reference
+                  setPaymentFilters({ ...paymentFilters }); 
+                } else {
+                  showToast(data.error || 'Failed to process refund', 'error');
+                }
+              } catch (e) {
+                showToast('Network error processing refund', 'error');
+              }
+            }} 
+          />
+        )}
 
       </div>
     </div>
