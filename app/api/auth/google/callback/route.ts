@@ -74,14 +74,33 @@ export async function GET(req: NextRequest) {
           [googleUser.id, 'active', googleUser.picture, googleUser.name, user.id]
         );
       } else {
-        // Prevent registration via Google, but pass along info.
-        const redirectUrl = new URL(`${BASE_URL}/Login`);
-        redirectUrl.searchParams.set('error', 'google_signup_disabled');
-        if (googleUser.email) redirectUrl.searchParams.set('email', googleUser.email);
-        if (googleUser.given_name) redirectUrl.searchParams.set('firstName', googleUser.given_name);
-        if (googleUser.family_name) redirectUrl.searchParams.set('lastName', googleUser.family_name);
-        
-        return NextResponse.redirect(redirectUrl.toString());
+        // Create new user automatically from Google details
+        const insertQuery = `
+          INSERT INTO users (
+            first_name, 
+            last_name, 
+            email, 
+            google_id, 
+            email_verified, 
+            status,
+            avatar_url,
+            display_name,
+            role,
+            last_active_at
+          ) 
+          VALUES ($1, $2, $3, $4, true, 'active', $5, $6, 'learner', NOW())
+          RETURNING *
+        `;
+        const { rows: inserted } = await pool.query(insertQuery, [
+          googleUser.given_name || googleUser.name || 'User',
+          googleUser.family_name || '',
+          googleUser.email,
+          googleUser.id,
+          googleUser.picture || null,
+          googleUser.name || null
+        ]);
+        user = inserted[0];
+        successType = 'signup';
       }
     }
 

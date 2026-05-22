@@ -33,6 +33,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Check password
+    if (!user.password_hash) {
+      return NextResponse.json({ 
+        error: 'This account does not have a password set. Please log in with Google, or use the Forgot Password link to set a password.' 
+      }, { status: 401 });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });

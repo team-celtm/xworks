@@ -25,15 +25,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if user already exists
-    const { rows: existing } = await pool.query('SELECT id, status FROM users WHERE email = $1', [email]);
-    if (existing.length > 0) {
-      const user = existing[0];
-      if (user.status === 'active') {
-        return NextResponse.json({ error: 'User already exists' }, { status: 400 });
-      }
-      // If pending_verification, we will update the existing record and resend the email
-      console.log('User exists but unverified. Resending link...');
-    }
+    const { rows: existing } = await pool.query('SELECT id, status, password_hash, google_id FROM users WHERE email = $1', [email]);
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -49,12 +41,45 @@ export async function POST(req: NextRequest) {
     let userId: string;
 
     if (existing.length > 0) {
-      // Update existing unverified user
-      userId = existing[0].id;
-      await pool.query(
-        'UPDATE users SET first_name = $1, last_name = $2, phone = $3, password_hash = $4, verification_token = $5 WHERE id = $6',
-        [firstName, lastName, phone, hashedPassword, verificationToken, userId]
-      );
+      const user = existing[0];
+      userId = user.id;
+      if (user.status === 'active') {
+        if (user.password_hash) {
+          return NextResponse.json({ error: 'User already exists' }, { status: 400 });
+        } else {
+          // This is a Google-registered user who is active but does not have a password set.
+          // We will update their metadata (first_name, last_name, phone, role) but NOT password_hash directly.
+          // Instead, we will store the password_hash temporarily in the preferences JSONB column under 'pending_password_hash'.
+          await pool.query(
+            `UPDATE users 
+             SET first_name = $1, 
+                 last_name = $2, 
+                 phone = $3, 
+                 role = $4, 
+                 verification_token = $5, 
+                 preferences = jsonb_set(COALESCE(preferences, '{}'::jsonb), '{pending_password_hash}', to_jsonb($6::text)) 
+             WHERE id = $7`,
+            [firstName, lastName, phone, mappedRole, verificationToken, hashedPassword, userId]
+          );
+
+          // Handle instructor application data if provided during signup and they changed profile to instructor
+          if (mappedRole === 'instructor' && bio) {
+            const { rows: appRows } = await pool.query('SELECT id FROM instructor_applications WHERE user_id = $1', [userId]);
+            if (appRows.length === 0) {
+              await pool.query(
+                'INSERT INTO instructor_applications (user_id, bio, linkedin_url, status) VALUES ($1, $2, $3, $4)',
+                [userId, bio, linkedin || '', 'pending']
+              );
+            }
+          }
+        }
+      } else {
+        // If pending_verification, we will update the existing record and resend the email
+        await pool.query(
+          'UPDATE users SET first_name = $1, last_name = $2, phone = $3, password_hash = $4, verification_token = $5 WHERE id = $6',
+          [firstName, lastName, phone, hashedPassword, verificationToken, userId]
+        );
+      }
     } else {
       // Create new user
       const insertQuery = `
