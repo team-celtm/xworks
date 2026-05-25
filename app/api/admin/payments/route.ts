@@ -61,8 +61,12 @@ export async function GET(req: Request) {
       where.push(`(u.first_name ILIKE $${params.length} OR u.last_name ILIKE $${params.length} OR (u.first_name || ' ' || u.last_name) ILIKE $${params.length} OR u.email ILIKE $${params.length} OR p.razorpay_order_id ILIKE $${params.length} OR p.razorpay_payment_id ILIKE $${params.length})`);
     }
     if (status) {
-      params.push(status);
-      where.push(`p.payment_status = $${params.length}`);
+      if (status === 'completed') {
+        where.push(`COALESCE(p.payment_status, p.status) IN ('paid', 'success', 'captured')`);
+      } else {
+        params.push(status);
+        where.push(`COALESCE(p.payment_status, p.status) = $${params.length}`);
+      }
     }
     if (courseId) {
       params.push(courseId);

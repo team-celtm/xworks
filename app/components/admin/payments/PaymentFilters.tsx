@@ -46,8 +46,7 @@ export default function PaymentFilters({ filters, setFilters }: { filters: any, 
           onChange={handleSelectChange}
         >
           <option value="">All Statuses</option>
-          <option value="paid">Paid</option>
-          <option value="captured">Completed</option>
+          <option value="completed">Completed</option>
           <option value="pending">Pending</option>
           <option value="failed">Failed</option>
           <option value="refunded">Refunded</option>

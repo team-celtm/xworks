@@ -1427,7 +1427,7 @@ export default function DashboardPage() {
                               id: c.id,
                               name: c.name,
                               rating: String(c.rating),
-                              dur: String(c.dur),
+                              dur: Number(c.dur),
                               catLabel: c.catLabel,
                               price: Number(c.price),
                               icon: c.icon,

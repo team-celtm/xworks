@@ -26,6 +26,7 @@ export default function InstructorDashboard() {
   const [courses, setCourses] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [allCategories, setAllCategories] = useState<any[]>([]);
+  const [isCreatingCourse, setIsCreatingCourse] = useState(false);
 
   useEffect(() => {
     fetch('/api/instructor/sessions')
@@ -280,38 +281,47 @@ export default function InstructorDashboard() {
                 <form 
                   onSubmit={async (e) => { 
                     e.preventDefault(); 
+                    setIsCreatingCourse(true);
                     const formData = new FormData(e.currentTarget);
                     const dur_h = Number(formData.get('dur_h')) || 0;
                     const dur_m = Number(formData.get('dur_m')) || 0;
                     const dur_s = Number(formData.get('dur_s')) || 0;
                     const totalSecs = dur_h * 3600 + dur_m * 60 + dur_s;
-                    const res = await fetch('/api/teach/courses', { 
-                      method: 'POST', 
-                      headers: {'Content-Type':'application/json'}, 
-                      body: JSON.stringify({ 
-                        name: formData.get('name'), category_id: formData.get('category_id'), 
-                        dur: totalSecs, price: formData.get('price'),
-                        slug: formData.get('name')?.toString().toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substring(2, 7)
-                      }) 
-                    }); 
-                    if (res.ok) {
-                      const newCourse = await res.json();
-                      setCourses(prev => [...prev, newCourse]);
-                      alert('Course Draft Saved!');
-                      e.currentTarget.reset();
+                    const format = formData.get('format');
+                    const live = format === 'live';
+                    const nearby = format === 'inperson';
+                    try {
+                      const res = await fetch('/api/teach/courses', { 
+                        method: 'POST', 
+                        headers: {'Content-Type':'application/json'}, 
+                        body: JSON.stringify({ 
+                          name: formData.get('name'), category_id: formData.get('category_id'), 
+                          dur: totalSecs, price: formData.get('price'),
+                          live, nearby,
+                          slug: formData.get('name')?.toString().toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substring(2, 7)
+                        }) 
+                      }); 
+                      if (res.ok) {
+                        const newCourse = await res.json();
+                        setCourses(prev => [...prev, newCourse]);
+                        alert('Course Draft Saved!');
+                        e.currentTarget.reset();
+                      }
+                    } finally {
+                      setIsCreatingCourse(false);
                     }
                   }} 
                   style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}
                 >
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Course Name</label>
-                    <input name="name" type="text" className="prompt-input" required placeholder="e.g. Advanced Ethical Hacking" style={{ width: '100%' }} />
+                    <input name="name" type="text" className="prompt-input" required placeholder="e.g. Advanced Ethical Hacking" disabled={isCreatingCourse} style={{ width: '100%' }} />
                   </div>
                   
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                        <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Course Category</label>
-                       <select name="category_id" className="prompt-input" required style={{ width: '100%', height: '46px' }}>
+                       <select name="category_id" className="prompt-input" required disabled={isCreatingCourse} style={{ width: '100%', height: '46px' }}>
                          <option value="">Select Category</option>
                          {allCategories.map(cat => (
                            <option key={cat.id} value={cat.id}>{cat.name}</option>
@@ -319,19 +329,29 @@ export default function InstructorDashboard() {
                        </select>
                      </div>
                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                       <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Format</label>
+                       <select name="format" className="prompt-input" required disabled={isCreatingCourse} style={{ width: '100%', height: '46px' }}>
+                         <option value="live">🔴 Live session</option>
+                         <option value="recorded" disabled>📹 Recorded (Coming soon)</option>
+                         <option value="inperson" disabled>📍 In-person (Coming soon)</option>
+                       </select>
+                     </div>
+                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                        <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Duration</label>
                        <div style={{ display: 'flex', gap: '8px' }}>
-                         <input name="dur_h" type="number" min="0" className="prompt-input" placeholder="Hrs" style={{ width: '100%' }} />
-                         <input name="dur_m" type="number" min="0" max="59" className="prompt-input" placeholder="Min" style={{ width: '100%' }} />
-                         <input name="dur_s" type="number" min="0" max="59" className="prompt-input" placeholder="Sec" style={{ width: '100%' }} />
+                         <input name="dur_h" type="number" min="0" className="prompt-input" placeholder="Hrs" disabled={isCreatingCourse} style={{ width: '100%' }} />
+                         <input name="dur_m" type="number" min="0" max="59" className="prompt-input" placeholder="Min" disabled={isCreatingCourse} style={{ width: '100%' }} />
+                         <input name="dur_s" type="number" min="0" max="59" className="prompt-input" placeholder="Sec" disabled={isCreatingCourse} style={{ width: '100%' }} />
                        </div>
                      </div>
                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                        <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Price (₹)</label>
-                       <input name="price" type="number" className="prompt-input" required placeholder="e.g. 1999" style={{ width: '100%' }} />
+                       <input name="price" type="number" className="prompt-input" required placeholder="e.g. 1999" disabled={isCreatingCourse} style={{ width: '100%' }} />
                      </div>
                   </div>
-                  <button type="submit" className="enrol-cta coral" style={{ marginTop: '12px' }}>Create Draft Course</button>
+                  <button type="submit" className="enrol-cta coral" disabled={isCreatingCourse} style={{ marginTop: '12px' }}>
+                    {isCreatingCourse ? <div className="btn-loader" style={{ borderTopColor: '#fff' }}></div> : 'Create Draft Course'}
+                  </button>
                 </form>
               </div>
 

@@ -297,6 +297,10 @@ export default function AdminDashboard() {
     delete payload.dur_h;
     delete payload.dur_m;
     delete payload.dur_s;
+    const format = payload.format;
+    payload.live = format === 'live';
+    payload.nearby = format === 'inperson';
+    delete payload.format;
     try {
       const res = await fetch('/api/admin/courses', {
         method: 'POST',
@@ -878,6 +882,14 @@ export default function AdminDashboard() {
                         {allCategories.map(cat => (
                           <option key={cat.id} value={cat.id}>{cat.name}</option>
                         ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="admin-label">Format</label>
+                      <select name="format" className="prompt-input" required disabled={creatingCourse}>
+                        <option value="live">🔴 Live session</option>
+                        <option value="recorded" disabled>📹 Recorded (Coming soon)</option>
+                        <option value="inperson" disabled>📍 In-person (Coming soon)</option>
                       </select>
                     </div>
                     <div className="form-group">
