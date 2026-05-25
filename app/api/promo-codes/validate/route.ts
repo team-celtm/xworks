@@ -49,10 +49,8 @@ export async function POST(req: NextRequest) {
         originalPrice = parseFloat(courseRes.rows[0].price);
         
         // Apply format adjustment if any
-        if (format === 'recorded') {
-          originalPrice = originalPrice * 0.8;
-        } else if (format === 'inperson') {
-          originalPrice = originalPrice + 500;
+        if (format === 'recorded' || format === 'inperson') {
+          return NextResponse.json({ error: 'This format is coming soon and is not currently available.' }, { status: 400 });
         }
 
         const discountPercentage = parseFloat(promo.discount_percentage);

@@ -7,8 +7,9 @@ export default function PaymentStatusBadge({ status }: { status: string }) {
   switch(label.toLowerCase()) {
     case 'paid':
     case 'success':
+    case 'captured':
       cls += ' success';
-      label = 'Paid';
+      label = 'Completed';
       break;
     case 'failed':
       cls += ' danger';

@@ -40,10 +40,8 @@ export async function POST(req: NextRequest) {
     const courseName = courseRes.rows[0].name;
 
     // Adjust price based on format
-    if (format === 'recorded') {
-      price = price * 0.8; // 20% discount for recorded
-    } else if (format === 'inperson') {
-      price = price + 500; // 500 premium for in person
+    if (format === 'recorded' || format === 'inperson') {
+      return NextResponse.json({ error: 'This format is coming soon and is not currently available.' }, { status: 400 });
     }
 
     console.log('Course Details:', { name: courseName, basePrice: courseRes.rows[0].price, adjustedPrice: price, format });

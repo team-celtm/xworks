@@ -593,8 +593,8 @@ function CatalogueContent() {
           >
             <option value="all">Any format</option>
             <option value="live">Live only</option>
-            <option value="recorded">Recorded only</option>
-            <option value="nearby">📍 Nearby</option>
+            <option value="recorded" disabled>Recorded only (Coming soon)</option>
+            <option value="nearby" disabled>📍 Nearby (Coming soon)</option>
           </select>
           <select
             className="filter-select"
@@ -667,9 +667,9 @@ function CatalogueContent() {
               <input type="checkbox" checked={state.format === 'live'} readOnly />
               <label className="format-item-label">🔴 Live sessions</label>
             </div>
-            <div className="format-item" onClick={() => handleFormatChange('recorded')}>
-              <input type="checkbox" checked={state.format === 'recorded'} readOnly />
-              <label className="format-item-label">📹 Recorded</label>
+            <div className="format-item disabled" style={{ cursor: 'not-allowed', opacity: 0.6 }}>
+              <input type="checkbox" checked={false} disabled readOnly />
+              <label className="format-item-label" style={{ cursor: 'not-allowed' }}>📹 Recorded (Coming soon)</label>
             </div>
           </div>
 
@@ -677,9 +677,9 @@ function CatalogueContent() {
 
           <div className="sidebar-section">
             <div className="sidebar-label">Location</div>
-            <div className="format-item" onClick={() => handleFormatChange('nearby')}>
-              <input type="checkbox" checked={state.format === 'nearby'} readOnly />
-              <label className="format-item-label">📍 Near me &nbsp;<span className="nearby-badge">6</span></label>
+            <div className="format-item disabled" style={{ cursor: 'not-allowed', opacity: 0.6 }}>
+              <input type="checkbox" checked={false} disabled readOnly />
+              <label className="format-item-label" style={{ cursor: 'not-allowed' }}>📍 Near me (Coming soon)</label>
             </div>
           </div>
         </aside>
@@ -875,16 +875,18 @@ function CatalogueContent() {
                       } else if (f.id === 'inperson') {
                         priceVal = original + 500;
                       }
+                      const isComingSoon = f.id === 'recorded' || f.id === 'inperson';
                       return (
                         <div
                           key={f.id}
-                          className={`enrol-format-btn ${enrolData.format === f.id ? 'selected' : ''}`}
-                          onClick={() => enrolSelectFormat(f.id)}
+                          className={`enrol-format-btn ${enrolData.format === f.id && !isComingSoon ? 'selected' : ''} ${isComingSoon ? 'disabled' : ''}`}
+                          style={isComingSoon ? { cursor: 'not-allowed', opacity: 0.5 } : {}}
+                          onClick={() => { if (!isComingSoon) enrolSelectFormat(f.id); }}
                         >
-                          <div className="enrol-format-icon">{f.icon}</div>
-                          <div className="enrol-format-name">{f.name}</div>
+                          <div className="enrol-format-icon" style={isComingSoon ? { opacity: 0.6 } : {}}>{f.icon}</div>
+                          <div className="enrol-format-name">{f.name} {isComingSoon && <span style={{ fontSize: '9px', background: '#F1F5F9', color: '#475569', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px', fontWeight: 600, verticalAlign: 'middle', whiteSpace: 'nowrap' }}>Coming soon</span>}</div>
                           <div className="enrol-format-sub">{f.sub}</div>
-                          <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '5px', color: '#3730A3' }}>
+                          <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '5px', color: isComingSoon ? '#94A3B8' : '#3730A3' }}>
                             ₹{priceVal.toLocaleString('en-IN')}
                           </div>
                         </div>

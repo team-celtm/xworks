@@ -28,14 +28,21 @@ export async function GET(req: Request) {
 
   try {
     const { searchParams } = new URL(req.url);
-    const search = searchParams.get('search') || '';
+    const search = (searchParams.get('search') || '').trim();
     const status = searchParams.get('status') || '';
     const courseId = searchParams.get('course') || '';
     const method = searchParams.get('method') || '';
     const from = searchParams.get('from') || '';
     const to = searchParams.get('to') || '';
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    
+    // Pagination edge cases
+    let page = parseInt(searchParams.get('page') || '1');
+    if (isNaN(page) || page < 1) page = 1;
+    
+    let limit = parseInt(searchParams.get('limit') || '10');
+    if (isNaN(limit) || limit < 1) limit = 10;
+    if (limit > 100) limit = 100; // Max limit to prevent memory overload
+    
     const offset = (page - 1) * limit;
 
     let where = [];
@@ -51,7 +58,7 @@ export async function GET(req: Request) {
 
     if (search) {
       params.push(`%${search}%`);
-      where.push(`(u.first_name ILIKE $${params.length} OR u.last_name ILIKE $${params.length} OR u.email ILIKE $${params.length} OR p.razorpay_order_id ILIKE $${params.length} OR p.razorpay_payment_id ILIKE $${params.length})`);
+      where.push(`(u.first_name ILIKE $${params.length} OR u.last_name ILIKE $${params.length} OR (u.first_name || ' ' || u.last_name) ILIKE $${params.length} OR u.email ILIKE $${params.length} OR p.razorpay_order_id ILIKE $${params.length} OR p.razorpay_payment_id ILIKE $${params.length})`);
     }
     if (status) {
       params.push(status);
@@ -65,11 +72,11 @@ export async function GET(req: Request) {
       params.push(method);
       where.push(`p.payment_method = $${params.length}`);
     }
-    if (from) {
+    if (from && !isNaN(Date.parse(from))) {
       params.push(from);
       where.push(`p.created_at >= $${params.length}`);
     }
-    if (to) {
+    if (to && !isNaN(Date.parse(to))) {
       params.push(to);
       where.push(`p.created_at <= $${params.length}`);
     }
@@ -103,11 +110,11 @@ export async function GET(req: Request) {
     // Compute Analytics Globally (applying same filters)
     const analyticsQuery = `
       SELECT 
-        SUM(p.amount) as total_revenue,
-        SUM(COALESCE(p.net_amount, p.amount)) as net_revenue,
+        SUM(CASE WHEN COALESCE(p.payment_status, p.status) IN ('paid', 'success', 'captured', 'refunded', 'partially_refunded') THEN p.amount ELSE 0 END) as total_revenue,
+        SUM(CASE WHEN COALESCE(p.payment_status, p.status) IN ('paid', 'success', 'captured', 'refunded', 'partially_refunded') THEN COALESCE(p.net_amount, p.amount) ELSE 0 END) as net_revenue,
         SUM(CASE WHEN COALESCE(p.payment_status, p.status) IN ('refunded', 'partially_refunded') THEN p.amount ELSE 0 END) as refund_amount,
         COUNT(CASE WHEN COALESCE(p.payment_status, p.status) = 'failed' THEN 1 END) as failed_payments,
-        COUNT(CASE WHEN COALESCE(p.payment_status, p.status) IN ('refunded', 'partially_refunded') THEN 1 END) * 100.0 / NULLIF(COUNT(*), 0) as refund_rate,
+        COUNT(CASE WHEN COALESCE(p.payment_status, p.status) IN ('refunded', 'partially_refunded') THEN 1 END) * 100.0 / NULLIF(COUNT(CASE WHEN COALESCE(p.payment_status, p.status) IN ('paid', 'success', 'captured', 'refunded', 'partially_refunded') THEN 1 END), 0) as refund_rate,
         AVG(CASE WHEN COALESCE(p.payment_status, p.status) IN ('paid', 'success', 'captured') THEN p.amount ELSE NULL END) as avg_order_value
       ${fromClause}
       ${whereClause}
@@ -121,14 +128,14 @@ export async function GET(req: Request) {
         TO_CHAR(DATE(p.created_at), 'Mon DD') as date,
         SUM(p.amount) as revenue
       ${fromClause}
-      ${whereClause}
+      ${whereClause ? whereClause + ' AND' : 'WHERE'} COALESCE(p.payment_status, p.status) IN ('paid', 'success', 'captured', 'refunded', 'partially_refunded')
       GROUP BY DATE(p.created_at)
       ORDER BY DATE(p.created_at) ASC
     `;
     const chartRes = await pool.query(chartQuery, params);
     const chartData = chartRes.rows.map(row => ({
       date: row.date,
-      revenue: parseFloat(row.revenue)
+      revenue: parseFloat(row.revenue || '0')
     }));
 
     return NextResponse.json({ 
@@ -146,7 +153,7 @@ export async function GET(req: Request) {
         total,
         page,
         limit,
-        totalPages: Math.ceil(total / limit)
+        totalPages: Math.max(1, Math.ceil(total / limit))
       }
     });
   } catch (err: any) {

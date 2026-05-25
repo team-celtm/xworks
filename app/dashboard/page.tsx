@@ -65,7 +65,7 @@ interface Workshop {
   catLabel: string;
   g: string;
   rating: string;
-  dur: string;
+  dur: number;
   tags: string[];
   live: boolean;
   isNew: boolean;
@@ -1969,11 +1969,14 @@ export default function DashboardPage() {
                       { id: "inperson", lbl: "In-person", icon: "📍", sub: "Nearby · Limited seats", priceCalc: (b: number) => b + 500 }
                     ].map((f) => {
                       const calculatedPrice = f.priceCalc(enrolData.courseOriginalPrice || 0);
+                      const isComingSoon = f.id === 'recorded' || f.id === 'inperson';
                       return (
                         <div
                           key={f.id}
-                          className={`enrol-format-btn ${enrolData.format === f.id ? "selected" : ""}`}
+                          className={`enrol-format-btn ${enrolData.format === f.id && !isComingSoon ? "selected" : ""} ${isComingSoon ? "disabled" : ""}`}
+                          style={isComingSoon ? { cursor: 'not-allowed', opacity: 0.5 } : {}}
                           onClick={() => {
+                            if (isComingSoon) return;
                             const labels: Record<string, string> = { live: 'live session', recorded: 'recorded access', inperson: 'in-person session' };
                             const original = enrolData.courseOriginalPrice || 0;
                             let newBasePrice = original;
@@ -1996,10 +1999,10 @@ export default function DashboardPage() {
                             setPromoOk({ text: "", color: "", show: false });
                           }}
                         >
-                          <div className="enrol-format-icon">{f.icon}</div>
-                          <div className="enrol-format-name">{f.lbl}</div>
+                          <div className="enrol-format-icon" style={isComingSoon ? { opacity: 0.6 } : {}}>{f.icon}</div>
+                          <div className="enrol-format-name">{f.lbl} {isComingSoon && <span style={{ fontSize: '9px', background: '#F1F5F9', color: '#475569', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px', fontWeight: 600, verticalAlign: 'middle', whiteSpace: 'nowrap' }}>Coming soon</span>}</div>
                           <div className="enrol-format-sub">{f.sub}</div>
-                          <div style={{ fontSize: '12px', fontWeight: 700, marginTop: '4px', color: 'var(--indigo)' }}>₹{calculatedPrice.toLocaleString("en-IN")}</div>
+                          <div style={{ fontSize: '12px', fontWeight: 700, marginTop: '4px', color: isComingSoon ? 'var(--text-3)' : 'var(--indigo)' }}>₹{calculatedPrice.toLocaleString("en-IN")}</div>
                         </div>
                       );
                     })}

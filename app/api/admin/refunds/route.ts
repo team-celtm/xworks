@@ -97,7 +97,7 @@ export async function POST(req: Request) {
       }
 
       await client.query('COMMIT');
-      return NextResponse.json({ success: true, message: \`Refund processed (\${isPartial ? 'Partial' : 'Full'}).\` });
+      return NextResponse.json({ success: true, message: `Refund processed (${isPartial ? 'Partial' : 'Full'}).` });
     } catch (err: any) {
       await client.query('ROLLBACK');
       throw err;
