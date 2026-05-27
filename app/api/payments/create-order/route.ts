@@ -50,12 +50,21 @@ export async function POST(req: NextRequest) {
     let discount = 0;
     if (promoCode) {
       const promoRes = await pool.query(
-        'SELECT discount_percentage FROM promo_codes WHERE code = $1 AND expiry_date > NOW()',
+        'SELECT discount_percentage, discount_amount FROM promo_codes WHERE code = $1 AND expiry_date > NOW()',
         [promoCode.toUpperCase()]
       );
       if (promoRes.rows.length > 0) {
-        discount = (price * Number(promoRes.rows[0].discount_percentage)) / 100;
-        price = price - discount;
+        const p = promoRes.rows[0];
+        const discountPercentage = p.discount_percentage ? Number(p.discount_percentage) : null;
+        const discountAmount = p.discount_amount ? Number(p.discount_amount) : null;
+
+        if (discountAmount !== null) {
+          discount = discountAmount;
+        } else if (discountPercentage !== null) {
+          discount = (price * discountPercentage) / 100;
+        }
+
+        price = Math.max(0, price - discount);
         console.log('Promo Applied:', { promoCode, discount, finalPrice: price });
       }
     }

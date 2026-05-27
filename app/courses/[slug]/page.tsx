@@ -352,6 +352,24 @@ export default function CourseDetailPage() {
                 </div>
               </div>
 
+              {course.details && course.details.length > 0 && (
+                <div className="detail-section" style={{ marginBottom: '40px' }}>
+                  <h2>What's included</h2>
+                  <div className="learn-card">
+                    <ul className="feature-list" style={{ marginTop: '0', paddingLeft: '0' }}>
+                      {course.details.map((detail: string, i: number) => (
+                        <li key={i} className="feature-item" style={{ alignItems: 'flex-start', marginBottom: '12px' }}>
+                          <svg className="svg-check" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '2px' }}>
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                          <span style={{ lineHeight: '1.5' }}>{detail}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              )}
+
               {course.what_you_will_learn && (
                 <div className="detail-section" style={{ marginBottom: '40px' }}>
                   <h2>What you'll learn</h2>

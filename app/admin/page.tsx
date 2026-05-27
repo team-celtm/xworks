@@ -419,9 +419,22 @@ export default function AdminDashboard() {
     const form = e.currentTarget;
     const formData = new FormData(form);
     try {
+      const discountType = formData.get('discount_type');
+      const discountValue = Number(formData.get('discount_value'));
+      const maxUses = formData.get('max_uses') ? Number(formData.get('max_uses')) : null;
+      const expiryDate = formData.get('expiry_date') ? new Date(formData.get('expiry_date') as string).toISOString() : null;
+
+      const payload = {
+        code: formData.get('code'),
+        discount_percentage: discountType === 'percentage' ? discountValue : null,
+        discount_amount: discountType === 'amount' ? discountValue : null,
+        max_uses: maxUses,
+        expiry_date: expiryDate
+      };
+
       const res = await fetch('/api/admin/promo_codes', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: formData.get('code'), discount_percentage: Number(formData.get('perc')) })
+        body: JSON.stringify(payload)
       });
       const data = await res.json();
       if (data.success) {
@@ -1123,8 +1136,23 @@ export default function AdminDashboard() {
                       <input name="code" type="text" className="prompt-input" required placeholder="e.g. DIWALI50" style={{ textTransform: 'uppercase', width: '100%' }} disabled={creatingPromo} />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Discount %</label>
-                      <input name="perc" type="number" className="prompt-input" required placeholder="20" style={{ width: '100%' }} disabled={creatingPromo} />
+                      <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Discount Type</label>
+                      <select name="discount_type" className="prompt-input" style={{ width: '100%' }} disabled={creatingPromo}>
+                        <option value="percentage">Percentage (%)</option>
+                        <option value="amount">Flat Amount (₹)</option>
+                      </select>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Value</label>
+                      <input name="discount_value" type="number" step="0.01" className="prompt-input" required placeholder="20" style={{ width: '100%' }} disabled={creatingPromo} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Max Uses (Optional)</label>
+                      <input name="max_uses" type="number" className="prompt-input" placeholder="e.g. 50" style={{ width: '100%' }} disabled={creatingPromo} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Expiry Date (Optional)</label>
+                      <input name="expiry_date" type="date" className="prompt-input" style={{ width: '100%' }} disabled={creatingPromo} />
                     </div>
                   </div>
                   <button type="submit" className="enrol-cta coral" style={{ width: 'auto', justifySelf: 'start', padding: '14px 40px', marginTop: 0 }} disabled={creatingPromo}>
@@ -1139,6 +1167,8 @@ export default function AdminDashboard() {
                       <tr>
                         <th>Code</th>
                         <th>Discount</th>
+                        <th>Max Uses</th>
+                        <th>Expiry</th>
                         <th>Created At</th>
                       </tr>
                     </thead>
@@ -1146,7 +1176,13 @@ export default function AdminDashboard() {
                       {promos.map(p => (
                         <tr key={p.id}>
                           <td data-label="Code" style={{ fontWeight: '800', letterSpacing: '1px', color: 'var(--indigo)' }}>{p.code}</td>
-                          <td data-label="Discount" style={{ fontWeight: '700' }}><span className="admin-badge success">{parseFloat(p.discount_percentage)}% OFF</span></td>
+                          <td data-label="Discount" style={{ fontWeight: '700' }}>
+                            <span className="admin-badge success">
+                              {p.discount_amount ? `₹${parseFloat(p.discount_amount)} OFF` : `${parseFloat(p.discount_percentage)}% OFF`}
+                            </span>
+                          </td>
+                          <td data-label="Max Uses" style={{ color: 'var(--text-3)' }}>{p.max_uses ? p.max_uses : 'Unlimited'}</td>
+                          <td data-label="Expiry" style={{ color: 'var(--text-3)' }}>{p.expiry_date ? new Date(p.expiry_date).toLocaleDateString() : 'Never'}</td>
                           <td data-label="Created At" style={{ color: 'var(--text-3)' }}>{new Date(p.created_at).toLocaleDateString()}</td>
                         </tr>
                       ))}

@@ -90,12 +90,21 @@ export async function POST(req: NextRequest) {
         finalPaise = Math.round(price * 100);
         if (promoCode) {
           const promoRes = await pool.query(
-            'SELECT discount_percentage FROM promo_codes WHERE code = $1',
+            'SELECT discount_percentage, discount_amount FROM promo_codes WHERE code = $1',
             [promoCode.toUpperCase()]
           );
           if (promoRes.rows.length > 0) {
-            const discount = (price * parseFloat(promoRes.rows[0].discount_percentage)) / 100;
-            finalPaise = Math.round((price - discount) * 100);
+            const p = promoRes.rows[0];
+            const discountPercentage = p.discount_percentage ? Number(p.discount_percentage) : null;
+            const discountAmount = p.discount_amount ? Number(p.discount_amount) : null;
+            
+            let discount = 0;
+            if (discountAmount !== null) {
+              discount = discountAmount;
+            } else if (discountPercentage !== null) {
+              discount = (price * discountPercentage) / 100;
+            }
+            finalPaise = Math.round(Math.max(0, price - discount) * 100);
           }
         }
       }

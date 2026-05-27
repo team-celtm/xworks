@@ -39,16 +39,24 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { code, discount_percentage, max_uses, expiry_date } = body;
+    const { code, discount_percentage, discount_amount, max_uses, expiry_date } = body;
 
-    if (!code || !discount_percentage) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    if (!code) {
+      return NextResponse.json({ error: 'Code is required' }, { status: 400 });
+    }
+
+    if (!discount_percentage && !discount_amount) {
+      return NextResponse.json({ error: 'Either discount percentage or amount is required' }, { status: 400 });
+    }
+
+    if (discount_percentage && discount_amount) {
+      return NextResponse.json({ error: 'Cannot provide both discount percentage and amount' }, { status: 400 });
     }
 
     const insertRes = await pool.query(
-      `INSERT INTO promo_codes (code, discount_percentage, max_uses, expiry_date, created_at) 
-       VALUES ($1, $2, $3, $4, NOW()) RETURNING *`,
-      [code.toUpperCase(), discount_percentage, max_uses || null, expiry_date || null]
+      `INSERT INTO promo_codes (code, discount_percentage, discount_amount, max_uses, expiry_date, created_at) 
+       VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *`,
+      [code.toUpperCase(), discount_percentage || null, discount_amount || null, max_uses || null, expiry_date || null]
     );
 
     return NextResponse.json({ success: true, promo: insertRes.rows[0] });

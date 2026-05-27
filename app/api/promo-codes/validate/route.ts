@@ -53,15 +53,27 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: 'This format is coming soon and is not currently available.' }, { status: 400 });
         }
 
-        const discountPercentage = parseFloat(promo.discount_percentage);
-        discountedPrice = originalPrice - (originalPrice * discountPercentage / 100);
+        const discountPercentage = promo.discount_percentage ? parseFloat(promo.discount_percentage) : null;
+        const discountAmount = promo.discount_amount ? parseFloat(promo.discount_amount) : null;
+
+        if (discountAmount !== null) {
+          discountedPrice = Math.max(0, originalPrice - discountAmount);
+        } else if (discountPercentage !== null) {
+          discountedPrice = Math.max(0, originalPrice - (originalPrice * discountPercentage / 100));
+        }
       }
     }
+
+    const discountText = promo.discount_amount 
+      ? `₹${parseFloat(promo.discount_amount)} OFF` 
+      : `${parseFloat(promo.discount_percentage)}% OFF`;
 
     return NextResponse.json({
       success: true,
       code: promo.code,
-      discountPercentage: parseFloat(promo.discount_percentage),
+      discountPercentage: promo.discount_percentage ? parseFloat(promo.discount_percentage) : null,
+      discountAmount: promo.discount_amount ? parseFloat(promo.discount_amount) : null,
+      discountText,
       originalPrice,
       discountedPrice,
       message: 'Promo code applied successfully'
