@@ -7,29 +7,22 @@ const env = fs.readFileSync('.env', 'utf8').split('\n').reduce((acc, line) => {
   return acc;
 }, {});
 
-const pool = new Pool({
-  connectionString: env.DATABASE_URL
-});
+const pool = new Pool({ connectionString: env.DATABASE_URL });
 
 async function run() {
   try {
     const res = await pool.query(`
-      SELECT 
-        cat.name as category_name, 
-        c.status,
-        COUNT(*) as count
+      SELECT c.id, c.name, c.slug, COUNT(ls.id) as session_count
       FROM courses c
-      JOIN categories cat ON c.category_id = cat.id
-      GROUP BY cat.name, c.status
-      ORDER BY cat.name, c.status
+      LEFT JOIN live_sessions ls ON c.id = ls.course_id
+      GROUP BY c.id, c.name, c.slug
+      ORDER BY session_count DESC
     `);
-    console.log("COURSE COUNTS BY CATEGORY AND STATUS:");
-    console.log(res.rows);
+    console.log("COURSES AND THEIR SESSION COUNTS:", JSON.stringify(res.rows, null, 2));
   } catch (err) {
     console.error(err);
   } finally {
     await pool.end();
   }
 }
-
 run();

@@ -32,6 +32,8 @@ interface CourseDetail {
   slug: string;
   categoryName: string;
   categorySlug: string;
+  details?: string[];
+  what_you_will_learn?: string;
   instructor: string;
   instructorAvatar: string;
   instructorBio: string;
@@ -194,11 +196,7 @@ export default function CourseDetailPage() {
             if (verifyRes.ok) {
               setSuccess(true);
               setTimeout(() => {
-                if (course.live) {
-                  router.push(`/dashboard?view=upcoming`);
-                } else {
-                  router.push(`/player/${verifyData.enrolmentId}`);
-                }
+                router.push(`/dashboard?view=upcoming`);
               }, 1000);
             } else {
               setError(verifyData.error || 'Payment verification failed');
@@ -221,11 +219,7 @@ export default function CourseDetailPage() {
       if (res.ok) {
         setSuccess(true);
         setTimeout(() => {
-          if (course.live) {
-            router.push(`/dashboard?view=upcoming`);
-          } else {
-            router.push(`/player/${data.enrolmentId}`);
-          }
+          router.push(`/dashboard?view=upcoming`);
         }, 1500);
       } else {
         throw new Error(data.error || 'Failed to enrol');
@@ -256,29 +250,29 @@ export default function CourseDetailPage() {
       <div className="detail-page">
         <nav className="nav">
           <Logo />
-        {/* Mobile Toggle */}
-        <button className="mob-menu-toggle" onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}>
-          {isMobileNavOpen ? '✕' : '☰'}
-        </button>
+          {/* Mobile Toggle */}
+          <button className="mob-menu-toggle" onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}>
+            {isMobileNavOpen ? '✕' : '☰'}
+          </button>
 
-        <div className={`nav-right ${isMobileNavOpen ? 'open' : ''}`}>
-          <Link href="/catalogue" className="nav-link-sm" onClick={() => setIsMobileNavOpen(false)}>Explore</Link>
-          {userLoading ? (
-            <div className="btn-loader small" style={{ marginRight: '16px' }}></div>
-          ) : user ? (
-            <Link href={user?.role === 'admin' ? '/admin' : (user?.role === 'instructor' ? '/instructor' : '/dashboard')} className="nav-link-sm" onClick={() => setIsMobileNavOpen(false)}>Dashboard</Link>
-          ) : (
-            <>
-              <Link href="/Login" className="nav-link-sm" onClick={() => setIsMobileNavOpen(false)}>Login</Link>
-              <Link href="/Registration" className="nav-cta" onClick={() => setIsMobileNavOpen(false)}>Sign up</Link>
-            </>
-          )}
-          <button className="nav-back" onClick={() => {
-            if (window.history.length > 1) router.back();
-            else router.push('/catalogue');
-          }}>← Back</button>
-        </div>
-      </nav>
+          <div className={`nav-right ${isMobileNavOpen ? 'open' : ''}`}>
+            <Link href="/catalogue" className="nav-link-sm" onClick={() => setIsMobileNavOpen(false)}>Explore</Link>
+            {userLoading ? (
+              <div className="btn-loader small" style={{ marginRight: '16px' }}></div>
+            ) : user ? (
+              <Link href={user?.role === 'admin' ? '/admin' : (user?.role === 'instructor' ? '/instructor' : '/dashboard')} className="nav-link-sm" onClick={() => setIsMobileNavOpen(false)}>Dashboard</Link>
+            ) : (
+              <>
+                <Link href="/Login" className="nav-link-sm" onClick={() => setIsMobileNavOpen(false)}>Login</Link>
+                <Link href="/Registration" className="nav-cta" onClick={() => setIsMobileNavOpen(false)}>Sign up</Link>
+              </>
+            )}
+            <button className="nav-back" onClick={() => {
+              if (window.history.length > 1) router.back();
+              else router.push('/catalogue');
+            }}>← Back</button>
+          </div>
+        </nav>
 
         <main className="detail-main">
           <div className="detail-grid">
@@ -297,10 +291,10 @@ export default function CourseDetailPage() {
                   <div className={`detail-emoji-box ${course.g}`} style={{ width: '80px', height: '80px', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px' }}>
                     {course.logo ? (
                       <>
-                        <img 
-                          src={course.logo} 
-                          alt="" 
-                          style={{ width: '60px', height: '60px', objectFit: 'contain' }} 
+                        <img
+                          src={course.logo}
+                          alt=""
+                          style={{ width: '60px', height: '60px', objectFit: 'contain' }}
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';
                             const fallback = e.currentTarget.nextSibling as HTMLElement;
@@ -351,19 +345,21 @@ export default function CourseDetailPage() {
                   <div className="dstat-card">
                     <span className="dstat-icon">📺</span>
                     <div className="dstat-content">
-                      <span className="dstat-value">{course.live ? 'Live' : 'Recorded'}</span>
+                      <span className="dstat-value">Live session</span>
                       <span className="dstat-label">Format</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="detail-section" style={{ marginBottom: '40px' }}>
-                <h2>What you'll learn</h2>
-                <div className="learn-card">
-                  Master the intersection of financial markets and artificial intelligence. In this comprehensive session, we cover quantitative trading strategies using Python, risk management with neural networks, and the implementation of automated trading bots using real-time market APIs.
+              {course.what_you_will_learn && (
+                <div className="detail-section" style={{ marginBottom: '40px' }}>
+                  <h2>What you'll learn</h2>
+                  <div className="learn-card" style={{ whiteSpace: 'pre-wrap' }}>
+                    {course.what_you_will_learn}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {sessions.length > 0 && (
                 <div className="detail-section" style={{ marginBottom: '40px' }}>
@@ -402,11 +398,11 @@ export default function CourseDetailPage() {
                 <div className="instructor-card">
                   <div className="instructor-avatar-wrap">
                     {course.instructorAvatar && !avatarFailed ? (
-                      <img 
-                        src={course.instructorAvatar} 
-                        alt={course.instructor} 
+                      <img
+                        src={course.instructorAvatar}
+                        alt={course.instructor}
                         onError={() => setAvatarFailed(true)}
-                        className="instructor-avatar-img" 
+                        className="instructor-avatar-img"
                       />
                     ) : (
                       <div className="instructor-avatar-fallback">
@@ -428,29 +424,27 @@ export default function CourseDetailPage() {
                 <div className="price-card">
                   <div className="price-val">{priceStr}</div>
 
-                  <ul className="feature-list">
-                    {['Lifetime access to recordings', 'Certificate of completion', 'Q&A session with instructor', 'Class notes & resources PDF'].map(t => (
-                      <li key={t} className="feature-item">
-                        <svg className="svg-check" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12"></polyline>
-                        </svg>
-                        <span>{t}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  {course.details && course.details.length > 0 && (
+                    <ul className="feature-list">
+                      {course.details.map((t: string) => (
+                        <li key={t} className="feature-item">
+                          <svg className="svg-check" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                          </svg>
+                          <span>{t}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
 
                   {userEnrol ? (
                     <button
                       className="enrol-cta-btn continue-state"
                       onClick={() => {
-                        if (course.live) {
-                          router.push('/dashboard?view=upcoming');
-                        } else {
-                          router.push(`/player/${userEnrol.enrolment_id}`);
-                        }
+                        router.push('/dashboard?view=upcoming');
                       }}
                     >
-                      {course.live ? 'View Schedule →' : 'Continue Learning →'}
+                      View Schedule →
                     </button>
                   ) : (
                     <>

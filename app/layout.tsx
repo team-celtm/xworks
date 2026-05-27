@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Syne, DM_Sans } from "next/font/google";
 import "./globals.css";
 
@@ -26,9 +27,9 @@ export default function RootLayout({
     <html lang="en" className={`${syne.variable} ${dmSans.variable}`}>
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-        <script src="https://checkout.razorpay.com/v1/checkout.js" async></script>
       </head>
       <body>
+        <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
         <div id="app-layout-container" style={{ display: "contents" }}>
           {children}
         </div>

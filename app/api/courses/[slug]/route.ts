@@ -22,6 +22,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
         c.emoji, 
         c.g,
         c.slug,
+        c.details,
+        c.what_you_will_learn,
         cat.name as "categoryName",
         cat.slug as "categorySlug",
         u.first_name || ' ' || u.last_name as instructor,

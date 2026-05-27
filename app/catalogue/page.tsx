@@ -595,8 +595,6 @@ function CatalogueContent() {
           >
             <option value="all">Any format</option>
             <option value="live">Live only</option>
-            <option value="recorded" disabled>Recorded only (Coming soon)</option>
-            <option value="nearby" disabled>📍 Nearby (Coming soon)</option>
           </select>
           <select
             className="filter-select"
@@ -668,20 +666,6 @@ function CatalogueContent() {
             <div className="format-item" onClick={() => handleFormatChange('live')}>
               <input type="checkbox" checked={state.format === 'live'} readOnly />
               <label className="format-item-label">🔴 Live sessions</label>
-            </div>
-            <div className="format-item disabled" style={{ cursor: 'not-allowed', opacity: 0.6 }}>
-              <input type="checkbox" checked={false} disabled readOnly />
-              <label className="format-item-label" style={{ cursor: 'not-allowed' }}>📹 Recorded (Coming soon)</label>
-            </div>
-          </div>
-
-          <div className="sidebar-divider"></div>
-
-          <div className="sidebar-section">
-            <div className="sidebar-label">Location</div>
-            <div className="format-item disabled" style={{ cursor: 'not-allowed', opacity: 0.6 }}>
-              <input type="checkbox" checked={false} disabled readOnly />
-              <label className="format-item-label" style={{ cursor: 'not-allowed' }}>📍 Near me (Coming soon)</label>
             </div>
           </div>
         </aside>
@@ -889,36 +873,15 @@ function CatalogueContent() {
                     </div>
                   </div>
                   <div className="enrol-section-label">Choose your format</div>
-                  <div className="enrol-format-grid">
-                    {[
-                      { id: 'live', icon: '🔴', name: 'Live session', sub: 'Interactive · Q&A included' },
-                      { id: 'recorded', icon: '📹', name: 'Recorded', sub: 'Watch anytime · Self-paced' },
-                      { id: 'inperson', icon: '📍', name: 'In-person', sub: 'Nearby · Limited seats' }
-                    ].map(f => {
-                      const original = enrolData.courseOriginalPrice || 0;
-                      let priceVal = original;
-                      if (f.id === 'recorded') {
-                        priceVal = Math.round(original * 0.8);
-                      } else if (f.id === 'inperson') {
-                        priceVal = original + 500;
-                      }
-                      const isComingSoon = f.id === 'recorded' || f.id === 'inperson';
-                      return (
-                        <div
-                          key={f.id}
-                          className={`enrol-format-btn ${enrolData.format === f.id && !isComingSoon ? 'selected' : ''} ${isComingSoon ? 'disabled' : ''}`}
-                          style={isComingSoon ? { cursor: 'not-allowed', opacity: 0.5 } : {}}
-                          onClick={() => { if (!isComingSoon) enrolSelectFormat(f.id); }}
-                        >
-                          <div className="enrol-format-icon" style={isComingSoon ? { opacity: 0.6 } : {}}>{f.icon}</div>
-                          <div className="enrol-format-name">{f.name} {isComingSoon && <span style={{ fontSize: '9px', background: '#F1F5F9', color: '#475569', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px', fontWeight: 600, verticalAlign: 'middle', whiteSpace: 'nowrap' }}>Coming soon</span>}</div>
-                          <div className="enrol-format-sub">{f.sub}</div>
-                          <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '5px', color: isComingSoon ? '#94A3B8' : '#3730A3' }}>
-                            ₹{priceVal.toLocaleString('en-IN')}
-                          </div>
-                        </div>
-                      );
-                    })}
+                  <div className="enrol-format-grid" style={{ gridTemplateColumns: '1fr' }}>
+                    <div className={`enrol-format-btn ${enrolData.format === 'live' ? 'selected' : ''}`} onClick={() => enrolSelectFormat('live')}>
+                      <div className="enrol-format-icon">🔴</div>
+                      <div className="enrol-format-name">Live session</div>
+                      <div className="enrol-format-sub">Interactive · Q&A included</div>
+                      <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '5px', color: '#3730A3' }}>
+                        ₹{(enrolData.courseOriginalPrice || 0).toLocaleString('en-IN')}
+                      </div>
+                    </div>
                   </div>
                   <div className="enrol-divider"></div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
@@ -1118,11 +1081,10 @@ function CatalogueContent() {
                       className="enrol-success-btn primary"
                       onClick={() => {
                         closeEnrol();
-                        if (modalEnrolmentId) router.push(`/player/${modalEnrolmentId}`);
-                        else router.push(user?.role === 'admin' ? '/admin' : '/dashboard/enrolments');
+                        router.push(user?.role === 'admin' ? '/admin' : '/dashboard?view=upcoming');
                       }}
                     >
-                      Start Learning →
+                      Go to Dashboard →
                     </button>
                   </div>
                 </div>

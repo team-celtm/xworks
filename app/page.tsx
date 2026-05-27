@@ -1108,24 +1108,12 @@ export default function Home() {
                     </div>
                     <div><div className="enrol-course-name">{enrolData.name}</div><div className="enrol-course-meta">{enrolData.meta}</div></div>
                   </div>
-                  <div className="enrol-format-grid">
+                  <div className="enrol-format-grid" style={{ gridTemplateColumns: '1fr' }}>
                     <div className={`enrol-format-btn ${enrolData.format === 'live' ? 'selected' : ''}`} onClick={() => enrolSelectFormat('live')}>
                       <div className="enrol-format-icon">🔴</div>
                       <div className="enrol-format-name">Live session</div>
                       <div className="enrol-format-sub">Interactive · Q&A included</div>
                       <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '5px', color: '#3730A3' }}>₹{(enrolData.courseOriginalPrice || 1299).toLocaleString('en-IN')}</div>
-                    </div>
-                    <div className={`enrol-format-btn disabled`} style={{ cursor: 'not-allowed', opacity: 0.5 }}>
-                      <div className="enrol-format-icon" style={{ opacity: 0.6 }}>📹</div>
-                      <div className="enrol-format-name">Recorded <span style={{ fontSize: '9px', background: '#F1F5F9', color: '#475569', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px', fontWeight: 600, verticalAlign: 'middle', whiteSpace: 'nowrap' }}>Coming soon</span></div>
-                      <div className="enrol-format-sub">Watch anytime · Self-paced</div>
-                      <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '5px', color: '#94A3B8' }}>₹{Math.round((enrolData.courseOriginalPrice || 1299) * 0.8).toLocaleString('en-IN')}</div>
-                    </div>
-                    <div className={`enrol-format-btn disabled`} style={{ cursor: 'not-allowed', opacity: 0.5 }}>
-                      <div className="enrol-format-icon" style={{ opacity: 0.6 }}>📍</div>
-                      <div className="enrol-format-name">In-person <span style={{ fontSize: '9px', background: '#F1F5F9', color: '#475569', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px', fontWeight: 600, verticalAlign: 'middle', whiteSpace: 'nowrap' }}>Coming soon</span></div>
-                      <div className="enrol-format-sub">Nearby · Limited seats</div>
-                      <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '5px', color: '#94A3B8' }}>₹{((enrolData.courseOriginalPrice || 1299) + 500).toLocaleString('en-IN')}</div>
                     </div>
                   </div>
                   <div className="enrol-divider"></div>
@@ -1283,11 +1271,10 @@ export default function Home() {
                     className="enrol-success-btn primary"
                     onClick={() => {
                       closeEnrol();
-                      if (enrolData.enrolmentId) router.push(`/player/${enrolData.enrolmentId}`);
-                      else router.push(user?.role === 'admin' ? '/admin' : '/dashboard/enrolments');
+                      router.push(user?.role === 'admin' ? '/admin' : '/dashboard?view=upcoming');
                     }}
                   >
-                    Start Learning →
+                    Go to Dashboard →
                   </button>
                 </div>
               </div>

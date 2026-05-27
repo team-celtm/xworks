@@ -18,7 +18,7 @@ export async function middleware(request: NextRequest) {
   // Define route groups
   const isAdminPath = pathname.startsWith('/admin');
   const isInstructorPath = pathname.startsWith('/instructor');
-  const isLearnerPath = pathname.startsWith('/dashboard') || pathname.startsWith('/player') || pathname.startsWith('/teach');
+  const isLearnerPath = pathname.startsWith('/dashboard') || pathname.startsWith('/teach');
   
   const isAuthRequired = isAdminPath || isInstructorPath || isLearnerPath;
 
@@ -107,7 +107,6 @@ export const config = {
     '/admin/:path*',
     '/instructor/:path*',
     '/dashboard/:path*',
-    '/player/:path*',
     '/teach/:path*',
     '/Login',
     '/Registration',

@@ -130,8 +130,7 @@ export default function DashboardPage() {
   const [promoCode, setPromoCode] = useState("");
   const [promoOk, setPromoOk] = useState({ text: "", color: "", show: false });
   const [promoLoading, setPromoLoading] = useState(false);
-  const [playerContent, setPlayerContent] = useState<any>(null);
-  const [loadingPlayer, setLoadingPlayer] = useState(false);
+
   const [sessions, setSessions] = useState<any[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [certs, setCerts] = useState<any[]>([]);
@@ -477,7 +476,7 @@ export default function DashboardPage() {
       };
     });
 
-  const continueLearningList = enrolments.filter(e => e.progressPct > 0 && e.progressPct < 100);
+  const continueLearningList = enrolments.filter(e => e.enrolment_status === 'active');
 
   const handleSearch = async (queryToSearch?: string) => {
     const q = (typeof queryToSearch === 'string' ? queryToSearch : promptQuery).trim();
@@ -715,21 +714,7 @@ export default function DashboardPage() {
     }
   };
 
-  const fetchPlayerContent = async (id: string) => {
-    setActiveView("player");
-    setLoadingPlayer(true);
-    try {
-      const res = await fetch(`/api/learner/enrolments/${id}/access`);
-      if (res.ok) {
-        const data = await res.json();
-        setPlayerContent(data);
-      }
-    } catch (err) {
-      console.error("Player fetch error:", err);
-    } finally {
-      setLoadingPlayer(false);
-    }
-  };
+
 
   const initiateEnrolPayment = async () => {
     try {
@@ -850,23 +835,7 @@ export default function DashboardPage() {
     }
   };
 
-  const updatePlayerProgress = async (id: string, newPct: number) => {
-    try {
-      const res = await fetch(`/api/learner/enrolments/${id}/progress`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ progressPct: newPct }),
-      });
-      if (res.ok) {
-        const updated = await res.json();
-        setPlayerContent((prev: any) => ({ ...prev, currentProgress: updated.progress_pct }));
-        // Also update the main enrolments list to keep badges/bars in sync
-        setEnrolments(prev => prev.map(e => e.enrolment_id === id ? { ...e, progressPct: updated.progress_pct } : e));
-      }
-    } catch (err) {
-      console.error("Progress update failed:", err);
-    }
-  };
+
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -927,17 +896,13 @@ export default function DashboardPage() {
           {userEnrol ? (
             <button className="wcard-enrol-btn blue" onClick={(e) => { 
                 e.stopPropagation(); 
-                if (w.live) {
-                  if (!userEnrol.userSessionRegId) {
-                    handleOpenBooking(String(w.id), w.name);
-                  } else {
-                    setActiveView("upcoming");
-                  }
+                if (!userEnrol.userSessionRegId) {
+                  handleOpenBooking(String(w.id), w.name);
                 } else {
-                  router.push(`/player/${userEnrol.enrolment_id}`); 
+                  setActiveView("upcoming");
                 }
               }}>
-              {w.live ? (userEnrol.userSessionRegId ? "View Schedule →" : "Book Seat →") : "Continue →"}
+              {userEnrol.userSessionRegId ? "View Schedule →" : "Book Seat →"}
             </button>
           ) : userCompleted ? (
             <button className="wcard-enrol-btn" style={{ background: 'var(--indigo-light)', color: 'var(--indigo)' }} onClick={(e) => { e.stopPropagation(); openEnrol(w); }}>
@@ -955,7 +920,7 @@ export default function DashboardPage() {
 
   const renderEnrolledCard = (e: any) => {
     return (
-      <div className="wcard" key={e.enrolment_id} style={{ cursor: 'pointer' }} onClick={() => router.push(`/player/${e.enrolment_id}`)}>
+      <div className="wcard" key={e.enrolment_id} style={{ cursor: 'pointer' }} onClick={() => setActiveView("upcoming")}>
         <div className="wcard-thumb">
           <div className={`wcard-thumb-bg ${e.thumbBg}`}></div>
           <div className="wcard-thumb-emoji">
@@ -990,11 +955,7 @@ export default function DashboardPage() {
           <div className="wcard-cat">{e.catLabel}</div>
           <div className="wcard-name">{e.name}</div>
           <div className="wcard-meta">
-            <span>{Math.round(e.progressPct)}% done</span>
             <span>{e.instructor}</span>
-          </div>
-          <div className="progress-bar-wrap" style={{ marginTop: '12px', height: '4px', background: 'var(--surface-2)', borderRadius: '2px', overflow: 'hidden' }}>
-            <div className="progress-bar-fill" style={{ width: `${e.progressPct}%`, height: '100%', background: 'var(--blue)' }}></div>
           </div>
           
           {e.live && !e.userSessionRegId && (
@@ -1009,8 +970,8 @@ export default function DashboardPage() {
             </button>
           )}
           {(!e.live || e.userSessionRegId) && (
-            <button className="wcard-enrol-btn blue" onClick={(ev) => { ev.stopPropagation(); router.push(`/player/${e.enrolment_id}`); }}>
-              Continue →
+            <button className="wcard-enrol-btn blue" onClick={(ev) => { ev.stopPropagation(); setActiveView("upcoming"); }}>
+              View Schedule →
             </button>
           )}
         </div>
@@ -1737,64 +1698,7 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* ══ VIEW: PLAYER ══ */}
-          {activeView === "player" && (
-            <div className="view active fade-up" style={{ display: 'flex', gap: '20px', width: '100%' }}>
-              {loadingPlayer || !playerContent ? (
-                <div style={{ padding: '80px', textAlign: 'center', width: '100%', color: 'var(--text-3)' }}>
-                  Loading your learning experience...
-                </div>
-              ) : (
-                <>
-                  <div style={{ flex: 1 }}>
-                    <div className="section-label">Now playing</div>
-                    <div className="section-title" style={{ fontSize: '24px', marginBottom: '20px' }}>{playerContent.title}</div>
-                    
-                    <div style={{ width: '100%', aspectRatio: '16/9', background: '#000', borderRadius: '16px', overflow: 'hidden', marginBottom: '20px', boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
-                      <video 
-                        src={playerContent.videoUrl} 
-                        controls 
-                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                        poster="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=2070&auto=format&fit=crop"
-                      />
-                    </div>
 
-                    <div className="stat-card" style={{ width: '100%', padding: '20px', display: 'flex', alignItems: 'center' }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>{Math.round(playerContent.currentProgress)}% Completed</div>
-                        <div className="progress-bar-wrap" style={{ height: '8px' }}>
-                          <div className="progress-bar-fill" style={{ width: `${playerContent.currentProgress}%` }}></div>
-                        </div>
-                      </div>
-                      <button 
-                        className="enrol-cta coral" 
-                        style={{ marginLeft: '20px', width: 'auto', padding: '10px 24px', marginTop: 0 }}
-                        onClick={() => updatePlayerProgress(playerContent.enrolmentId, Math.min(100, playerContent.currentProgress + 10))}
-                        disabled={playerContent.currentProgress >= 100}
-                      >
-                        Next Lesson →
-                      </button>
-                    </div>
-                  </div>
-
-                  <div style={{ width: '320px', background: 'var(--surface)', borderRadius: '16px', padding: '20px', border: '1px solid var(--border-md)', display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ fontSize: '16px', fontWeight: 700, marginBottom: '16px' }}>Curriculum</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {playerContent.curriculum.map((item: any) => (
-                        <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'var(--surface-2)', borderRadius: '12px', opacity: item.completed ? 0.6 : 1 }}>
-                          <span style={{ fontSize: '18px' }}>{item.completed ? '✅' : '🔴'}</span>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: '13px', fontWeight: 600 }}>{item.title}</div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>{item.duration}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
 
           {/* ══ VIEW: CERTIFICATES ══ */}
           {activeView === "certificates" && (

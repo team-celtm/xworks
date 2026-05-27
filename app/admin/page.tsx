@@ -72,9 +72,13 @@ export default function AdminDashboard() {
   const [editLogoUrl, setEditLogoUrl] = useState('');
   const [uploadingEditLogo, setUploadingEditLogo] = useState(false);
 
+  const [createDetails, setCreateDetails] = useState<string[]>(['']);
+  const [editDetails, setEditDetails] = useState<string[]>([]);
+
   useEffect(() => {
     if (editingCourse) {
       setEditLogoUrl(editingCourse.logo || '');
+      setEditDetails(editingCourse.details || []);
     }
   }, [editingCourse]);
 
@@ -328,7 +332,7 @@ export default function AdminDashboard() {
       const queryParams = new URLSearchParams(paymentFilters as any);
       if (activeView === 'admin_failed_payments') queryParams.set('status', 'failed');
       if (activeView === 'admin_refunds_history') queryParams.set('status', 'refunded');
-      
+
       fetch(`/api/admin/payments?${queryParams.toString()}`)
         .then(r => r.json())
         .then(d => {
@@ -503,6 +507,7 @@ export default function AdminDashboard() {
     payload.live = format === 'live';
     payload.nearby = format === 'inperson';
     delete payload.format;
+    payload.details = createDetails.map(d => d.trim()).filter(Boolean);
     try {
       const res = await fetch('/api/admin/courses', {
         method: 'POST',
@@ -514,6 +519,7 @@ export default function AdminDashboard() {
         showToast('Course created successfully!', 'success');
         form.reset();
         setCreateLogoUrl('');
+        setCreateDetails(['']);
         setActiveView('admin_manage_courses');
       } else {
         showToast(data.error || 'Failed to create course', 'error');
@@ -540,6 +546,7 @@ export default function AdminDashboard() {
     delete payload.dur_m;
     delete payload.dur_s;
     payload.id = editingCourse?.id;
+    payload.details = editDetails.map(d => d.trim()).filter(Boolean);
     try {
       const res = await fetch('/api/admin/courses/all', {
         method: 'PUT',
@@ -647,7 +654,7 @@ export default function AdminDashboard() {
             <span className="sb-item-icon">📜</span>
             <span className="sb-item-label">Certificates Repo</span>
           </button>
-          
+
           <button className={`sb-item ${activeView === "admin_certificates" ? "active" : ""}`} onClick={() => { setActiveView("admin_certificates"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">❌</span>
             <span className="sb-item-label">Revoke Certs</span>
@@ -779,18 +786,18 @@ export default function AdminDashboard() {
                             <td data-label="Bio" style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{app.bio}</td>
                             <td data-label="Action">
                               <div style={{ display: 'flex', gap: '8px' }}>
-                                <button 
-                                  className="admin-btn admin-btn-success" 
-                                  disabled={actioningInstructorId === app.id} 
+                                <button
+                                  className="admin-btn admin-btn-success"
+                                  disabled={actioningInstructorId === app.id}
                                   onClick={() => handleApproveInstructor(app.id, 'approve')}
                                 >
                                   {actioningInstructorId === app.id && instructorAction === 'approve' ? (
                                     <div className="btn-loader"></div>
                                   ) : 'Approve'}
                                 </button>
-                                <button 
-                                  className="admin-btn admin-btn-danger" 
-                                  disabled={actioningInstructorId === app.id} 
+                                <button
+                                  className="admin-btn admin-btn-danger"
+                                  disabled={actioningInstructorId === app.id}
                                   onClick={() => handleApproveInstructor(app.id, 'reject')}
                                 >
                                   {actioningInstructorId === app.id && instructorAction === 'reject' ? (
@@ -851,19 +858,19 @@ export default function AdminDashboard() {
                             </td>
                             <td data-label="Action">
                               <div style={{ display: 'flex', gap: '8px' }}>
-                                <button 
-                                  className="admin-btn admin-btn-primary" 
-                                  disabled={actioningCourseId === c.id} 
+                                <button
+                                  className="admin-btn admin-btn-primary"
+                                  disabled={actioningCourseId === c.id}
                                   onClick={() => handlePublishCourse(c.id, 'approve')}
                                 >
                                   {actioningCourseId === c.id && courseAction === 'approve' ? (
                                     <div className="btn-loader"></div>
                                   ) : 'Publish'}
                                 </button>
-                                <button 
-                                  className="admin-btn" 
-                                  style={{ background: 'var(--surface-2)', color: 'var(--text-2)' }} 
-                                  disabled={actioningCourseId === c.id} 
+                                <button
+                                  className="admin-btn"
+                                  style={{ background: 'var(--surface-2)', color: 'var(--text-2)' }}
+                                  disabled={actioningCourseId === c.id}
                                   onClick={() => handlePublishCourse(c.id, 'reject')}
                                 >
                                   {actioningCourseId === c.id && courseAction === 'reject' ? (
@@ -1165,9 +1172,9 @@ export default function AdminDashboard() {
                 <p style={{ color: 'var(--text-3)', marginBottom: '24px' }}>Process a refund and immediately revoke course access via Razorpay ID.</p>
                 <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                   <input type="text" className="prompt-input" placeholder="Razorpay Order ID (order_...)" id="adminRefundId" style={{ flex: 1 }} disabled={processingRefund} />
-                  <button 
-                    className="enrol-cta coral" 
-                    style={{ width: 'auto', padding: '12px 32px', cursor: 'pointer', marginTop: 0 }} 
+                  <button
+                    className="enrol-cta coral"
+                    style={{ width: 'auto', padding: '12px 32px', cursor: 'pointer', marginTop: 0 }}
                     disabled={processingRefund}
                     onClick={handleProcessRefund}
                   >
@@ -1315,8 +1322,8 @@ export default function AdminDashboard() {
                       <label className="admin-label">Format</label>
                       <select name="format" className="prompt-input" required disabled={creatingCourse}>
                         <option value="live">🔴 Live session</option>
-                        <option value="recorded">📹 Recorded</option>
-                        <option value="inperson">📍 In-person</option>
+                        <option value="recorded" disabled>📹 Recorded (Coming Soon)</option>
+                        <option value="inperson" disabled>📍 In-person (Coming Soon)</option>
                       </select>
                     </div>
                     <div className="form-group">
@@ -1363,16 +1370,16 @@ export default function AdminDashboard() {
                           </div>
                         )}
                         <div style={{ position: 'relative', flex: 1 }}>
-                          <input 
-                            type="file" 
-                            accept="image/*" 
-                            onChange={handleCreateLogoUpload} 
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleCreateLogoUpload}
                             disabled={creatingCourse || uploadingCreateLogo}
                             style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 2 }}
                           />
-                          <button 
-                            type="button" 
-                            className="prompt-input" 
+                          <button
+                            type="button"
+                            className="prompt-input"
                             style={{ width: '100%', textAlign: 'left', background: 'var(--surface-2)', color: 'var(--text-2)', pointerEvents: 'none' }}
                           >
                             {uploadingCreateLogo ? 'Uploading...' : createLogoUrl ? 'Change Image' : 'Choose Image'}
@@ -1419,6 +1426,63 @@ export default function AdminDashboard() {
                         <option value="completion_standard">Standard Completion</option>
                       </select>
                     </div>
+                  </div>
+
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                    <label className="admin-label">Course Details / "What's included"</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxWidth: '600px' }}>
+                      {createDetails.map((detail, idx) => (
+                        <div key={idx} style={{ display: 'flex', gap: '8px' }}>
+                          <textarea
+                            className="prompt-input"
+                            value={detail}
+                            onChange={(e) => {
+                              const newDetails = [...createDetails];
+                              newDetails[idx] = e.target.value;
+                              setCreateDetails(newDetails);
+                            }}
+                            placeholder="e.g. Lifetime access to recordings"
+                            disabled={creatingCourse}
+                            maxLength={250}
+                            style={{ minHeight: '60px', resize: 'vertical' }}
+                          />
+                          <button
+                            type="button"
+                            className="admin-btn"
+                            style={{ padding: '0 16px', background: 'var(--surface-2)', border: '1px solid var(--border)' }}
+                            onClick={() => {
+                              const newDetails = createDetails.filter((_, i) => i !== idx);
+                              setCreateDetails(newDetails);
+                            }}
+                            disabled={creatingCourse}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                      {createDetails.length < 8 && (
+                        <button
+                          type="button"
+                          className="admin-btn"
+                          style={{ alignSelf: 'flex-start', padding: '8px 16px', fontSize: '13px', background: 'transparent', color: 'var(--indigo)', border: '1px dashed var(--indigo)' }}
+                          onClick={() => setCreateDetails([...createDetails, ''])}
+                          disabled={creatingCourse}
+                        >
+                          + Add Detail
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                    <label className="admin-label">What you'll learn (optional)</label>
+                    <textarea
+                      name="what_you_will_learn"
+                      className="prompt-input"
+                      placeholder="e.g. Master the intersection of financial markets..."
+                      style={{ minHeight: '100px', resize: 'vertical' }}
+                      disabled={creatingCourse}
+                    ></textarea>
                   </div>
 
                   <button type="submit" className="enrol-cta coral" style={{ width: 'auto', justifySelf: 'start', padding: '14px 60px', marginTop: '12px' }} disabled={creatingCourse}>
@@ -1482,8 +1546,8 @@ export default function AdminDashboard() {
                       <label className="admin-label">Format</label>
                       <select name="format" className="prompt-input" required defaultValue={editingCourse.format || 'live'} disabled={updatingCourse}>
                         <option value="live">🔴 Live session</option>
-                        <option value="recorded">📹 Recorded</option>
-                        <option value="inperson">📍 In-person</option>
+                        <option value="recorded" disabled>📹 Recorded (Coming Soon)</option>
+                        <option value="inperson" disabled>📍 In-person (Coming Soon)</option>
                       </select>
                     </div>
                   </div>
@@ -1521,16 +1585,16 @@ export default function AdminDashboard() {
                           </div>
                         )}
                         <div style={{ position: 'relative', flex: 1 }}>
-                          <input 
-                            type="file" 
-                            accept="image/*" 
-                            onChange={handleEditLogoUpload} 
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleEditLogoUpload}
                             disabled={updatingCourse || uploadingEditLogo}
                             style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 2 }}
                           />
-                          <button 
-                            type="button" 
-                            className="prompt-input" 
+                          <button
+                            type="button"
+                            className="prompt-input"
                             style={{ width: '100%', textAlign: 'left', background: 'var(--surface-2)', color: 'var(--text-2)', pointerEvents: 'none' }}
                           >
                             {uploadingEditLogo ? 'Uploading...' : editLogoUrl ? 'Change Image' : 'Choose Image'}
@@ -1579,6 +1643,64 @@ export default function AdminDashboard() {
                     </div>
                   </div>
 
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                    <label className="admin-label">Course Details / "What's included"</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxWidth: '600px' }}>
+                      {editDetails.map((detail, idx) => (
+                        <div key={idx} style={{ display: 'flex', gap: '8px' }}>
+                          <textarea
+                            className="prompt-input"
+                            value={detail}
+                            onChange={(e) => {
+                              const newDetails = [...editDetails];
+                              newDetails[idx] = e.target.value;
+                              setEditDetails(newDetails);
+                            }}
+                            placeholder="e.g. Lifetime access to recordings"
+                            disabled={updatingCourse}
+                            maxLength={250}
+                            style={{ minHeight: '60px', resize: 'vertical' }}
+                          />
+                          <button
+                            type="button"
+                            className="admin-btn"
+                            style={{ padding: '0 16px', background: 'var(--surface-2)', border: '1px solid var(--border)' }}
+                            onClick={() => {
+                              const newDetails = editDetails.filter((_, i) => i !== idx);
+                              setEditDetails(newDetails);
+                            }}
+                            disabled={updatingCourse}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                      {editDetails.length < 8 && (
+                        <button
+                          type="button"
+                          className="admin-btn"
+                          style={{ alignSelf: 'flex-start', padding: '8px 16px', fontSize: '13px', background: 'transparent', color: 'var(--indigo)', border: '1px dashed var(--indigo)' }}
+                          onClick={() => setEditDetails([...editDetails, ''])}
+                          disabled={updatingCourse}
+                        >
+                          + Add Detail
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                    <label className="admin-label">What you'll learn (optional)</label>
+                    <textarea
+                      name="what_you_will_learn"
+                      className="prompt-input"
+                      placeholder="e.g. Master the intersection of financial markets..."
+                      defaultValue={editingCourse.what_you_will_learn || ''}
+                      style={{ minHeight: '100px', resize: 'vertical' }}
+                      disabled={updatingCourse}
+                    ></textarea>
+                  </div>
+
                   <button type="submit" className="enrol-cta coral" style={{ width: 'auto', justifySelf: 'start', padding: '14px 60px', marginTop: '12px' }} disabled={updatingCourse}>
                     {updatingCourse ? <div className="btn-loader" style={{ borderTopColor: '#fff' }}></div> : 'Save Changes'}
                   </button>
@@ -1602,10 +1724,10 @@ export default function AdminDashboard() {
                 {/* --- FILTERS --- */}
                 <div className="admin-filters-grid" style={{ marginBottom: '24px' }}>
                   <div className="form-group">
-                    <input 
-                      type="text" 
-                      placeholder="Search courses or instructors..." 
-                      className="prompt-input" 
+                    <input
+                      type="text"
+                      placeholder="Search courses or instructors..."
+                      className="prompt-input"
                       value={courseSearch}
                       onChange={(e) => { setCourseSearch(e.target.value); setCoursePage(1); }}
                     />
@@ -1628,11 +1750,11 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                 {isCoursesLoading ? (
-                    <div style={{ padding: '100px 0', textAlign: 'center' }}>
-                       <div className="dashboard-loader" style={{ margin: '0 auto', borderTopColor: 'var(--coral)' }}></div>
-                       <p style={{ marginTop: '16px', color: 'var(--text-3)', fontSize: '14px' }}>Updating records...</p>
-                    </div>
+                {isCoursesLoading ? (
+                  <div style={{ padding: '100px 0', textAlign: 'center' }}>
+                    <div className="dashboard-loader" style={{ margin: '0 auto', borderTopColor: 'var(--coral)' }}></div>
+                    <p style={{ marginTop: '16px', color: 'var(--text-3)', fontSize: '14px' }}>Updating records...</p>
+                  </div>
                 ) : allCourses.length === 0 ? (
                   <div className="admin-empty-state">
                     <div className="admin-empty-icon">📚</div>
@@ -1670,15 +1792,15 @@ export default function AdminDashboard() {
                             </td>
                             <td data-label="Action">
                               <div style={{ display: 'flex', gap: '8px' }}>
-                                <button 
-                                  className="admin-btn admin-btn-primary" 
+                                <button
+                                  className="admin-btn admin-btn-primary"
                                   onClick={() => { setEditingCourse(c); setActiveView('admin_edit_course'); }}
                                 >
                                   Edit
                                 </button>
-                                <button 
-                                  className="admin-btn admin-btn-danger" 
-                                  disabled={deletingCourseId === c.id} 
+                                <button
+                                  className="admin-btn admin-btn-danger"
+                                  disabled={deletingCourseId === c.id}
                                   onClick={() => handleDeleteCourse(c.id)}
                                 >
                                   {deletingCourseId === c.id ? (
@@ -1693,15 +1815,15 @@ export default function AdminDashboard() {
                     </table>
                     {coursePagination.totalPages > 1 && (
                       <div className="admin-pagination" style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '20px', borderTop: '1px solid var(--border)', marginTop: '20px', justifyContent: 'center' }}>
-                        <button 
-                          disabled={coursePage === 1} 
+                        <button
+                          disabled={coursePage === 1}
                           onClick={() => setCoursePage(p => p - 1)}
                           className="admin-btn"
                           style={{ opacity: coursePage === 1 ? 0.5 : 1, cursor: coursePage === 1 ? 'not-allowed' : 'pointer' }}
                         >← Prev</button>
                         <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-2)' }}>Page {coursePage} of {coursePagination.totalPages}</span>
-                        <button 
-                          disabled={coursePage === coursePagination.totalPages} 
+                        <button
+                          disabled={coursePage === coursePagination.totalPages}
                           onClick={() => setCoursePage(p => p + 1)}
                           className="admin-btn"
                           style={{ opacity: coursePage === coursePagination.totalPages ? 0.5 : 1, cursor: coursePage === coursePagination.totalPages ? 'not-allowed' : 'pointer' }}
@@ -1733,21 +1855,21 @@ export default function AdminDashboard() {
                   <div style={{ padding: '40px', textAlign: 'center' }}><div className="dashboard-loader"></div></div>
                 ) : (
                   <>
-                    <TransactionTable 
-                      payments={payments} 
-                      onViewDetails={p => setSelectedPayment(p)} 
+                    <TransactionTable
+                      payments={payments}
+                      onViewDetails={p => setSelectedPayment(p)}
                     />
                     {paymentPagination.totalPages > 1 && (
                       <div className="admin-pagination" style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '20px', borderTop: '1px solid var(--border)', marginTop: '20px', justifyContent: 'center' }}>
-                        <button 
-                          disabled={paymentPagination.page === 1} 
+                        <button
+                          disabled={paymentPagination.page === 1}
                           onClick={() => setPaymentFilters({ ...paymentFilters, page: paymentPagination.page - 1 })}
                           className="admin-btn"
                           style={{ opacity: paymentPagination.page === 1 ? 0.5 : 1, cursor: paymentPagination.page === 1 ? 'not-allowed' : 'pointer' }}
                         >← Prev</button>
                         <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-2)' }}>Page {paymentPagination.page} of {paymentPagination.totalPages}</span>
-                        <button 
-                          disabled={paymentPagination.page === paymentPagination.totalPages} 
+                        <button
+                          disabled={paymentPagination.page === paymentPagination.totalPages}
                           onClick={() => setPaymentFilters({ ...paymentFilters, page: paymentPagination.page + 1 })}
                           className="admin-btn"
                           style={{ opacity: paymentPagination.page === paymentPagination.totalPages ? 0.5 : 1, cursor: paymentPagination.page === paymentPagination.totalPages ? 'not-allowed' : 'pointer' }}
@@ -1769,9 +1891,9 @@ export default function AdminDashboard() {
                 </div>
               </div>
               {isPaymentsLoading ? (
-                 <div style={{ padding: '40px', textAlign: 'center' }}><div className="dashboard-loader"></div></div>
+                <div style={{ padding: '40px', textAlign: 'center' }}><div className="dashboard-loader"></div></div>
               ) : (
-                 <RevenueCards analytics={paymentAnalytics} chartData={paymentChartData} />
+                <RevenueCards analytics={paymentAnalytics} chartData={paymentChartData} />
               )}
             </div>
           )}
@@ -1793,9 +1915,9 @@ export default function AdminDashboard() {
         </div>
 
         {selectedPayment && (
-          <PaymentDetails 
-            payment={selectedPayment} 
-            onClose={() => setSelectedPayment(null)} 
+          <PaymentDetails
+            payment={selectedPayment}
+            onClose={() => setSelectedPayment(null)}
             onRefund={async (orderId, amount) => {
               // Trigger refund API
               try {
@@ -1809,14 +1931,14 @@ export default function AdminDashboard() {
                   showToast('Refund processed successfully', 'success');
                   setSelectedPayment(null);
                   // Trigger reload by updating filter state reference
-                  setPaymentFilters({ ...paymentFilters }); 
+                  setPaymentFilters({ ...paymentFilters });
                 } else {
                   showToast(data.error || 'Failed to process refund', 'error');
                 }
               } catch (e) {
                 showToast('Network error processing refund', 'error');
               }
-            }} 
+            }}
           />
         )}
 
