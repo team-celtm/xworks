@@ -332,8 +332,8 @@ export default function InstructorDashboard() {
                        <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Format</label>
                        <select name="format" className="prompt-input" required disabled={isCreatingCourse} style={{ width: '100%', height: '46px' }}>
                          <option value="live">🔴 Live session</option>
-                         <option value="recorded" disabled>📹 Recorded (Coming soon)</option>
-                         <option value="inperson" disabled>📍 In-person (Coming soon)</option>
+                         <option value="recorded">📹 Recorded</option>
+                         <option value="inperson">📍 In-person</option>
                        </select>
                      </div>
                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

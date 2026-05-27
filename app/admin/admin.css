@@ -232,12 +232,19 @@
   border: 1px solid var(--border-md) !important;
   color: var(--ink) !important;
   width: 100%;
+  padding: 12px 16px !important;
+  border-radius: 10px !important;
+  font-family: inherit !important;
+  font-size: 14px !important;
+  outline: none !important;
+  transition: all 0.2s ease !important;
+  box-sizing: border-box !important;
 }
 
 .admin-card .prompt-input:focus {
-  border-color: var(--indigo-mid) !important;
+  border-color: var(--indigo) !important;
   background: var(--surface) !important;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15) !important;
 }
 
 .admin-card .prompt-input::placeholder {
@@ -249,6 +256,7 @@
   flex-direction: column;
   gap: 8px;
 }
+
 
 .admin-card .admin-label {
   font-size: 11px;

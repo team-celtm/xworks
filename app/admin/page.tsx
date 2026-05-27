@@ -39,6 +39,21 @@ export default function AdminDashboard() {
   const [courseCategory, setCourseCategory] = useState('');
   const [isCoursesLoading, setIsCoursesLoading] = useState(false);
 
+  // Category management states
+  const [categoriesList, setCategoriesList] = useState<any[]>([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+  const [submittingCategory, setSubmittingCategory] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<any>(null);
+  const [colorValue, setColorValue] = useState('#6366f1');
+
+  useEffect(() => {
+    if (editingCategory) {
+      setColorValue(editingCategory.color || '#6366f1');
+    } else {
+      setColorValue('#6366f1');
+    }
+  }, [editingCategory]);
+
   // Loading states for admin actions
   const [creatingCourse, setCreatingCourse] = useState(false);
   const [creatingPromo, setCreatingPromo] = useState(false);
@@ -135,6 +150,125 @@ export default function AdminDashboard() {
     }, 3000);
   };
 
+  const fetchCategories = async () => {
+    setIsLoadingCategories(true);
+    try {
+      const res = await fetch('/api/admin/categories');
+      if (res.ok) {
+        const data = await res.json();
+        setCategoriesList(data.categories || []);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsLoadingCategories(false);
+    }
+  };
+
+  const fetchAllCategoriesForSelect = async () => {
+    try {
+      const res = await fetch('/api/admin/all-categories');
+      if (res.ok) {
+        const data = await res.json();
+        setAllCategories(data.categories || []);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleCreateCategory = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const name = fd.get('name') as string;
+    const slug = fd.get('slug') as string;
+    const parent_id = fd.get('parent_id') as string;
+    const icon = fd.get('icon') as string;
+    const description = fd.get('description') as string;
+    const color = fd.get('color') as string;
+    const accent = fd.get('accent') as string;
+
+    setSubmittingCategory(true);
+    try {
+      const res = await fetch('/api/admin/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, slug, parent_id, icon, description, color, accent })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast('Category created successfully!', 'success');
+        (e.target as HTMLFormElement).reset();
+        fetchCategories();
+        fetchAllCategoriesForSelect();
+      } else {
+        showToast(data.error || 'Failed to create category', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to create category due to network error', 'error');
+    } finally {
+      setSubmittingCategory(false);
+    }
+  };
+
+  const handleUpdateCategory = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!editingCategory) return;
+    const fd = new FormData(e.currentTarget);
+    const name = fd.get('name') as string;
+    const slug = fd.get('slug') as string;
+    const parent_id = fd.get('parent_id') as string;
+    const icon = fd.get('icon') as string;
+    const description = fd.get('description') as string;
+    const color = fd.get('color') as string;
+    const accent = fd.get('accent') as string;
+
+    setSubmittingCategory(true);
+    try {
+      const res = await fetch('/api/admin/categories', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editingCategory.id, name, slug, parent_id, icon, description, color, accent })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast('Category updated successfully!', 'success');
+        setEditingCategory(null);
+        setActiveView('admin_categories');
+        fetchCategories();
+        fetchAllCategoriesForSelect();
+      } else {
+        showToast(data.error || 'Failed to update category', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to update category due to network error', 'error');
+    } finally {
+      setSubmittingCategory(false);
+    }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this category? This action cannot be undone.')) return;
+    try {
+      const res = await fetch(`/api/admin/categories?id=${id}`, {
+        method: 'DELETE'
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast('Category deleted successfully!', 'success');
+        fetchCategories();
+        fetchAllCategoriesForSelect();
+      } else {
+        showToast(data.error || 'Failed to delete category', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Failed to delete category due to network error', 'error');
+    }
+  };
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -171,8 +305,11 @@ export default function AdminDashboard() {
     if (activeView === 'admin_promos') {
       fetch('/api/admin/promo_codes').then(r => r.json()).then(d => setPromos(d.promos || []));
     }
+    if (activeView === 'admin_categories' || activeView === 'admin_edit_category') {
+      fetchCategories();
+    }
     if (activeView === 'admin_create_course' || activeView === 'admin_manage_courses' || activeView === 'admin_cert_repo' || activeView === 'admin_edit_course') {
-      if (allCategories.length === 0) fetch('/api/categories').then(r => r.json()).then(d => setAllCategories(d || []));
+      if (allCategories.length === 0) fetchAllCategoriesForSelect();
       if (allInstructors.length === 0) fetch('/api/admin/all-instructors').then(r => r.json()).then(d => setAllInstructors(d.instructors || []));
     }
     if (activeView === 'admin_manage_courses' || activeView === 'admin_cert_repo') {
@@ -211,10 +348,12 @@ export default function AdminDashboard() {
       const res = await fetch(`/api/admin/courses/all?id=${id}`, { method: 'DELETE' });
       if (res.ok) {
         showToast('Course deleted successfully', 'success');
-        setTimeout(() => {
+        if (allCourses.length === 1 && coursePage > 1) {
+          setCoursePage(p => p - 1);
+        } else {
           setAllCourses(prev => prev.filter(c => c.id !== id));
-          setDeletingCourseId(null);
-        }, 300);
+        }
+        setDeletingCourseId(null);
       } else {
         showToast('Failed to delete course', 'error');
         setDeletingCourseId(null);
@@ -375,7 +514,7 @@ export default function AdminDashboard() {
         showToast('Course created successfully!', 'success');
         form.reset();
         setCreateLogoUrl('');
-        setActiveView('admin_courses');
+        setActiveView('admin_manage_courses');
       } else {
         showToast(data.error || 'Failed to create course', 'error');
       }
@@ -484,9 +623,14 @@ export default function AdminDashboard() {
             <span className="sb-item-label">Create Course</span>
           </button>
 
-          <button className={`sb-item ${activeView === "admin_manage_courses" ? "active" : ""}`} onClick={() => { setActiveView("admin_manage_courses"); setIsMobileMenuOpen(false); }}>
+          <button className={`sb-item ${activeView === "admin_manage_courses" || activeView === "admin_edit_course" ? "active" : ""}`} onClick={() => { setActiveView("admin_manage_courses"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">🛠️</span>
             <span className="sb-item-label">Manage Courses</span>
+          </button>
+
+          <button className={`sb-item ${activeView === "admin_categories" || activeView === "admin_edit_category" ? "active" : ""}`} onClick={() => { setActiveView("admin_categories"); setIsMobileMenuOpen(false); }}>
+            <span className="sb-item-icon">🗂️</span>
+            <span className="sb-item-label">Manage Categories</span>
           </button>
 
           <button className={`sb-item ${activeView === "admin_promos" ? "active" : ""}`} onClick={() => { setActiveView("admin_promos"); setIsMobileMenuOpen(false); }}>
@@ -738,6 +882,222 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {/* ---- CATEGORIES ---- */}
+          {activeView === "admin_categories" && (
+            <div className="view active fade-up">
+              <div className="section-hd">
+                <div>
+                  <div className="section-label">Platform Controls</div>
+                  <div className="section-title">Manage Categories</div>
+                </div>
+              </div>
+
+              <div className="admin-card" style={{ marginBottom: '40px' }}>
+                <h3 style={{ color: 'var(--ink)', marginBottom: '16px', fontSize: '16px', fontWeight: '800' }}>
+                  Create New Category
+                </h3>
+                <form onSubmit={handleCreateCategory} style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', padding: '24px', background: 'var(--bg)', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="admin-label">Category Name *</label>
+                      <input name="name" type="text" className="prompt-input" required placeholder="e.g. Data Science" disabled={submittingCategory} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="admin-label">Slug (URL) <span style={{ textTransform: 'none', color: 'var(--text-3)' }}>(Auto-generated if empty)</span></label>
+                      <input name="slug" type="text" className="prompt-input" placeholder="e.g. data-science" disabled={submittingCategory} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="admin-label">Parent Category <span style={{ textTransform: 'none', color: 'var(--text-3)' }}>(Optional)</span></label>
+                      <select name="parent_id" className="prompt-input" defaultValue="" disabled={submittingCategory}>
+                        <option value="">None (Top-Level Category)</option>
+                        {categoriesList
+                          .filter(c => c.parent_id === null)
+                          .map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))
+                        }
+                      </select>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="admin-label">Icon (Emoji) <span style={{ textTransform: 'none', color: 'var(--text-3)' }}>(Optional)</span></label>
+                      <input name="icon" type="text" className="prompt-input" placeholder="e.g. 📊" disabled={submittingCategory} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="admin-label">Description <span style={{ textTransform: 'none', color: 'var(--text-3)' }}>(Optional)</span></label>
+                      <textarea name="description" className="prompt-input" placeholder="Provide category overview..." style={{ minHeight: '80px', fontFamily: 'inherit', resize: 'vertical' }} disabled={submittingCategory}></textarea>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="admin-label">Theme Color (Hex) <span style={{ textTransform: 'none', color: 'var(--text-3)' }}>(Optional)</span></label>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <input name="color" type="color" className="prompt-input" value={colorValue} onChange={e => setColorValue(e.target.value)} style={{ width: '40px', padding: '2px', height: '40px', cursor: 'pointer' }} disabled={submittingCategory} />
+                        <input type="text" className="prompt-input" value={colorValue} onChange={e => setColorValue(e.target.value)} placeholder="#6366f1" disabled={submittingCategory} />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="admin-label">Accent Name <span style={{ textTransform: 'none', color: 'var(--text-3)' }}>(Optional)</span></label>
+                      <input name="accent" type="text" className="prompt-input" placeholder="e.g. indigo, emerald" disabled={submittingCategory} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <button type="submit" className="enrol-cta indigo" style={{ width: 'auto', padding: '14px 40px', marginTop: 0 }} disabled={submittingCategory}>
+                      {submittingCategory ? <div className="btn-loader" style={{ borderTopColor: '#fff' }}></div> : 'Create Category'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <div className="admin-card">
+                <h3 style={{ color: 'var(--ink)', marginBottom: '16px', fontSize: '16px', fontWeight: '800' }}>Existing Categories</h3>
+                {isLoadingCategories ? (
+                  <div style={{ padding: '40px', textAlign: 'center' }}><div className="btn-loader" style={{ borderTopColor: 'var(--indigo)' }}></div></div>
+                ) : (
+                  <div className="admin-table-wrap">
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th style={{ width: '60px' }}>Icon</th>
+                          <th>Name</th>
+                          <th>Slug (URL)</th>
+                          <th>Parent</th>
+                          <th style={{ width: '100px' }}>Courses</th>
+                          <th style={{ width: '120px' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {categoriesList.map(cat => (
+                          <tr key={cat.id}>
+                            <td data-label="Icon" style={{ fontSize: '20px', textAlign: 'center' }}>{cat.icon || '—'}</td>
+                            <td data-label="Name" style={{ fontWeight: '800' }}>
+                              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+                                {cat.color && (
+                                  <span style={{ display: 'inline-block', width: '12px', height: '12px', borderRadius: '50%', backgroundColor: cat.color }}></span>
+                                )}
+                                {cat.name}
+                              </span>
+                            </td>
+                            <td data-label="Slug" style={{ color: 'var(--text-2)', fontFamily: 'monospace' }}>{cat.slug}</td>
+                            <td data-label="Parent">
+                              {cat.parent_name ? (
+                                <span className="admin-badge" style={{ background: 'var(--border)', color: 'var(--ink)' }}>{cat.parent_name}</span>
+                              ) : (
+                                <span style={{ color: 'var(--text-3)', fontSize: '12px', fontStyle: 'italic' }}>Top-Level</span>
+                              )}
+                            </td>
+                            <td data-label="Courses" style={{ fontWeight: 'bold', textAlign: 'center' }}>{cat.course_count}</td>
+                            <td data-label="Actions">
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <button className="qa-btn" onClick={() => { setEditingCategory(cat); setActiveView('admin_edit_category'); }} style={{ background: 'var(--border)', color: 'var(--indigo)', padding: '6px 12px', fontSize: '12px' }}>
+                                  Edit
+                                </button>
+                                <button className="qa-btn" onClick={() => handleDeleteCategory(cat.id)} style={{ background: '#FEE2E2', color: '#EF4444', padding: '6px 12px', fontSize: '12px' }}>
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                        {categoriesList.length === 0 && (
+                          <tr>
+                            <td colSpan={6} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-3)' }}>No categories configured.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ---- EDIT CATEGORY ---- */}
+          {activeView === "admin_edit_category" && editingCategory && (
+            <div className="view active fade-up">
+              <div className="section-hd">
+                <div>
+                  <div className="section-label">Platform Controls</div>
+                  <div className="section-title">Edit Category: {editingCategory.name}</div>
+                </div>
+                <button type="button" className="admin-btn" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', color: 'var(--ink)' }} onClick={() => { setEditingCategory(null); setActiveView('admin_categories'); }}>
+                  ← Back to Categories
+                </button>
+              </div>
+
+              <div className="admin-card">
+                <form onSubmit={handleUpdateCategory} style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', padding: '24px', background: 'var(--bg)', borderRadius: '16px', border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="admin-label">Category Name *</label>
+                      <input name="name" type="text" className="prompt-input" required defaultValue={editingCategory.name} placeholder="e.g. Data Science" disabled={submittingCategory} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="admin-label">Slug (URL) <span style={{ textTransform: 'none', color: 'var(--text-3)' }}>(Auto-generated if empty)</span></label>
+                      <input name="slug" type="text" className="prompt-input" defaultValue={editingCategory.slug} placeholder="e.g. data-science" disabled={submittingCategory} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="admin-label">Parent Category <span style={{ textTransform: 'none', color: 'var(--text-3)' }}>(Optional)</span></label>
+                      <select name="parent_id" className="prompt-input" defaultValue={editingCategory.parent_id || ''} disabled={submittingCategory}>
+                        <option value="">None (Top-Level Category)</option>
+                        {categoriesList
+                          .filter(c => c.parent_id === null && c.id !== editingCategory.id)
+                          .map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))
+                        }
+                      </select>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="admin-label">Icon (Emoji) <span style={{ textTransform: 'none', color: 'var(--text-3)' }}>(Optional)</span></label>
+                      <input name="icon" type="text" className="prompt-input" defaultValue={editingCategory.icon || ''} placeholder="e.g. 📊" disabled={submittingCategory} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="admin-label">Description <span style={{ textTransform: 'none', color: 'var(--text-3)' }}>(Optional)</span></label>
+                      <textarea name="description" className="prompt-input" defaultValue={editingCategory.description || ''} placeholder="Provide category overview..." style={{ minHeight: '80px', fontFamily: 'inherit', resize: 'vertical' }} disabled={submittingCategory}></textarea>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="admin-label">Theme Color (Hex) <span style={{ textTransform: 'none', color: 'var(--text-3)' }}>(Optional)</span></label>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <input name="color" type="color" className="prompt-input" value={colorValue} onChange={e => setColorValue(e.target.value)} style={{ width: '40px', padding: '2px', height: '40px', cursor: 'pointer' }} disabled={submittingCategory} />
+                        <input type="text" className="prompt-input" value={colorValue} onChange={e => setColorValue(e.target.value)} placeholder="#6366f1" disabled={submittingCategory} />
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="admin-label">Accent Name <span style={{ textTransform: 'none', color: 'var(--text-3)' }}>(Optional)</span></label>
+                      <input name="accent" type="text" className="prompt-input" defaultValue={editingCategory.accent || ''} placeholder="e.g. indigo, emerald" disabled={submittingCategory} />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <button type="submit" className="enrol-cta indigo" style={{ width: 'auto', padding: '14px 40px', marginTop: 0 }} disabled={submittingCategory}>
+                      {submittingCategory ? <div className="btn-loader" style={{ borderTopColor: '#fff' }}></div> : 'Update Category'}
+                    </button>
+                    <button type="button" className="enrol-cta" style={{ width: 'auto', padding: '14px 40px', marginTop: 0, background: 'var(--border)', color: 'var(--ink)' }} onClick={() => { setEditingCategory(null); setActiveView('admin_categories'); }} disabled={submittingCategory}>
+                      Cancel Edit
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
           {/* ---- PROMOS ---- */}
           {activeView === "admin_promos" && (
             <div className="view active fade-up">
@@ -945,7 +1305,9 @@ export default function AdminDashboard() {
                       <select name="category_id" className="prompt-input" required disabled={creatingCourse}>
                         <option value="">Select Category</option>
                         {allCategories.map(cat => (
-                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                          <option key={cat.id} value={cat.id}>
+                            {cat.parent_name ? `\u00A0\u00A0\u00A0\u00A0${cat.name}` : cat.name}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -953,8 +1315,8 @@ export default function AdminDashboard() {
                       <label className="admin-label">Format</label>
                       <select name="format" className="prompt-input" required disabled={creatingCourse}>
                         <option value="live">🔴 Live session</option>
-                        <option value="recorded" disabled>📹 Recorded (Coming soon)</option>
-                        <option value="inperson" disabled>📍 In-person (Coming soon)</option>
+                        <option value="recorded">📹 Recorded</option>
+                        <option value="inperson">📍 In-person</option>
                       </select>
                     </div>
                     <div className="form-group">
@@ -996,7 +1358,9 @@ export default function AdminDashboard() {
                       <label className="admin-label">Course Logo</label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         {createLogoUrl && (
-                          <img src={createLogoUrl} alt="Logo Preview" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', border: '1px solid var(--border)' }} />
+                          <div style={{ width: '46px', height: '46px', borderRadius: '10px', background: '#ffffff', border: '1px solid var(--border-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, padding: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                            <img src={createLogoUrl} alt="Logo Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                          </div>
                         )}
                         <div style={{ position: 'relative', flex: 1 }}>
                           <input 
@@ -1004,7 +1368,7 @@ export default function AdminDashboard() {
                             accept="image/*" 
                             onChange={handleCreateLogoUpload} 
                             disabled={creatingCourse || uploadingCreateLogo}
-                            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
+                            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 2 }}
                           />
                           <button 
                             type="button" 
@@ -1099,7 +1463,9 @@ export default function AdminDashboard() {
                       <select name="category_id" className="prompt-input" required defaultValue={editingCourse.category_id} disabled={updatingCourse}>
                         <option value="">Select Category</option>
                         {allCategories.map(cat => (
-                          <option key={cat.id} value={cat.id}>{cat.name}</option>
+                          <option key={cat.id} value={cat.id}>
+                            {cat.parent_name ? `\u00A0\u00A0\u00A0\u00A0${cat.name}` : cat.name}
+                          </option>
                         ))}
                       </select>
                     </div>
@@ -1110,6 +1476,14 @@ export default function AdminDashboard() {
                         {allInstructors.map(inst => (
                           <option key={inst.id} value={inst.id}>{inst.first_name} {inst.last_name} ({inst.email})</option>
                         ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label className="admin-label">Format</label>
+                      <select name="format" className="prompt-input" required defaultValue={editingCourse.format || 'live'} disabled={updatingCourse}>
+                        <option value="live">🔴 Live session</option>
+                        <option value="recorded">📹 Recorded</option>
+                        <option value="inperson">📍 In-person</option>
                       </select>
                     </div>
                   </div>
@@ -1142,7 +1516,9 @@ export default function AdminDashboard() {
                       <label className="admin-label">Course Logo</label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         {editLogoUrl && (
-                          <img src={editLogoUrl} alt="Logo Preview" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', border: '1px solid var(--border)' }} />
+                          <div style={{ width: '46px', height: '46px', borderRadius: '10px', background: '#ffffff', border: '1px solid var(--border-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, padding: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
+                            <img src={editLogoUrl} alt="Logo Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                          </div>
                         )}
                         <div style={{ position: 'relative', flex: 1 }}>
                           <input 
@@ -1150,7 +1526,7 @@ export default function AdminDashboard() {
                             accept="image/*" 
                             onChange={handleEditLogoUpload} 
                             disabled={updatingCourse || uploadingEditLogo}
-                            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
+                            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 2 }}
                           />
                           <button 
                             type="button" 

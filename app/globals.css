@@ -849,3 +849,82 @@ html,body{min-height:100%;font-family:var(--fb)}
 }
 
 
+/* ══ COURSE CARD LOGO BADGE STYLES ══ */
+.card-logo-badge {
+  width: 56px;
+  height: 56px;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+  margin: 0 auto;
+}
+
+.card-logo-badge img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  position: static !important;
+  inset: auto !important;
+  border-radius: 0 !important;
+  filter: drop-shadow(0 2px 6px rgba(0,0,0,0.15)) !important;
+}
+
+/* For smaller badges (e.g. search sub-cards) */
+.sub-logo-badge {
+  width: 32px;
+  height: 32px;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.sub-logo-badge img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+  border-radius: 0 !important;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.15)) !important;
+}
+
+/* For catalogue and dashboard thumb container layout */
+.wcard-thumb-emoji,
+.catalogue-wrapper .wcard-thumb-emoji {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* ══ GLOBAL PROMPT INPUT STYLES (Light Theme Base) ══ */
+/* Note: app/dashboard/dashboard.css overrides this for dark theme shell */
+.prompt-input {
+  padding: 12px 16px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-md);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  outline: none;
+  transition: all 0.2s;
+}
+
+.prompt-input:focus {
+  border-color: var(--indigo-mid);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.prompt-input::placeholder {
+  color: var(--text-3);
+}
+
+.prompt-input:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}

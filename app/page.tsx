@@ -696,16 +696,19 @@ export default function Home() {
                           <div className="course-thumb-label">
                             {c.logo ? (
                               <>
-                                <img 
-                                  src={c.logo} 
-                                  alt="" 
-                                  style={{ width: '80px', height: '80px', objectFit: 'contain' }} 
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                    const fallback = e.currentTarget.nextSibling as HTMLElement;
-                                    if (fallback) fallback.style.display = 'block';
-                                  }}
-                                />
+                                <div className="card-logo-badge">
+                                  <img 
+                                    src={c.logo} 
+                                    alt="" 
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                      const badge = e.currentTarget.closest('.card-logo-badge') as HTMLElement;
+                                      if (badge) badge.style.display = 'none';
+                                      const fallback = badge?.nextSibling as HTMLElement;
+                                      if (fallback) fallback.style.display = 'block';
+                                    }}
+                                  />
+                                </div>
                                 <span style={{ display: 'none' }}>{c.emoji}</span>
                               </>
                             ) : (
@@ -756,16 +759,19 @@ export default function Home() {
                           <div className="course-thumb-label">
                             {c.logo ? (
                               <>
-                                <img 
-                                  src={c.logo} 
-                                  alt="" 
-                                  style={{ width: '80px', height: '80px', objectFit: 'contain' }} 
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                    const fallback = e.currentTarget.nextSibling as HTMLElement;
-                                    if (fallback) fallback.style.display = 'block';
-                                  }}
-                                />
+                                <div className="card-logo-badge">
+                                  <img 
+                                    src={c.logo} 
+                                    alt="" 
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                      const badge = e.currentTarget.closest('.card-logo-badge') as HTMLElement;
+                                      if (badge) badge.style.display = 'none';
+                                      const fallback = badge?.nextSibling as HTMLElement;
+                                      if (fallback) fallback.style.display = 'block';
+                                    }}
+                                  />
+                                </div>
                                 <span style={{ display: 'none' }}>{c.emoji}</span>
                               </>
                             ) : (
@@ -932,16 +938,19 @@ export default function Home() {
                             <div className="sub-card-icon">
                               {item.logo ? (
                                 <>
-                                  <img 
-                                    src={item.logo} 
-                                    alt="" 
-                                    style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
-                                    onError={(e) => {
-                                      e.currentTarget.style.display = 'none';
-                                      const fallback = e.currentTarget.nextSibling as HTMLElement;
-                                      if (fallback) fallback.style.display = 'block';
-                                    }}
-                                  />
+                                  <div className="sub-logo-badge">
+                                    <img 
+                                      src={item.logo} 
+                                      alt="" 
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                        const badge = e.currentTarget.closest('.sub-logo-badge') as HTMLElement;
+                                        if (badge) badge.style.display = 'none';
+                                        const fallback = badge?.nextSibling as HTMLElement;
+                                        if (fallback) fallback.style.display = 'block';
+                                      }}
+                                    />
+                                  </div>
                                   <span style={{ display: 'none' }}>{item.icon}</span>
                                 </>
                               ) : (
@@ -1023,16 +1032,19 @@ export default function Home() {
                               <div className="cat-card-emoji">
                                 {c.logo ? (
                                   <>
-                                    <img 
-                                      src={c.logo} 
-                                      alt="" 
-                                      style={{ width: '64px', height: '64px', objectFit: 'contain' }} 
-                                      onError={(e) => {
-                                        e.currentTarget.style.display = 'none';
-                                        const fallback = e.currentTarget.nextSibling as HTMLElement;
-                                        if (fallback) fallback.style.display = 'block';
-                                      }}
-                                    />
+                                    <div className="card-logo-badge">
+                                      <img 
+                                        src={c.logo} 
+                                        alt="" 
+                                        onError={(e) => {
+                                          e.currentTarget.style.display = 'none';
+                                          const badge = e.currentTarget.closest('.card-logo-badge') as HTMLElement;
+                                          if (badge) badge.style.display = 'none';
+                                          const fallback = badge?.nextSibling as HTMLElement;
+                                          if (fallback) fallback.style.display = 'block';
+                                        }}
+                                      />
+                                    </div>
                                     <span style={{ display: 'none' }}>{c.emoji}</span>
                                   </>
                                 ) : (

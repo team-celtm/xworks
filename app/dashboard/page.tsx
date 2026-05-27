@@ -896,16 +896,19 @@ export default function DashboardPage() {
           <div className="wcard-thumb-emoji">
             {w.logo ? (
               <>
-                <img 
-                  src={w.logo} 
-                  alt="" 
-                  style={{ width: '64px', height: '64px', objectFit: 'contain' }} 
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    const fallback = e.currentTarget.nextSibling as HTMLElement;
-                    if (fallback) fallback.style.display = 'block';
-                  }}
-                />
+                <div className="card-logo-badge">
+                  <img 
+                    src={w.logo} 
+                    alt="" 
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                      const badge = e.currentTarget.closest('.card-logo-badge') as HTMLElement;
+                      if (badge) badge.style.display = 'none';
+                      const fallback = badge?.nextSibling as HTMLElement;
+                      if (fallback) fallback.style.display = 'block';
+                    }}
+                  />
+                </div>
                 <span style={{ display: 'none' }}>{w.icon}</span>
               </>
             ) : (
@@ -958,16 +961,19 @@ export default function DashboardPage() {
           <div className="wcard-thumb-emoji">
             {e.logo ? (
               <>
-                <img 
-                  src={e.logo} 
-                  alt="" 
-                  style={{ width: '64px', height: '64px', objectFit: 'contain' }} 
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    const fallback = e.currentTarget.nextSibling as HTMLElement;
-                    if (fallback) fallback.style.display = 'block';
-                  }}
-                />
+                <div className="card-logo-badge">
+                  <img 
+                    src={e.logo} 
+                    alt="" 
+                    onError={(err) => {
+                      err.currentTarget.style.display = 'none';
+                      const badge = err.currentTarget.closest('.card-logo-badge') as HTMLElement;
+                      if (badge) badge.style.display = 'none';
+                      const fallback = badge?.nextSibling as HTMLElement;
+                      if (fallback) fallback.style.display = 'block';
+                    }}
+                  />
+                </div>
                 <span style={{ display: 'none' }}>{e.emoji || "🎓"}</span>
               </>
             ) : (
@@ -2141,17 +2147,18 @@ export default function DashboardPage() {
                       const month = sDate.toLocaleDateString('en-IN', { month: 'short' });
                       const fullStr = sDate.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
                       const timeStr = sDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+                      const isFull = s.maxSeats !== null && s.maxSeats !== undefined && s.maxSeats > 0 && (s.maxSeats - s.registeredCount <= 0);
 
                       return (
                         <div
                           key={s.id}
-                          className={`enrol-date-btn ${enrolData.date === fullStr && enrolData.time === timeStr ? 'selected' : ''}`}
-                          onClick={() => setEnrolData(prev => ({ ...prev, date: fullStr, time: timeStr, sessionId: s.id }))}
-                          style={{ height: 'auto', padding: '12px 8px', cursor: 'pointer' }}
+                          className={`enrol-date-btn ${enrolData.date === fullStr && enrolData.time === timeStr ? 'selected' : ''} ${isFull ? 'disabled' : ''}`}
+                          onClick={() => !isFull && setEnrolData(prev => ({ ...prev, date: fullStr, time: timeStr, sessionId: s.id }))}
+                          style={{ height: 'auto', padding: '12px 8px', cursor: isFull ? 'not-allowed' : 'pointer', opacity: isFull ? 0.5 : 1 }}
                         >
                           <div className="enrol-date-day">{day}</div>
                           <div className="enrol-date-num">{num} {month}</div>
-                          <div style={{ fontSize: '10px', marginTop: '4px', opacity: 0.8 }}>{timeStr}</div>
+                          <div style={{ fontSize: '10px', marginTop: '4px', opacity: 0.8 }}>{isFull ? 'Full' : timeStr}</div>
                         </div>
                       );
                     }) : (
@@ -2392,7 +2399,7 @@ export default function DashboardPage() {
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>{s.title || 'Live Workshop'}</div>
                         <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>
-                          {new Date(s.scheduled_start).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} · {s.registered_count}/{s.max_seats} filled
+                          {new Date(s.scheduled_start).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} · {s.registered_count}{s.max_seats ? `/${s.max_seats} filled` : ' learners registered'}
                         </div>
                       </div>
                       <div style={{ color: 'var(--indigo)', fontWeight: 800 }}>→</div>

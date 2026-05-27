@@ -371,7 +371,7 @@ export default function CourseDetailPage() {
                   <div className="sessions-list">
                     {sessions.map(s => {
                       const isSelected = selectedSessionId === s.id;
-                      const full = s.maxSeats - s.registeredCount <= 0;
+                      const full = s.maxSeats !== null && s.maxSeats !== undefined && s.maxSeats > 0 && (s.maxSeats - s.registeredCount <= 0);
                       return (
                         <div key={s.id}
                           onClick={() => !full && setSelectedSessionId(s.id)}
@@ -386,7 +386,7 @@ export default function CourseDetailPage() {
                           <div className="session-right">
                             <div className={`session-status ${full ? 'status-soldout' : 'status-available'}`}>
                               {!full && <span className="pulse-dot"></span>}
-                              {full ? 'Sold out' : `${s.maxSeats - s.registeredCount} seats left`}
+                              {full ? 'Sold out' : s.maxSeats ? `${s.maxSeats - s.registeredCount} seats left` : 'Seats available'}
                             </div>
                             <div className="session-platform">on {s.platform}</div>
                           </div>

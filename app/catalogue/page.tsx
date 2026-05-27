@@ -760,16 +760,19 @@ function CatalogueContent() {
                       <div className="wcard-thumb-emoji">
                         {w.logo ? (
                           <>
-                            <img 
-                              src={w.logo} 
-                              alt="" 
-                              style={{ width: '64px', height: '64px', objectFit: 'contain' }} 
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                                const fallback = e.currentTarget.nextSibling as HTMLElement;
-                                if (fallback) fallback.style.display = 'block';
-                              }}
-                            />
+                            <div className="card-logo-badge">
+                              <img 
+                                src={w.logo} 
+                                alt="" 
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  const badge = e.currentTarget.closest('.card-logo-badge') as HTMLElement;
+                                  if (badge) badge.style.display = 'none';
+                                  const fallback = badge?.nextSibling as HTMLElement;
+                                  if (fallback) fallback.style.display = 'block';
+                                }}
+                              />
+                            </div>
                             <span style={{ display: 'none' }}>{w.emoji}</span>
                           </>
                         ) : (
