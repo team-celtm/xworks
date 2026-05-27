@@ -76,7 +76,7 @@ export async function POST(req: Request) {
     const body = await req.json();
     const {
       name, slug, category_id, instructor_id, price,
-      level, dur, emoji, g, tag, tag_label, certificate_type
+      level, dur, emoji, g, tag, tag_label, certificate_type, logo
     } = body;
 
     if (!name || !slug || !category_id || !instructor_id) {
@@ -86,13 +86,13 @@ export async function POST(req: Request) {
     const result = await pool.query(
       `INSERT INTO courses (
         name, slug, category_id, instructor_id, price, 
-        level, dur, emoji, g, tag, tag_label, status, certificate_type, created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'published', $12, NOW(), NOW()) 
+        level, dur, emoji, g, tag, tag_label, status, certificate_type, logo, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'published', $12, $13, NOW(), NOW()) 
       RETURNING id`,
       [
         name, slug, category_id, instructor_id, price || 0,
         level || 'Beginner', dur || 0, emoji || '🎓', g || 't-indigo',
-        tag || null, tag_label || null, certificate_type || 'default'
+        tag || null, tag_label || null, certificate_type || 'default', logo || null
       ]
     );
 

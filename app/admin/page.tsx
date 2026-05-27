@@ -52,6 +52,69 @@ export default function AdminDashboard() {
   const [editingCourse, setEditingCourse] = useState<any>(null);
   const [updatingCourse, setUpdatingCourse] = useState(false);
 
+  const [createLogoUrl, setCreateLogoUrl] = useState('');
+  const [uploadingCreateLogo, setUploadingCreateLogo] = useState(false);
+  const [editLogoUrl, setEditLogoUrl] = useState('');
+  const [uploadingEditLogo, setUploadingEditLogo] = useState(false);
+
+  useEffect(() => {
+    if (editingCourse) {
+      setEditLogoUrl(editingCourse.logo || '');
+    }
+  }, [editingCourse]);
+
+  const handleCreateLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingCreateLogo(true);
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: fd
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        setCreateLogoUrl(data.url);
+        showToast('Logo uploaded successfully!', 'success');
+      } else {
+        showToast(data.error || 'Upload failed', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Logo upload failed', 'error');
+    } finally {
+      setUploadingCreateLogo(false);
+    }
+  };
+
+  const handleEditLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingEditLogo(true);
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: fd
+      });
+      const data = await res.json();
+      if (res.ok && data.url) {
+        setEditLogoUrl(data.url);
+        showToast('Logo uploaded successfully!', 'success');
+      } else {
+        showToast(data.error || 'Upload failed', 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Logo upload failed', 'error');
+    } finally {
+      setUploadingEditLogo(false);
+    }
+  };
+
   // Financial states
   const [payments, setPayments] = useState<any[]>([]);
   const [paymentAnalytics, setPaymentAnalytics] = useState<any>(null);
@@ -311,6 +374,7 @@ export default function AdminDashboard() {
       if (res.ok) {
         showToast('Course created successfully!', 'success');
         form.reset();
+        setCreateLogoUrl('');
         setActiveView('admin_courses');
       } else {
         showToast(data.error || 'Failed to create course', 'error');
@@ -347,6 +411,7 @@ export default function AdminDashboard() {
       if (res.ok) {
         showToast('Course updated successfully!', 'success');
         setEditingCourse(null);
+        setEditLogoUrl('');
         setActiveView('admin_manage_courses');
         setCoursePage(1); // Refresh the list
       } else {
@@ -928,17 +993,45 @@ export default function AdminDashboard() {
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
                     <div className="form-group">
+                      <label className="admin-label">Course Logo</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        {createLogoUrl && (
+                          <img src={createLogoUrl} alt="Logo Preview" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', border: '1px solid var(--border)' }} />
+                        )}
+                        <div style={{ position: 'relative', flex: 1 }}>
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            onChange={handleCreateLogoUpload} 
+                            disabled={creatingCourse || uploadingCreateLogo}
+                            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
+                          />
+                          <button 
+                            type="button" 
+                            className="prompt-input" 
+                            style={{ width: '100%', textAlign: 'left', background: 'var(--surface-2)', color: 'var(--text-2)', pointerEvents: 'none' }}
+                          >
+                            {uploadingCreateLogo ? 'Uploading...' : createLogoUrl ? 'Change Image' : 'Choose Image'}
+                          </button>
+                        </div>
+                      </div>
+                      <input type="hidden" name="logo" value={createLogoUrl} />
+                    </div>
+                    <div className="form-group">
                       <label className="admin-label">Emoji</label>
                       <input name="emoji" type="text" className="prompt-input" placeholder="🎓" disabled={creatingCourse} />
                     </div>
                     <div className="form-group">
                       <label className="admin-label">Gradient Class</label>
                       <select name="g" className="prompt-input" disabled={creatingCourse}>
-                        <option value="t-indigo">Indigo</option>
-                        <option value="t-coral">Coral</option>
+                        <option value="t-blue">Blue</option>
+                        <option value="t-red">Red</option>
                         <option value="t-amber">Amber</option>
-                        <option value="t-cyan">Cyan</option>
-                        <option value="t-emerald">Emerald</option>
+                        <option value="t-teal">Teal</option>
+                        <option value="t-green">Green</option>
+                        <option value="t-purple">Purple</option>
+                        <option value="t-pink">Pink</option>
+                        <option value="t-slate">Slate</option>
                       </select>
                     </div>
                     <div className="form-group">
@@ -1046,17 +1139,45 @@ export default function AdminDashboard() {
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
                     <div className="form-group">
+                      <label className="admin-label">Course Logo</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        {editLogoUrl && (
+                          <img src={editLogoUrl} alt="Logo Preview" style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', border: '1px solid var(--border)' }} />
+                        )}
+                        <div style={{ position: 'relative', flex: 1 }}>
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            onChange={handleEditLogoUpload} 
+                            disabled={updatingCourse || uploadingEditLogo}
+                            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
+                          />
+                          <button 
+                            type="button" 
+                            className="prompt-input" 
+                            style={{ width: '100%', textAlign: 'left', background: 'var(--surface-2)', color: 'var(--text-2)', pointerEvents: 'none' }}
+                          >
+                            {uploadingEditLogo ? 'Uploading...' : editLogoUrl ? 'Change Image' : 'Choose Image'}
+                          </button>
+                        </div>
+                      </div>
+                      <input type="hidden" name="logo" value={editLogoUrl} />
+                    </div>
+                    <div className="form-group">
                       <label className="admin-label">Emoji</label>
                       <input name="emoji" type="text" className="prompt-input" defaultValue={editingCourse.emoji} disabled={updatingCourse} />
                     </div>
                     <div className="form-group">
                       <label className="admin-label">Gradient Class</label>
                       <select name="g" className="prompt-input" defaultValue={editingCourse.g} disabled={updatingCourse}>
-                        <option value="t-indigo">Indigo</option>
-                        <option value="t-coral">Coral</option>
+                        <option value="t-blue">Blue</option>
+                        <option value="t-red">Red</option>
                         <option value="t-amber">Amber</option>
-                        <option value="t-cyan">Cyan</option>
-                        <option value="t-emerald">Emerald</option>
+                        <option value="t-teal">Teal</option>
+                        <option value="t-green">Green</option>
+                        <option value="t-purple">Purple</option>
+                        <option value="t-pink">Pink</option>
+                        <option value="t-slate">Slate</option>
                       </select>
                     </div>
                     <div className="form-group">

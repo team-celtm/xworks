@@ -55,7 +55,7 @@ export async function GET(req: Request) {
 
     const query = `
       SELECT 
-        courses.id, courses.name, courses.slug, courses.price, courses.level, courses.dur, courses.emoji, courses.g, courses.tag, courses.tag_label, courses.status, courses.certificate_type, courses.created_at, courses.category_id, courses.instructor_id,
+        courses.id, courses.name, courses.slug, courses.price, courses.level, courses.dur, courses.emoji, courses.g, courses.tag, courses.tag_label, courses.status, courses.certificate_type, courses.created_at, courses.category_id, courses.instructor_id, courses.logo,
         cat.name as category_name, 
         u.first_name, u.last_name, u.email,
         (SELECT COUNT(*) FROM certificates WHERE course_id = courses.id) as issued_count
@@ -127,7 +127,7 @@ export async function PUT(req: Request) {
     const body = await req.json();
     const {
       id, name, slug, category_id, instructor_id, price,
-      level, dur, emoji, g, tag, tag_label, certificate_type
+      level, dur, emoji, g, tag, tag_label, certificate_type, logo
     } = body;
 
     if (!id || !name || !slug || !category_id || !instructor_id) {
@@ -137,12 +137,12 @@ export async function PUT(req: Request) {
     const updateRes = await pool.query(
       `UPDATE courses SET 
         name = $1, slug = $2, category_id = $3, instructor_id = $4, price = $5, 
-        level = $6, dur = $7, emoji = $8, g = $9, tag = $10, tag_label = $11, certificate_type = $12, updated_at = NOW()
-       WHERE id = $13 RETURNING id`,
+        level = $6, dur = $7, emoji = $8, g = $9, tag = $10, tag_label = $11, certificate_type = $12, logo = $13, updated_at = NOW()
+       WHERE id = $14 RETURNING id`,
       [
         name, slug, category_id, instructor_id, price || 0,
         level || 'Beginner', dur || 0, emoji || '🎓', g || 't-indigo',
-        tag || null, tag_label || null, certificate_type || 'default', id
+        tag || null, tag_label || null, certificate_type || 'default', logo || null, id
       ]
     );
 

@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
         ls.recording_available as "recordingAvailable",
         c.name as "courseName",
         c.emoji,
+        c.logo,
         c.g as "thumbBg",
         p.status as "paymentStatus"
       FROM session_registrations sr

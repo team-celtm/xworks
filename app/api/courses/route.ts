@@ -28,7 +28,9 @@ export async function GET(req: NextRequest) {
         c.g,
         cat.slug as "cat",
         cat.name as "catLabel",
-        (u.first_name || ' ' || u.last_name) as instructor
+        (u.first_name || ' ' || u.last_name) as instructor,
+        c.created_at as "createdAt",
+        c.logo
     `;
 
     const values: any[] = [];
@@ -89,7 +91,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (sort === 'new') {
-      where.push("c.tag = 'new'");
+      // Do not restrict by tag = 'new' so that newly created courses are actually returned here
     }
 
     let orderBy = 'c.name ASC';
@@ -116,7 +118,8 @@ export async function GET(req: NextRequest) {
       price: r.price ? parseFloat(r.price) : 0,
       dur: r.dur ? parseInt(r.dur, 10) : 0,
       rating: r.rating ? parseFloat(r.rating) : 0,
-      tagLabel: r.tagLabel || r.tag_label || ''
+      tagLabel: r.tagLabel || r.tag_label || '',
+      tag: r.tag ? r.tag.toLowerCase() : ''
     }));
 
     return NextResponse.json(payload, { status: 200 });

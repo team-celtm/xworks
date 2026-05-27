@@ -29,6 +29,7 @@ export async function GET() {
       `SELECT i.id, u.first_name, u.last_name, u.email 
        FROM instructors i
        JOIN users u ON u.id = i.user_id
+       WHERE u.role = 'instructor'
        ORDER BY u.first_name ASC`
     );
     return NextResponse.json({ instructors: result.rows });

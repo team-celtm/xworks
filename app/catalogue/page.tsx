@@ -67,6 +67,7 @@ interface Workshop {
   cat: string;
   catLabel: string;
   emoji: string;
+  logo?: string;
   g: string;
   name: string;
   instructor: string;
@@ -79,6 +80,7 @@ interface Workshop {
   live: boolean;
   nearby: boolean;
   distance?: string;
+  createdAt?: string;
 }
 
 interface EnrolData {
@@ -221,7 +223,7 @@ function CatalogueContent() {
     else if (state.sort === 'price-asc') list.sort((a, b) => a.price - b.price);
     else if (state.sort === 'price-desc') list.sort((a, b) => b.price - a.price);
     else if (state.sort === 'duration') list.sort((a, b) => a.dur - b.dur);
-    else if (state.sort === 'newest') list.sort((a, b) => (b.tag === 'new' ? 1 : 0) - (a.tag === 'new' ? 1 : 0));
+    else if (state.sort === 'newest') list.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
     else list.sort((a, b) => (b.tag === 'pop' ? 1 : 0) - (a.tag === 'pop' ? 1 : 0));
 
     // Nearby always floated to top
@@ -290,7 +292,7 @@ function CatalogueContent() {
       time: '',
       payMethod: 'UPI',
       thumbBg: w.g,
-      thumbEmoji: w.emoji
+      thumbEmoji: w.logo || w.emoji
     });
     setEnrolStep(1);
     setShowEnrol(true);
@@ -755,7 +757,25 @@ function CatalogueContent() {
                   >
                     <div className="wcard-thumb">
                       <div className={`wcard-thumb-bg ${w.g}`}></div>
-                      <div className="wcard-thumb-emoji">{w.emoji}</div>
+                      <div className="wcard-thumb-emoji">
+                        {w.logo ? (
+                          <>
+                            <img 
+                              src={w.logo} 
+                              alt="" 
+                              style={{ width: '64px', height: '64px', objectFit: 'contain' }} 
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const fallback = e.currentTarget.nextSibling as HTMLElement;
+                                if (fallback) fallback.style.display = 'block';
+                              }}
+                            />
+                            <span style={{ display: 'none' }}>{w.emoji}</span>
+                          </>
+                        ) : (
+                          w.emoji
+                        )}
+                      </div>
                       <div className={`wcard-tag ${tagClass}`}>{tagLabel}</div>
                     </div>
                     <div className="wcard-body">
@@ -854,7 +874,11 @@ function CatalogueContent() {
                 <div className="enrol-body">
                   <div className="enrol-course-mini">
                     <div className={`enrol-thumb ${enrolData.thumbBg}`} style={{ background: 'linear-gradient(135deg,#1A2E5A,#3A7ACC)' }}>
-                      {enrolData.thumbEmoji}
+                      {enrolData.thumbEmoji && (enrolData.thumbEmoji.startsWith('http') || enrolData.thumbEmoji.startsWith('/')) ? (
+                        <img src={enrolData.thumbEmoji} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '6px' }} />
+                      ) : (
+                        enrolData.thumbEmoji
+                      )}
                     </div>
                     <div>
                       <div className="enrol-course-name">{enrolData.name}</div>

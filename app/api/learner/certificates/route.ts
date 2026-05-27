@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
         ce.verification_url as "verificationUrl",
         co.name as "courseName",
         co.emoji,
+        co.logo,
         co.g as "thumbBg",
         ce.course_id as "courseId"
       FROM certificates ce

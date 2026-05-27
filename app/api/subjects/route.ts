@@ -24,7 +24,7 @@ export async function GET() {
       for (const section of sections) {
         const { rows: items } = await pool.query(`
           SELECT 
-            c.id, c.name, c.emoji as icon, c.dur, c.level, c.tag, c.tag_label as "tagLabel"
+            c.id, c.name, c.emoji as icon, c.logo, c.dur, c.level, c.tag, c.tag_label as "tagLabel"
           FROM courses c
           WHERE c.category_id = $1
           LIMIT 4
@@ -32,7 +32,8 @@ export async function GET() {
 
         section.items = items.map(it => ({
           ...it,
-          meta: `${it.dur} hrs · ${it.level}`
+          meta: `${it.dur} hrs · ${it.level}`,
+          tag: it.tag ? it.tag.toLowerCase() : ''
         }));
       }
 

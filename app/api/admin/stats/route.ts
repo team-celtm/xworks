@@ -26,7 +26,9 @@ export async function GET(req: Request) {
 
   try {
     const learnersRes = await pool.query("SELECT COUNT(*) FROM users WHERE role = 'learner'");
-    const instructorsRes = await pool.query("SELECT COUNT(*) FROM instructors");
+    const instructorsRes = await pool.query(
+      `SELECT COUNT(*) FROM instructors i JOIN users u ON i.user_id = u.id WHERE u.role = 'instructor'`
+    );
     const coursesRes = await pool.query("SELECT COUNT(*) FROM courses WHERE status = 'published'");
     const enrolmentsRes = await pool.query("SELECT COUNT(*) FROM enrolments");
 

@@ -39,6 +39,7 @@ export async function GET(req: NextRequest) {
         c.name,
         c.slug,
         c.emoji,
+        c.logo,
         c.g as "thumbBg",
         c.live,
         c.dur,

@@ -27,6 +27,7 @@ interface CourseDetail {
   nearby: boolean;
   distance: string;
   emoji: string;
+  logo?: string;
   g: string;
   slug: string;
   categoryName: string;
@@ -294,7 +295,23 @@ export default function CourseDetailPage() {
               <div className="detail-hero-card">
                 <div className="detail-hero-header">
                   <div className={`detail-emoji-box ${course.g}`} style={{ width: '80px', height: '80px', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px' }}>
-                    {course.emoji}
+                    {course.logo ? (
+                      <>
+                        <img 
+                          src={course.logo} 
+                          alt="" 
+                          style={{ width: '60px', height: '60px', objectFit: 'contain' }} 
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const fallback = e.currentTarget.nextSibling as HTMLElement;
+                            if (fallback) fallback.style.display = 'block';
+                          }}
+                        />
+                        <span style={{ display: 'none' }}>{course.emoji}</span>
+                      </>
+                    ) : (
+                      course.emoji
+                    )}
                   </div>
                   <div>
                     <div className="hero-badge-wrap">
@@ -917,7 +934,7 @@ export default function CourseDetailPage() {
             box-shadow: 0 4px 14px rgba(37, 99, 235, 0.2);
           }
 
-          .detail-emoji-box.ct-ai { background: linear-gradient(135deg,#fff,#E8F4FF); border: 1px solid #D0E8FF; }
+           .detail-emoji-box.ct-ai { background: linear-gradient(135deg,#fff,#E8F4FF); border: 1px solid #D0E8FF; }
           .detail-emoji-box.ct-py { background: linear-gradient(135deg,#fff,#F0F9FF); border: 1px solid #E0F2FE; }
           .detail-emoji-box.ct-da { background: linear-gradient(135deg,#fff,#FDF2F8); border: 1px solid #FBCFE8; }
           .detail-emoji-box.ct-de { background: linear-gradient(135deg,#fff,#FFF7ED); border: 1px solid #FFEDD5; }
@@ -927,6 +944,15 @@ export default function CourseDetailPage() {
           .detail-emoji-box.ct-bu { background: linear-gradient(135deg,#fff,#F0FDFA); border: 1px solid #CCFBF1; }
           .detail-emoji-box.ct-mi { background: linear-gradient(135deg,#fff,#FAF5FF); border: 1px solid #F3E8FF; }
           .detail-emoji-box.ct-cy { background: linear-gradient(135deg,#fff,#F8FAFC); border: 1px solid #E2E8F0; }
+
+          .detail-emoji-box.t-amber { background: linear-gradient(135deg, #F0C97A, #E8900A); border: 1px solid #E8900A; color: #fff; }
+          .detail-emoji-box.t-blue { background: linear-gradient(135deg, #94B8F0, #1A4DB8); border: 1px solid #1A4DB8; color: #fff; }
+          .detail-emoji-box.t-teal { background: linear-gradient(135deg, #7DD4CC, #0E8C85); border: 1px solid #0E8C85; color: #fff; }
+          .detail-emoji-box.t-purple { background: linear-gradient(135deg, #C4A8F0, #6B35CC); border: 1px solid #6B35CC; color: #fff; }
+          .detail-emoji-box.t-red { background: linear-gradient(135deg, #F0908A, #CC2A22); border: 1px solid #CC2A22; color: #fff; }
+          .detail-emoji-box.t-pink { background: linear-gradient(135deg, #F0A0CC, #CC2070); border: 1px solid #CC2070; color: #fff; }
+          .detail-emoji-box.t-green { background: linear-gradient(135deg, #90D4A0, #1A8C34); border: 1px solid #1A8C34; color: #fff; }
+          .detail-emoji-box.t-slate { background: linear-gradient(135deg, #A8B8CC, #3A5070); border: 1px solid #3A5070; color: #fff; }
 
           .btn-loader {
             width: 20px;

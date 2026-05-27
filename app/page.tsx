@@ -545,7 +545,8 @@ export default function Home() {
       price: course.price,
       instructor: course.instructor,
       rating: course.rating,
-      g: course.g
+      g: course.g,
+      logo: course.logo
     });
     return acc;
   }, []);
@@ -689,10 +690,28 @@ export default function Home() {
                   hasMounted && bestSellers.map((c: any) => {
                     const priceStr = '₹' + c.price.toLocaleString('en-IN');
                     return (
-                      <div key={c.id} className="course-card" onClick={() => openEnrol(c.id, c.name, `by ${c.instructor} · ★ ${c.rating} · ${formatDuration(c.dur)} · ${c.level}`, priceStr, c.g || 't-amber', c.emoji)}>
+                      <div key={c.id} className="course-card" onClick={() => openEnrol(c.id, c.name, `by ${c.instructor} · ★ ${c.rating} · ${formatDuration(c.dur)} · ${c.level}`, priceStr, c.g || 't-amber', c.logo || c.emoji)}>
                         <div className="course-thumb">
                           <div className={`course-thumb-bg ${c.g || 't-amber'}`}></div>
-                          <div className="course-thumb-label">{c.emoji}</div>
+                          <div className="course-thumb-label">
+                            {c.logo ? (
+                              <>
+                                <img 
+                                  src={c.logo} 
+                                  alt="" 
+                                  style={{ width: '80px', height: '80px', objectFit: 'contain' }} 
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    const fallback = e.currentTarget.nextSibling as HTMLElement;
+                                    if (fallback) fallback.style.display = 'block';
+                                  }}
+                                />
+                                <span style={{ display: 'none' }}>{c.emoji}</span>
+                              </>
+                            ) : (
+                              c.emoji
+                            )}
+                          </div>
                           {c.tagLabel && <div className={`course-badge badge-${c.tag}`}>{c.tagLabel}</div>}
                         </div>
                         <div className="course-body">
@@ -731,10 +750,28 @@ export default function Home() {
                   hasMounted && newlyAdded.map((c: any) => {
                     const priceStr = '₹' + c.price.toLocaleString('en-IN');
                     return (
-                      <div key={c.id} className="course-card" onClick={() => openEnrol(c.id, c.name, `by ${c.instructor} · ★ ${c.rating} · ${formatDuration(c.dur)} · ${c.level}`, priceStr, c.g || 't-amber', c.emoji)}>
+                      <div key={c.id} className="course-card" onClick={() => openEnrol(c.id, c.name, `by ${c.instructor} · ★ ${c.rating} · ${formatDuration(c.dur)} · ${c.level}`, priceStr, c.g || 't-amber', c.logo || c.emoji)}>
                         <div className="course-thumb">
                           <div className={`course-thumb-bg ${c.g || 't-amber'}`}></div>
-                          <div className="course-thumb-label">{c.emoji}</div>
+                          <div className="course-thumb-label">
+                            {c.logo ? (
+                              <>
+                                <img 
+                                  src={c.logo} 
+                                  alt="" 
+                                  style={{ width: '80px', height: '80px', objectFit: 'contain' }} 
+                                  onError={(e) => {
+                                    e.currentTarget.style.display = 'none';
+                                    const fallback = e.currentTarget.nextSibling as HTMLElement;
+                                    if (fallback) fallback.style.display = 'block';
+                                  }}
+                                />
+                                <span style={{ display: 'none' }}>{c.emoji}</span>
+                              </>
+                            ) : (
+                              c.emoji
+                            )}
+                          </div>
                           {c.tagLabel && <div className={`course-badge badge-${c.tag}`}>{c.tagLabel}</div>}
                         </div>
                         <div className="course-body">
@@ -890,9 +927,27 @@ export default function Home() {
                           <button 
                             className="sub-card" 
                             key={item.id || k} 
-                            onClick={() => openEnrol(item.id, item.name, `by ${item.instructor} · ★ ${item.rating} · ${item.meta}`, `₹${item.price.toLocaleString('en-IN')}`, '', item.icon)}
+                            onClick={() => openEnrol(item.id, item.name, `by ${item.instructor} · ★ ${item.rating} · ${item.meta}`, `₹${item.price.toLocaleString('en-IN')}`, '', item.logo || item.icon)}
                           >
-                            <div className="sub-card-icon">{item.icon}</div>
+                            <div className="sub-card-icon">
+                              {item.logo ? (
+                                <>
+                                  <img 
+                                    src={item.logo} 
+                                    alt="" 
+                                    style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                      const fallback = e.currentTarget.nextSibling as HTMLElement;
+                                      if (fallback) fallback.style.display = 'block';
+                                    }}
+                                  />
+                                  <span style={{ display: 'none' }}>{item.icon}</span>
+                                </>
+                              ) : (
+                                item.icon
+                              )}
+                            </div>
                             <div className="sub-card-name">{item.name}</div>
                             <div className="sub-card-meta">{item.meta}</div>
                             <span className={`sub-card-tag tag-${item.tag}`}>{item.tagLabel}</span>
@@ -962,10 +1017,28 @@ export default function Home() {
                       {catCourses.map((c: any) => {
                         const priceStr = '₹' + c.price.toLocaleString('en-IN');
                         return (
-                          <div key={c.id} className="cat-course-card" onClick={() => openEnrol(c.id, c.name, `by ${c.instructor} · ★ ${c.rating} · ${formatDuration(c.dur)} · ${c.level}`, priceStr, c.g || 't-amber', c.emoji)}>
+                          <div key={c.id} className="cat-course-card" onClick={() => openEnrol(c.id, c.name, `by ${c.instructor} · ★ ${c.rating} · ${formatDuration(c.dur)} · ${c.level}`, priceStr, c.g || 't-amber', c.logo || c.emoji)}>
                             <div className="cat-card-thumb">
                               <div className={`cat-card-thumb-bg ${c.g || 't-amber'}`}></div>
-                              <div className="cat-card-emoji">{c.emoji}</div>
+                              <div className="cat-card-emoji">
+                                {c.logo ? (
+                                  <>
+                                    <img 
+                                      src={c.logo} 
+                                      alt="" 
+                                      style={{ width: '64px', height: '64px', objectFit: 'contain' }} 
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                        const fallback = e.currentTarget.nextSibling as HTMLElement;
+                                        if (fallback) fallback.style.display = 'block';
+                                      }}
+                                    />
+                                    <span style={{ display: 'none' }}>{c.emoji}</span>
+                                  </>
+                                ) : (
+                                  c.emoji
+                                )}
+                              </div>
                               {c.tagLabel && <div className="cat-card-badge badge-live">{c.tagLabel}</div>}
                             </div>
                             <div className="cat-card-body">
@@ -1014,7 +1087,13 @@ export default function Home() {
                 </div>
                 <div className="enrol-body">
                   <div className="enrol-course-mini">
-                    <div className="enrol-thumb" style={enrolData.thumbBg ? { background: enrolData.thumbBg } : {}}>{enrolData.thumbEmoji}</div>
+                    <div className="enrol-thumb" style={enrolData.thumbBg ? { background: enrolData.thumbBg } : {}}>
+                      {enrolData.thumbEmoji && (enrolData.thumbEmoji.startsWith('http') || enrolData.thumbEmoji.startsWith('/')) ? (
+                        <img src={enrolData.thumbEmoji} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '6px' }} />
+                      ) : (
+                        enrolData.thumbEmoji
+                      )}
+                    </div>
                     <div><div className="enrol-course-name">{enrolData.name}</div><div className="enrol-course-meta">{enrolData.meta}</div></div>
                   </div>
                   <div className="enrol-format-grid">

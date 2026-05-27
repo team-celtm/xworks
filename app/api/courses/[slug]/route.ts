@@ -26,7 +26,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
         cat.slug as "categorySlug",
         u.first_name || ' ' || u.last_name as instructor,
         u.avatar_url as "instructorAvatar",
-        i.bio as "instructorBio"
+        i.bio as "instructorBio",
+        c.logo
       FROM courses c
       JOIN categories cat ON c.category_id = cat.id
       JOIN instructors i ON c.instructor_id = i.id
@@ -45,7 +46,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
       ...course,
       price: parseFloat(course.price),
       dur: parseInt(course.dur),
-      rating: parseFloat(course.rating)
+      rating: parseFloat(course.rating),
+      tag: course.tag ? course.tag.toLowerCase() : ''
     };
 
     return NextResponse.json(payload, { status: 200 });

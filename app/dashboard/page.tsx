@@ -71,6 +71,7 @@ interface Workshop {
   isNew: boolean;
   nearby: boolean;
   price: number;
+  logo?: string;
 }
 
 interface DashboardEnrolData {
@@ -206,7 +207,8 @@ export default function DashboardPage() {
           live: !!r.live,
           isNew: r.tag === 'new',
           nearby: !!r.nearby,
-          price: r.price
+          price: r.price,
+          logo: r.logo
         }));
         setWorkshops(mapped);
 
@@ -228,7 +230,8 @@ export default function DashboardPage() {
             price: r.price,
             live: !!r.live,
             isNew: r.tag === 'new',
-            nearby: !!r.nearby
+            nearby: !!r.nearby,
+            logo: r.logo
           })));
         }
       }
@@ -456,7 +459,7 @@ export default function DashboardPage() {
       const cert = certs.find(c => c.courseId === e.course_id);
       return {
         id: e.course_id,
-        icon: e.emoji || "🎓",
+        icon: e.logo || e.emoji || "🎓",
         bg: e.thumbBg || "g-ai",
         name: e.name,
         meta: e.progressPct === 100
@@ -508,7 +511,8 @@ export default function DashboardPage() {
         price: r.price,
         live: !!r.live,
         isNew: r.tag === 'new',
-        nearby: !!r.nearby
+        nearby: !!r.nearby,
+        logo: r.logo
       }));
 
       const recorded = mappedResults.filter((w) => !w.live);
@@ -626,7 +630,7 @@ export default function DashboardPage() {
       payMethod: "UPI",
       promoApplied: false,
       thumbBg: w.g,
-      thumbEmoji: w.icon
+      thumbEmoji: w.logo || w.icon
     });
     setEnrolStep(1);
     setPromoCode("");
@@ -889,7 +893,25 @@ export default function DashboardPage() {
       <div className="wcard" key={w.id} style={{ cursor: 'pointer' }} onClick={() => router.push(`/courses/${w.slug}`)}>
         <div className="wcard-thumb">
           <div className={`wcard-thumb-bg ${w.g}`}></div>
-          <div className="wcard-thumb-emoji">{w.icon}</div>
+          <div className="wcard-thumb-emoji">
+            {w.logo ? (
+              <>
+                <img 
+                  src={w.logo} 
+                  alt="" 
+                  style={{ width: '64px', height: '64px', objectFit: 'contain' }} 
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const fallback = e.currentTarget.nextSibling as HTMLElement;
+                    if (fallback) fallback.style.display = 'block';
+                  }}
+                />
+                <span style={{ display: 'none' }}>{w.icon}</span>
+              </>
+            ) : (
+              w.icon
+            )}
+          </div>
           <div className={`wcard-tag ${tagClass}`}>{tagLabel}</div>
         </div>
         <div className="wcard-body">
@@ -933,7 +955,25 @@ export default function DashboardPage() {
       <div className="wcard" key={e.enrolment_id} style={{ cursor: 'pointer' }} onClick={() => router.push(`/player/${e.enrolment_id}`)}>
         <div className="wcard-thumb">
           <div className={`wcard-thumb-bg ${e.thumbBg}`}></div>
-          <div className="wcard-thumb-emoji">{e.emoji || "🎓"}</div>
+          <div className="wcard-thumb-emoji">
+            {e.logo ? (
+              <>
+                <img 
+                  src={e.logo} 
+                  alt="" 
+                  style={{ width: '64px', height: '64px', objectFit: 'contain' }} 
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const fallback = e.currentTarget.nextSibling as HTMLElement;
+                    if (fallback) fallback.style.display = 'block';
+                  }}
+                />
+                <span style={{ display: 'none' }}>{e.emoji || "🎓"}</span>
+              </>
+            ) : (
+              e.emoji || "🎓"
+            )}
+          </div>
           {e.live ? (
              <div className="wcard-tag tag-live">LIVE</div>
           ) : (
@@ -1412,7 +1452,25 @@ export default function DashboardPage() {
                   <div className="completed-card" key={i}>
                     <div className={`completed-icon ${c.bg}`} style={{ background: "none" }}>
                       <div style={{ width: "44px", height: "44px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px" }} className={c.bg}></div>
-                      <span style={{ position: "absolute", fontSize: "22px" }}>{c.icon}</span>
+                      <span style={{ position: "absolute", fontSize: "22px", display: "flex", alignItems: "center", justifyContent: "center", width: "44px", height: "44px" }}>
+                        {c.icon && (c.icon.startsWith('http') || c.icon.startsWith('/')) ? (
+                          <>
+                            <img 
+                              src={c.icon} 
+                              alt="" 
+                              style={{ width: '80%', height: '80%', objectFit: 'contain' }} 
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const fallback = e.currentTarget.nextSibling as HTMLElement;
+                                if (fallback) fallback.style.display = 'block';
+                              }}
+                            />
+                            <span style={{ display: 'none' }}>🎓</span>
+                          </>
+                        ) : (
+                          c.icon
+                        )}
+                      </span>
                     </div>
                     <div style={{ flex: 1, minWidth: 0, position: "relative" }}>
                       <div className="completed-name">{c.name}</div>
@@ -1755,7 +1813,25 @@ export default function DashboardPage() {
                     >
                       <div className={`completed-icon ${c.thumbBg}`} style={{ background: "none", margin: 0 }}>
                         <div style={{ width: "40px", height: "40px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "20px" }} className={c.thumbBg}></div>
-                        <span style={{ position: "absolute", fontSize: "20px" }}>{c.emoji || '📜'}</span>
+                        <span style={{ position: "absolute", fontSize: "20px", display: "flex", alignItems: "center", justifyContent: "center", width: "40px", height: "40px" }}>
+                          {c.logo ? (
+                            <>
+                              <img 
+                                src={c.logo} 
+                                alt="" 
+                                style={{ width: '80%', height: '80%', objectFit: 'contain' }} 
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                  const fallback = e.currentTarget.nextSibling as HTMLElement;
+                                  if (fallback) fallback.style.display = 'block';
+                                }}
+                              />
+                              <span style={{ display: 'none' }}>{c.emoji || '📜'}</span>
+                            </>
+                          ) : (
+                            c.emoji || '📜'
+                          )}
+                        </span>
                       </div>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--ink)', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -1954,7 +2030,25 @@ export default function DashboardPage() {
                   <div className="enrol-course-mini">
                     <div className={`enrol-thumb ${enrolData.thumbBg as string}`}>
                       <div style={{ width: "46px", height: "46px", borderRadius: "10px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "22px" }} className={enrolData.thumbBg as string}></div>
-                      <span style={{ position: "absolute", fontSize: "22px" }}>{enrolData.thumbEmoji as string}</span>
+                      <span style={{ position: "absolute", fontSize: "22px", display: "flex", alignItems: "center", justifyContent: "center", width: "46px", height: "46px" }}>
+                        {enrolData.thumbEmoji && ((enrolData.thumbEmoji as string).startsWith('http') || (enrolData.thumbEmoji as string).startsWith('/')) ? (
+                          <>
+                            <img 
+                              src={enrolData.thumbEmoji as string} 
+                              alt="" 
+                              style={{ width: '80%', height: '80%', objectFit: 'contain' }} 
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                const fallback = e.currentTarget.nextSibling as HTMLElement;
+                                if (fallback) fallback.style.display = 'block';
+                              }}
+                            />
+                            <span style={{ display: 'none' }}>🎓</span>
+                          </>
+                        ) : (
+                          enrolData.thumbEmoji as string
+                        )}
+                      </span>
                     </div>
                     <div>
                       <div className="enrol-course-name">{enrolData.name as string}</div>

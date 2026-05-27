@@ -19,6 +19,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ cred
         co.name as "courseName",
         co.dur as "courseDuration",
         co.emoji,
+        co.logo,
         co.g as "thumbBg"
       FROM certificates ce
       JOIN users u ON ce.user_id = u.id
