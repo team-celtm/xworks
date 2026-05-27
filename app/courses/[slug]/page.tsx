@@ -116,7 +116,10 @@ export default function CourseDetailPage() {
           const sdata = await sres.json();
           setSessions(sdata);
           if (sdata.length > 0) {
-            setSelectedSessionId(sdata[0].id);
+            const availableSession = sdata.find((s: any) => s.status !== 'cancelled');
+            if (availableSession) {
+              setSelectedSessionId(availableSession.id);
+            }
           }
         }
 
@@ -385,24 +388,26 @@ export default function CourseDetailPage() {
                   <div className="sessions-list">
                     {sessions.map(s => {
                       const isSelected = selectedSessionId === s.id;
-                      const full = s.maxSeats !== null && s.maxSeats !== undefined && s.maxSeats > 0 && (s.maxSeats - s.registeredCount <= 0);
+                      const isCancelled = s.status === 'cancelled';
+                      const full = !isCancelled && s.maxSeats !== null && s.maxSeats !== undefined && s.maxSeats > 0 && (s.maxSeats - s.registeredCount <= 0);
                       return (
                         <div key={s.id}
-                          onClick={() => !full && setSelectedSessionId(s.id)}
-                          className={`session-item ${isSelected ? 'selected' : ''} ${full ? 'full' : ''}`}
+                          onClick={() => !full && !isCancelled && setSelectedSessionId(s.id)}
+                          className={`session-item ${isSelected ? 'selected' : ''} ${full ? 'full' : ''} ${isCancelled ? 'cancelled' : ''}`}
+                          style={{ opacity: isCancelled ? 0.6 : 1, cursor: isCancelled ? 'not-allowed' : '' }}
                         >
                           <div>
-                            <div className="session-title">{s.title}</div>
+                            <div className="session-title" style={{ textDecoration: isCancelled ? 'line-through' : 'none' }}>{s.title}</div>
                             <div className="session-time">
                               ⏱ {new Date(s.scheduledStart).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' })} · {new Date(s.scheduledStart).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                             </div>
                           </div>
                           <div className="session-right">
-                            <div className={`session-status ${full ? 'status-soldout' : 'status-available'}`}>
-                              {!full && <span className="pulse-dot"></span>}
-                              {full ? 'Sold out' : s.maxSeats ? `${s.maxSeats - s.registeredCount} seats left` : 'Seats available'}
+                            <div className={`session-status ${isCancelled ? 'status-cancelled' : full ? 'status-soldout' : 'status-available'}`} style={isCancelled ? { background: 'rgba(239, 68, 68, 0.1)', color: '#EF4444' } : {}}>
+                              {!full && !isCancelled && <span className="pulse-dot"></span>}
+                              {isCancelled ? 'Cancelled' : full ? 'Sold out' : s.maxSeats ? `${s.maxSeats - s.registeredCount} seats left` : 'Seats available'}
                             </div>
-                            <div className="session-platform">on {s.platform}</div>
+                            <div className="session-platform">{isCancelled ? 'CANCELLED' : `on ${s.platform || 'Platform'}`}</div>
                           </div>
                         </div>
                       );

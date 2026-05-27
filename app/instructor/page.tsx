@@ -21,12 +21,20 @@ export default function InstructorDashboard() {
   const [submitting, setSubmitting] = useState(false);
 
   // Data states
-  const [earnings, setEarnings] = useState<any[]>([]);
   const [stats, setStats] = useState({ total_courses: 0, pending_payout: 0 });
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
   const [sessions, setSessions] = useState<any[]>([]);
   const [allCategories, setAllCategories] = useState<any[]>([]);
   const [isCreatingCourse, setIsCreatingCourse] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [scheduleData, setScheduleData] = useState({
+    courseId: '',
+    title: '',
+    scheduledStart: '',
+    durationMinutes: 60
+  });
 
   useEffect(() => {
     fetch('/api/instructor/sessions')
@@ -80,11 +88,19 @@ export default function InstructorDashboard() {
 
   useEffect(() => {
     if (!user || user.role !== 'instructor') return;
-    if (activeView === 'inst_courses') {
+    if (activeView === 'inst_courses' || activeView === 'inst_sessions') {
       fetch('/api/teach/courses').then(r=>r.json()).then(d => {
         if (Array.isArray(d)) setCourses(d);
       });
       fetch('/api/categories').then(r => r.json()).then(d => setAllCategories(d || []));
+    }
+    if (activeView === 'inst_earnings') {
+      fetch('/api/instructor/stats').then(r=>r.json()).then(d => {
+        if (d.success) {
+          setStats(d.stats);
+          setTransactions(d.transactions);
+        }
+      });
     }
   }, [activeView, user]);
 
@@ -332,8 +348,8 @@ export default function InstructorDashboard() {
                        <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Format</label>
                        <select name="format" className="prompt-input" required disabled={isCreatingCourse} style={{ width: '100%', height: '46px' }}>
                          <option value="live">🔴 Live session</option>
-                         <option value="recorded">📹 Recorded</option>
-                         <option value="inperson">📍 In-person</option>
+                         <option value="recorded" disabled>📹 Recorded (Coming Soon)</option>
+                         <option value="inperson" disabled>📍 In-person (Coming Soon)</option>
                        </select>
                      </div>
                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -391,11 +407,102 @@ export default function InstructorDashboard() {
           )}
 
           {activeView === "inst_sessions" && (
-            <div className="view active fade-up" style={{ display: 'flex' }}>
+            <div className="view active fade-up" style={{ display: 'flex', flexDirection: 'column' }}>
               <div className="section-label">Creator Studio</div>
-              <div className="section-title" style={{ fontFamily: "var(--font-d)", fontSize: "22px", fontWeight: 800, letterSpacing: "-0.5px", marginBottom: "24px" }}>
-                Live Sessions
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <div className="section-title" style={{ fontFamily: "var(--font-d)", fontSize: "22px", fontWeight: 800, letterSpacing: "-0.5px" }}>
+                  Live Sessions
+                </div>
+                <button 
+                  onClick={() => setShowScheduleModal(true)}
+                  style={{ background: 'var(--indigo)', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '100px', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  + Schedule Session
+                </button>
               </div>
+
+              {showScheduleModal && (
+                <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border-md)', padding: '24px', borderRadius: '16px', marginBottom: '24px' }}>
+                  <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px' }}>Schedule New Session</h3>
+                  <form onSubmit={async (e) => {
+                    e.preventDefault();
+                    setIsScheduling(true);
+                    try {
+                      if (!scheduleData.courseId) {
+                        alert('Please select a course.');
+                        setIsScheduling(false);
+                        return;
+                      }
+                      if (scheduleData.title.trim().length === 0) {
+                        alert('Please enter a valid session title.');
+                        setIsScheduling(false);
+                        return;
+                      }
+
+                      const start = new Date(scheduleData.scheduledStart);
+                      if (start < new Date()) {
+                        alert('Cannot schedule a session in the past.');
+                        setIsScheduling(false);
+                        return;
+                      }
+
+                      const end = new Date(start.getTime() + scheduleData.durationMinutes * 60000);
+                      const res = await fetch('/api/instructor/sessions', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          courseId: scheduleData.courseId,
+                          title: scheduleData.title,
+                          scheduledStart: start.toISOString(),
+                          scheduledEnd: end.toISOString()
+                        })
+                      });
+                      if (res.ok) {
+                        setShowScheduleModal(false);
+                        const data = await fetch('/api/instructor/sessions').then(r => r.json());
+                        if (!data.error) setSessions(data);
+                        setScheduleData({ courseId: '', title: '', scheduledStart: '', durationMinutes: 60 });
+                      } else {
+                        const err = await res.json();
+                        alert('Failed to schedule session: ' + err.error);
+                      }
+                    } catch(err) {
+                      alert('Error scheduling session');
+                    }
+                    setIsScheduling(false);
+                  }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <select required className="prompt-input" style={{ backgroundColor: '#ffffff', color: '#111827', borderColor: '#d1d5db' }} value={scheduleData.courseId} onChange={e => setScheduleData({...scheduleData, courseId: e.target.value})}>
+                        <option value="" disabled={courses.filter(c => c.live).length === 0}>
+                          {courses.filter(c => c.live).length === 0 ? "No live courses available" : "Select Course..."}
+                        </option>
+                        {courses.filter(c => c.live).map(c => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                      <input required className="prompt-input" style={{ backgroundColor: '#ffffff', color: '#111827', borderColor: '#d1d5db' }} placeholder="Session Title (e.g. React Hooks Deep Dive)" value={scheduleData.title} onChange={e => setScheduleData({...scheduleData, title: e.target.value})} />
+                      <div style={{ display: 'flex', gap: '16px' }}>
+                        <div style={{ flex: 1 }}>
+                          <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-2)', display: 'block', marginBottom: '4px' }}>Start Time</label>
+                          <input required type="datetime-local" className="prompt-input" style={{ width: '100%', backgroundColor: '#ffffff', color: '#111827', borderColor: '#d1d5db' }} value={scheduleData.scheduledStart} onChange={e => setScheduleData({...scheduleData, scheduledStart: e.target.value})} />
+                        </div>
+                        <div style={{ width: '120px' }}>
+                          <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-2)', display: 'block', marginBottom: '4px' }}>Duration (min)</label>
+                          <input required type="number" min="15" className="prompt-input" style={{ width: '100%', backgroundColor: '#ffffff', color: '#111827', borderColor: '#d1d5db' }} value={scheduleData.durationMinutes} onChange={e => setScheduleData({...scheduleData, durationMinutes: parseInt(e.target.value)})} />
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                        <button type="submit" className="enrol-cta coral" disabled={isScheduling} style={{ margin: 0, padding: '10px 24px' }}>
+                          {isScheduling ? 'Scheduling...' : 'Schedule'}
+                        </button>
+                        <button type="button" onClick={() => setShowScheduleModal(false)} style={{ background: 'transparent', border: '1px solid var(--border-md)', color: 'var(--text)', padding: '10px 24px', borderRadius: '100px', fontWeight: 'bold', cursor: 'pointer' }}>
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+              )}
 
               {sessions.length > 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -417,7 +524,31 @@ export default function InstructorDashboard() {
                             <button 
                               className="join-btn enrol-cta coral"
                               style={{ padding: '10px 24px', margin: 0 }}
-                              onClick={() => s.hostUrl ? window.open(s.hostUrl, '_blank') : alert('Host URL not configured')}
+                              onClick={async () => {
+                                if (s.hostUrl) {
+                                  window.open(s.hostUrl, '_blank');
+                                } else {
+                                  const url = prompt('Enter the meeting link (e.g., Zoom, Google Meet) to start the session:');
+                                  if (url) {
+                                    try {
+                                      const res = await fetch(`/api/instructor/sessions/${s.sessionId}/host`, {
+                                        method: 'PUT',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ hostUrl: url })
+                                      });
+                                      if (res.ok) {
+                                        setSessions(prev => prev.map(sess => sess.sessionId === s.sessionId ? { ...sess, hostUrl: url } : sess));
+                                        window.open(url, '_blank');
+                                      } else {
+                                        alert('Failed to save Host URL');
+                                      }
+                                    } catch (err) {
+                                      console.error(err);
+                                      alert('Error saving Host URL');
+                                    }
+                                  }
+                                }
+                              }}
                             >
                               Start Session →
                             </button>
@@ -458,20 +589,45 @@ export default function InstructorDashboard() {
                 <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>
                     <div>
                       <div style={{ color: 'var(--text-2)', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Total Courses</div>
-                      <div style={{ color: 'var(--ink)', fontSize: '32px', fontWeight: '900' }}>0</div>
+                      <div style={{ color: 'var(--ink)', fontSize: '32px', fontWeight: '900' }}>{stats.total_courses}</div>
                     </div>
                 </div>
                 <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>
                     <div>
                       <div style={{ color: 'var(--text-2)', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Pending Payout</div>
-                      <div style={{ color: 'var(--green)', fontSize: '32px', fontWeight: '900' }}>₹ 0</div>
+                      <div style={{ color: 'var(--green)', fontSize: '32px', fontWeight: '900' }}>₹ {stats.pending_payout.toFixed(2)}</div>
                     </div>
                 </div>
               </div>
               
               <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>
                 <p style={{ color: 'var(--text-3)', marginBottom: '20px' }}>Earnings are calculated using the 80/20 XWORKS Revenue Split algorithm.</p>
-                <div style={{ padding: '16px', border: '1px dashed var(--border-md)', borderRadius: '8px', textAlign: 'center', color: 'var(--text-3)' }}>No transactions yet. Publish a course to start earning!</div>
+                {transactions.length === 0 ? (
+                  <div style={{ padding: '16px', border: '1px dashed var(--border-md)', borderRadius: '8px', textAlign: 'center', color: 'var(--text-3)' }}>No transactions yet. Publish a course to start earning!</div>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', color: 'var(--ink)', textAlign: 'left', minWidth: '500px' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border-md)', color: 'var(--text-3)', fontSize: '14px' }}>
+                          <th style={{ padding: '12px 8px' }}>Course</th>
+                          <th style={{ padding: '12px 8px' }}>Student</th>
+                          <th style={{ padding: '12px 8px' }}>Date</th>
+                          <th style={{ padding: '12px 8px' }}>Your Earnings</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {transactions.map((tx, i) => (
+                          <tr key={i} style={{ borderBottom: '1px solid var(--border-sm)' }}>
+                            <td style={{ padding: '16px 8px', fontWeight: 'bold' }}>{tx.courseName}</td>
+                            <td style={{ padding: '16px 8px' }}>{tx.studentName}</td>
+                            <td style={{ padding: '16px 8px', color: 'var(--text-3)' }}>{new Date(tx.enrolledAt).toLocaleDateString()}</td>
+                            <td style={{ padding: '16px 8px', color: 'var(--green)', fontWeight: 'bold' }}>₹{tx.amountEarned.toFixed(2)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
 
             </div>

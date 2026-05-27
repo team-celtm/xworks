@@ -38,3 +38,67 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+export async function POST(req: NextRequest) {
+  try {
+    const accessToken = req.cookies.get('access_token')?.value;
+    if (!accessToken) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    const { payload } = await jwtVerify(accessToken, new TextEncoder().encode(SESSION_SECRET));
+    const userId = (payload as any).id;
+
+    const body = await req.json();
+    const { courseId, title, scheduledStart, scheduledEnd } = body;
+
+    if (!courseId || !title || !scheduledStart || !scheduledEnd) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    if (title.trim().length === 0) {
+      return NextResponse.json({ error: 'Title cannot be empty' }, { status: 400 });
+    }
+
+    const startDate = new Date(scheduledStart);
+    const endDate = new Date(scheduledEnd);
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return NextResponse.json({ error: 'Invalid date format' }, { status: 400 });
+    }
+
+    if (startDate < new Date()) {
+      return NextResponse.json({ error: 'Cannot schedule a session in the past' }, { status: 400 });
+    }
+
+    if (startDate >= endDate) {
+      return NextResponse.json({ error: 'End time must be after start time' }, { status: 400 });
+    }
+
+    // Verify course belongs to instructor
+    const checkRes = await pool.query(`
+      SELECT c.id 
+      FROM courses c 
+      JOIN instructors i ON c.instructor_id = i.id 
+      WHERE c.id = $1 AND i.user_id = $2
+    `, [courseId, userId]);
+
+    if (checkRes.rows.length === 0) {
+      return NextResponse.json({ error: 'Unauthorized or course not found' }, { status: 403 });
+    }
+
+    const insertSql = `
+      INSERT INTO live_sessions (
+        course_id, title, scheduled_start, scheduled_end, 
+        status, timezone, recording_available, created_at, updated_at
+      ) VALUES (
+        $1, $2, $3, $4, 
+        'scheduled', 'Asia/Kolkata', false, NOW(), NOW()
+      ) RETURNING id
+    `;
+    const newSession = await pool.query(insertSql, [courseId, title, scheduledStart, scheduledEnd]);
+
+    return NextResponse.json({ success: true, sessionId: newSession.rows[0].id }, { status: 201 });
+  } catch (error) {
+    console.error('Instructor Sessions POST API Error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}

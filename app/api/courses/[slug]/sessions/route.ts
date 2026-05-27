@@ -14,7 +14,7 @@ export async function GET(
 
     const { rows } = await pool.query(
       `SELECT * FROM live_sessions 
-       WHERE course_id = $1::uuid AND scheduled_start > NOW() 
+       WHERE course_id = $1::uuid AND scheduled_start > NOW() AND status != 'cancelled'
        ORDER BY scheduled_start ASC`,
       [courseId]
     );
