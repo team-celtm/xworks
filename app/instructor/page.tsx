@@ -6,6 +6,7 @@ import Link from 'next/link';
 import "../dashboard/dashboard.css";
 import RoleTransitionOverlay from "../components/RoleTransitionOverlay";
 import ActionModal, { ActionModalState } from "../components/ActionModal";
+import EarningsDashboard from "../components/EarningsDashboard";
 
 export default function InstructorDashboard() {
   const router = useRouter();
@@ -640,58 +641,7 @@ export default function InstructorDashboard() {
           )}
 
           {activeView === "inst_earnings" && (
-            <div className="view active fade-up" style={{ display: 'flex' }}>
-              <div className="section-label">Creator Studio</div>
-              <div className="section-title" style={{ fontFamily: "var(--font-d)", fontSize: "22px", fontWeight: 800, letterSpacing: "-0.5px", marginBottom: "24px" }}>
-                Earnings Dashboard
-              </div>
-              
-              <div className="stats-row" style={{ marginBottom: '24px' }}>
-                <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>
-                    <div>
-                      <div style={{ color: 'var(--text-2)', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Total Courses</div>
-                      <div style={{ color: 'var(--ink)', fontSize: '32px', fontWeight: '900' }}>{stats.total_courses}</div>
-                    </div>
-                </div>
-                <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>
-                    <div>
-                      <div style={{ color: 'var(--text-2)', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '8px' }}>Pending Payout</div>
-                      <div style={{ color: 'var(--green)', fontSize: '32px', fontWeight: '900' }}>₹ {stats.pending_payout.toFixed(2)}</div>
-                    </div>
-                </div>
-              </div>
-              
-              <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>
-                <p style={{ color: 'var(--text-3)', marginBottom: '20px' }}>Earnings are calculated using the 80/20 XWORKS Revenue Split algorithm.</p>
-                {transactions.length === 0 ? (
-                  <div style={{ padding: '16px', border: '1px dashed var(--border-md)', borderRadius: '8px', textAlign: 'center', color: 'var(--text-3)' }}>No transactions yet. Publish a course to start earning!</div>
-                ) : (
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', color: 'var(--ink)', textAlign: 'left', minWidth: '500px' }}>
-                      <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border-md)', color: 'var(--text-3)', fontSize: '14px' }}>
-                          <th style={{ padding: '12px 8px' }}>Course</th>
-                          <th style={{ padding: '12px 8px' }}>Student</th>
-                          <th style={{ padding: '12px 8px' }}>Date</th>
-                          <th style={{ padding: '12px 8px' }}>Your Earnings</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {transactions.map((tx, i) => (
-                          <tr key={i} style={{ borderBottom: '1px solid var(--border-sm)' }}>
-                            <td style={{ padding: '16px 8px', fontWeight: 'bold' }}>{tx.courseName}</td>
-                            <td style={{ padding: '16px 8px' }}>{tx.studentName}</td>
-                            <td style={{ padding: '16px 8px', color: 'var(--text-3)' }}>{new Date(tx.enrolledAt).toLocaleDateString()}</td>
-                            <td style={{ padding: '16px 8px', color: 'var(--green)', fontWeight: 'bold' }}>₹{tx.amountEarned.toFixed(2)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-
-            </div>
+            <EarningsDashboard />
           )}
 
         </div>
