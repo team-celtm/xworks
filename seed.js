@@ -29,20 +29,6 @@ async function seed() {
 
     console.log('Using course:', course.name);
 
-    // Create a dummy student
-    let studentRes = await pool.query('SELECT id FROM users WHERE email = $1', ['dummy@student.com']);
-    let studentId;
-    if (studentRes.rows.length === 0) {
-      const newStudent = await pool.query(`
-        INSERT INTO users (first_name, last_name, email, role)
-        VALUES ('Jane', 'Doe', 'dummy@student.com', 'learner')
-        RETURNING id
-      `);
-      studentId = newStudent.rows[0].id;
-    } else {
-      studentId = studentRes.rows[0].id;
-    }
-
     // Insert a few enrolments
     const dates = [
       new Date(), // today
@@ -53,6 +39,14 @@ async function seed() {
     ];
 
     for (let i = 0; i < dates.length; i++) {
+      const email = `dummy${Date.now()}${i}@student.com`;
+      const newStudent = await pool.query(`
+        INSERT INTO users (first_name, last_name, email, role)
+        VALUES ($1, $2, $3, 'learner')
+        RETURNING id
+      `, [`Student${i}`, 'Test', email]);
+      const studentId = newStudent.rows[0].id;
+      
       const pricePaise = 500000; // 5000 INR
       
       const enrRes = await pool.query(`
@@ -64,9 +58,9 @@ async function seed() {
       const enrolmentId = enrRes.rows[0].id;
 
       await pool.query(`
-        INSERT INTO payments (enrolment_id, user_id, amount_paise, currency, status, payment_gateway, created_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
-      `, [enrolmentId, studentId, pricePaise, 'INR', 'successful', 'razorpay', dates[i]]);
+        INSERT INTO payments (enrolment_id, user_id, amount, status, payment_status, created_at)
+        VALUES ($1, $2, $3, $4, $5, $6)
+      `, [enrolmentId, studentId, pricePaise, 'successful', 'captured', dates[i]]);
       
       console.log('Inserted enrolment & payment for', dates[i].toISOString());
     }

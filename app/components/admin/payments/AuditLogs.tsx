@@ -5,10 +5,10 @@ export default function AuditLogs() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/admin/payments/audit')
+    fetch('/api/admin/audit-logs')
       .then(res => res.json())
       .then(data => {
-        if (data.logs) setLogs(data.logs);
+        if (data.auditLogs) setLogs(data.auditLogs);
         setLoading(false);
       })
       .catch(err => {
@@ -38,8 +38,8 @@ export default function AuditLogs() {
             <th>Date</th>
             <th>Action</th>
             <th>Performed By</th>
-            <th>Order ID</th>
-            <th>Details</th>
+            <th>Entity</th>
+            <th>Changes</th>
           </tr>
         </thead>
         <tbody>
@@ -49,12 +49,12 @@ export default function AuditLogs() {
               <td data-label="Action" style={{ fontWeight: 600 }}>{log.action}</td>
               <td data-label="Performed By">
                 <div style={{ fontWeight: 600 }}>{log.first_name} {log.last_name}</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>{log.email}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>{log.admin_email}</div>
               </td>
-              <td data-label="Order ID" style={{ fontFamily: 'monospace', fontSize: '12px' }}>{log.razorpay_order_id || 'N/A'}</td>
-              <td data-label="Details" style={{ fontSize: '12px' }}>
+              <td data-label="Entity" style={{ fontFamily: 'monospace', fontSize: '12px' }}>{log.entity_type} ({log.entity_id})</td>
+              <td data-label="Changes" style={{ fontSize: '12px' }}>
                 <pre style={{ margin: 0, background: 'var(--surface-2)', padding: '8px', borderRadius: '4px', overflowX: 'auto', maxWidth: '300px' }}>
-                  {JSON.stringify(log.new_data, null, 2)}
+                  {log.changes ? JSON.stringify(log.changes, null, 2) : 'None'}
                 </pre>
               </td>
             </tr>

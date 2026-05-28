@@ -16,7 +16,12 @@ export default function PaymentDetails({ payment, onClose, onRefund }: { payment
           ✕
         </button>
         
-        <h2 style={{ fontSize: '20px', marginBottom: '24px', color: 'var(--ink)' }}>Transaction Details</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <h2 style={{ fontSize: '20px', color: 'var(--ink)' }}>Transaction Details</h2>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button className="admin-btn" style={{ padding: '6px 12px', fontSize: '12px' }}>Download Invoice (PDF)</button>
+          </div>
+        </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
           <div>
@@ -35,6 +40,18 @@ export default function PaymentDetails({ payment, onClose, onRefund }: { payment
             <div className="admin-label">Date</div>
             <div>{new Date(payment.created_at).toLocaleString()}</div>
           </div>
+          {payment.risk_score !== undefined && (
+            <div>
+              <div className="admin-label">Fraud Risk Score</div>
+              <div style={{ fontWeight: 600, color: payment.risk_score > 70 ? 'var(--red)' : 'var(--green)' }}>{payment.risk_score}/100</div>
+            </div>
+          )}
+          {payment.ip_address && (
+            <div>
+              <div className="admin-label">IP Address</div>
+              <div style={{ fontFamily: 'monospace', fontSize: '12px' }}>{payment.ip_address}</div>
+            </div>
+          )}
         </div>
 
         <div style={{ background: 'var(--surface-2)', padding: '16px', borderRadius: '12px', marginBottom: '24px' }}>
@@ -58,6 +75,15 @@ export default function PaymentDetails({ payment, onClose, onRefund }: { payment
           </div>
         </div>
 
+        {payment.metadata && (
+          <div style={{ background: 'var(--surface-2)', padding: '16px', borderRadius: '12px', marginBottom: '24px' }}>
+            <h3 style={{ fontSize: '14px', marginBottom: '12px', color: 'var(--ink)' }}>Gateway Metadata</h3>
+            <pre style={{ fontSize: '11px', whiteSpace: 'pre-wrap', color: 'var(--text-3)', fontFamily: 'monospace' }}>
+              {JSON.stringify(payment.metadata, null, 2)}
+            </pre>
+          </div>
+        )}
+
         {(payment.payment_status === 'paid' || payment.payment_status === 'success' || payment.payment_status === 'partially_refunded') && (
           <div style={{ background: '#FFF1F2', padding: '16px', borderRadius: '12px', border: '1px solid #FECDD3' }}>
             <h3 style={{ fontSize: '14px', marginBottom: '12px', color: '#BE123C' }}>Issue Refund</h3>
@@ -72,7 +98,7 @@ export default function PaymentDetails({ payment, onClose, onRefund }: { payment
               />
               <button 
                 className="admin-btn admin-btn-danger"
-                onClick={() => onRefund(payment.razorpay_order_id, refundAmount)}
+                onClick={() => onRefund(payment.id, refundAmount)}
               >
                 Process Refund
               </button>

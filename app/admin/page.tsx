@@ -15,6 +15,8 @@ const PaymentFilters = dynamic(() => import('../components/admin/payments/Paymen
 const RevenueCards = dynamic(() => import('../components/admin/payments/RevenueCards'), { ssr: false });
 const PaymentDetails = dynamic(() => import('../components/admin/payments/PaymentDetails'), { ssr: false });
 const AuditLogs = dynamic(() => import('../components/admin/payments/AuditLogs'), { ssr: false });
+const FailedPayments = dynamic(() => import('../components/admin/payments/FailedPayments'), { ssr: false });
+const RefundsHistory = dynamic(() => import('../components/admin/payments/RefundsHistory'), { ssr: false });
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -137,6 +139,7 @@ export default function AdminDashboard() {
   // Financial states
   const [payments, setPayments] = useState<any[]>([]);
   const [paymentAnalytics, setPaymentAnalytics] = useState<any>(null);
+  const [paymentDeepAnalytics, setPaymentDeepAnalytics] = useState<any>(null);
   const [paymentChartData, setPaymentChartData] = useState<any[]>([]);
   const [paymentFilters, setPaymentFilters] = useState({ search: '', status: '', method: '', from: '', to: '', page: 1, limit: 10 });
   const [paymentPagination, setPaymentPagination] = useState({ total: 0, page: 1, limit: 10, totalPages: 1 });
@@ -327,21 +330,31 @@ export default function AdminDashboard() {
         .finally(() => setIsCoursesLoading(false));
     }
 
-    if (['admin_transactions', 'admin_failed_payments', 'admin_refunds_history', 'admin_revenue_analytics'].includes(activeView)) {
+    if (['admin_transactions', 'admin_failed_payments', 'admin_refunds_history'].includes(activeView)) {
       setIsPaymentsLoading(true);
       const queryParams = new URLSearchParams(paymentFilters as any);
       if (activeView === 'admin_failed_payments') queryParams.set('status', 'failed');
-      if (activeView === 'admin_refunds_history') queryParams.set('status', 'refunded');
+      if (activeView === 'admin_refunds_history') queryParams.set('status', 'refunded,partially_refunded');
 
-      fetch(`/api/admin/payments?${queryParams.toString()}`)
+      fetch(`/api/admin/transactions?${queryParams.toString()}`)
         .then(r => r.json())
         .then(d => {
-          setPayments(d.payments || []);
-          setPaymentAnalytics(d.analytics || null);
-          setPaymentChartData(d.chartData || []);
+          setPayments(d.transactions || []);
           setPaymentPagination(d.pagination || { total: 0, page: 1, limit: 10, totalPages: 1 });
         })
         .finally(() => setIsPaymentsLoading(false));
+    }
+
+    if (activeView === 'admin_revenue_analytics') {
+      setIsPaymentsLoading(true);
+      Promise.all([
+        fetch('/api/admin/revenue/overview').then(r => r.json()),
+        fetch('/api/admin/revenue/analytics').then(r => r.json())
+      ]).then(([overviewData, analyticsData]) => {
+        setPaymentAnalytics(overviewData.overview || null);
+        setPaymentChartData(overviewData.chartData || []);
+        setPaymentDeepAnalytics(analyticsData || null);
+      }).finally(() => setIsPaymentsLoading(false));
     }
   }, [activeView, user, coursePage, courseSearch, courseStatus, courseCategory, paymentFilters]);
 
@@ -1873,16 +1886,12 @@ export default function AdminDashboard() {
           )}
 
           {/* ---- TRANSACTIONS & FINANCIALS ---- */}
-          {['admin_transactions', 'admin_failed_payments', 'admin_refunds_history'].includes(activeView) && (
+          {activeView === 'admin_transactions' && (
             <div className="view active fade-up">
               <div className="section-hd">
                 <div>
                   <div className="section-label">Financial Operations</div>
-                  <div className="section-title">
-                    {activeView === 'admin_transactions' && 'All Transactions'}
-                    {activeView === 'admin_failed_payments' && 'Failed Payments'}
-                    {activeView === 'admin_refunds_history' && 'Refunds History'}
-                  </div>
+                  <div className="section-title">All Transactions</div>
                 </div>
               </div>
               <div className="admin-card">
@@ -1918,6 +1927,18 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {activeView === 'admin_failed_payments' && (
+            <div className="view active fade-up">
+              <FailedPayments />
+            </div>
+          )}
+
+          {activeView === 'admin_refunds_history' && (
+            <div className="view active fade-up">
+              <RefundsHistory />
+            </div>
+          )}
+
           {activeView === 'admin_revenue_analytics' && (
             <div className="view active fade-up">
               <div className="section-hd">
@@ -1929,7 +1950,7 @@ export default function AdminDashboard() {
               {isPaymentsLoading ? (
                 <div style={{ padding: '40px', textAlign: 'center' }}><div className="dashboard-loader"></div></div>
               ) : (
-                <RevenueCards analytics={paymentAnalytics} chartData={paymentChartData} />
+                <RevenueCards analytics={paymentAnalytics} chartData={paymentChartData} deepAnalytics={paymentDeepAnalytics} />
               )}
             </div>
           )}
@@ -1954,17 +1975,17 @@ export default function AdminDashboard() {
           <PaymentDetails
             payment={selectedPayment}
             onClose={() => setSelectedPayment(null)}
-            onRefund={async (orderId, amount) => {
+            onRefund={async (paymentId, amount) => {
               // Trigger refund API
               try {
-                const res = await fetch('/api/admin/refunds', {
+                const res = await fetch('/api/admin/refunds/process', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ orderId, refundAmount: amount, reason: 'Admin UI Refund' })
+                  body: JSON.stringify({ payment_id: paymentId, amount, action: 'process', reason_category: 'Admin UI Refund' })
                 });
                 const data = await res.json();
                 if (res.ok) {
-                  showToast('Refund processed successfully', 'success');
+                  showToast('Refund requested successfully', 'success');
                   setSelectedPayment(null);
                   // Trigger reload by updating filter state reference
                   setPaymentFilters({ ...paymentFilters });

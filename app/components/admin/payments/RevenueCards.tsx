@@ -1,7 +1,7 @@
 import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-export default function RevenueCards({ analytics, chartData }: { analytics: any, chartData?: any[] }) {
+export default function RevenueCards({ analytics, chartData, deepAnalytics }: { analytics: any, chartData?: any[], deepAnalytics?: any }) {
   if (!analytics) return null;
 
   return (
@@ -89,6 +89,39 @@ export default function RevenueCards({ analytics, chartData }: { analytics: any,
           <span className="overview-value">{analytics.refundRate?.toFixed(1) || '0.0'}%</span>
         </div>
       </div>
+
+      {/* Deep Analytics Section */}
+      {deepAnalytics && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', marginTop: '24px' }}>
+          
+          <div className="admin-card" style={{ padding: '24px' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--ink)', marginBottom: '16px' }}>Top Selling Courses</h3>
+            {deepAnalytics.topCourses?.map((course: any, idx: number) => (
+              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border-md)' }}>
+                <div>
+                  <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{course.name}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>{course.enrollments} enrollments</div>
+                </div>
+                <div style={{ fontWeight: 700, color: 'var(--green)' }}>₹{parseFloat(course.revenue || '0').toLocaleString()}</div>
+              </div>
+            ))}
+          </div>
+
+          <div className="admin-card" style={{ padding: '24px' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: '800', color: 'var(--ink)', marginBottom: '16px' }}>Instructor Leaderboard</h3>
+            {deepAnalytics.instructorLeaderboard?.map((inst: any, idx: number) => (
+              <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0', borderBottom: '1px solid var(--border-md)' }}>
+                <div>
+                  <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{inst.first_name} {inst.last_name}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-3)' }}>Total Generated: ₹{parseFloat(inst.total_generated || '0').toLocaleString()}</div>
+                </div>
+                <div style={{ fontWeight: 700, color: 'var(--indigo)' }}>Cut: ₹{parseFloat(inst.instructor_cut || '0').toLocaleString()}</div>
+              </div>
+            ))}
+          </div>
+
+        </div>
+      )}
     </div>
   );
 }
