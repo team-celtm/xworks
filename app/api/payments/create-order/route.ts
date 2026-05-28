@@ -44,6 +44,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'This format is coming soon and is not currently available.' }, { status: 400 });
     }
 
+    // 1.5. Validate session expiry (if applicable)
+    if (format === 'live' && sessionId) {
+      const sessionCheckRes = await pool.query(
+        'SELECT scheduled_start FROM live_sessions WHERE id = $1::uuid',
+        [sessionId]
+      );
+      if (sessionCheckRes.rows.length === 0) {
+        return NextResponse.json({ success: false, message: 'Session not found.' }, { status: 404 });
+      }
+      
+      const sessionStart = new Date(sessionCheckRes.rows[0].scheduled_start);
+      if (sessionStart.getTime() <= Date.now()) {
+        return NextResponse.json({ 
+          success: false, 
+          message: 'This session slot has expired.' 
+        }, { status: 400 });
+      }
+    }
+
     console.log('Course Details:', { name: courseName, basePrice: courseRes.rows[0].price, adjustedPrice: price, format });
 
     // 2. Apply promo if any

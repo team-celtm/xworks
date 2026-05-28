@@ -292,6 +292,12 @@ function CatalogueContent() {
   const [promoError, setPromoError] = useState('');
   const [promoLoading, setPromoLoading] = useState(false);
   const [modalSessions, setModalSessions] = useState<any[]>([]);
+  const [currentTime, setCurrentTime] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(Date.now()), 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   const openEnrol = async (w: Workshop) => {
     if (user && (user.role === 'admin' || user.role === 'instructor')) {
@@ -948,7 +954,7 @@ function CatalogueContent() {
                         const day = d.toLocaleDateString('en-IN', { weekday: 'short' });
                         const num = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
                         const time = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
-                        const isPast = d.getTime() < Date.now();
+                        const isPast = d.getTime() < currentTime;
                         const isFull = s.max_seats && s.registered_count >= s.max_seats;
                         const isDisabled = isFull || isPast;
 
@@ -962,7 +968,8 @@ function CatalogueContent() {
                               ...prev,
                               selectedSessionId: s.id,
                               date: `${day} ${num}`,
-                              time
+                              time,
+                              scheduledStart: s.scheduled_start
                             }))}
                           >
                             <div className="enrol-date-day">{day}</div>
@@ -987,7 +994,19 @@ function CatalogueContent() {
                     </>
                   )}
 
-                  <button className="enrol-cta" onClick={() => setEnrolStep(3)}>Continue to payment →</button>
+                  {(() => {
+                    const isSelectedExpired = enrolData.scheduledStart && new Date(enrolData.scheduledStart as string).getTime() < currentTime;
+                    return (
+                      <button 
+                        className="enrol-cta" 
+                        onClick={() => setEnrolStep(3)}
+                        disabled={isSelectedExpired}
+                        style={{ opacity: isSelectedExpired ? 0.5 : 1 }}
+                      >
+                        {isSelectedExpired ? 'Slot Expired' : 'Continue to payment →'}
+                      </button>
+                    );
+                  })()}
                 </div>
               </div>
             )}

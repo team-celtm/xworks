@@ -249,6 +249,12 @@ function DashboardPageContent() {
   const [availableSessions, setAvailableSessions] = useState<any[]>([]);
   const [isBooking, setIsBooking] = useState(false);
   const [todayDate, setTodayDate] = useState("");
+  const [currentTime, setCurrentTime] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(Date.now()), 5000); // 5 sec sync
+    return () => clearInterval(timer);
+  }, []);
 
   const [workshops, setWorkshops] = useState<Workshop[]>([]);
   const [loadingWorkshops, setLoadingWorkshops] = useState(true);
@@ -1593,15 +1599,15 @@ function DashboardPageContent() {
                   Upcoming Courses
                 </div>
                 <div style={{ fontSize: "13px", color: "var(--text-3)" }}>
-                  {sessions.length} workshops you&apos;ve enrolled in — get ready!
+                  {sessions.filter(s => new Date(s.scheduledStart).getTime() >= currentTime).length} upcoming workshops you&apos;ve enrolled in — get ready!
                 </div>
               </div>
               <div className="upcoming-list fade-up" style={{ animationDelay: '0.06s' }}>
-                {sessions.length > 0 ? sessions.map((s, i) => {
+                {sessions.filter(s => new Date(s.scheduledStart).getTime() >= currentTime).length > 0 ? sessions.filter(s => new Date(s.scheduledStart).getTime() >= currentTime).map((s, i) => {
                   const startDate = new Date(s.scheduledStart);
-                  const isJoinable = startDate.getTime() <= Date.now() + (15 * 60 * 1000); // 15 mins before
+                  const isJoinable = startDate.getTime() <= currentTime + (15 * 60 * 1000); // 15 mins before
                   return (
-                    <div className="upcoming-card" key={i}>
+                    <div className="upcoming-card" key={`upcoming-${i}`}>
                       <div className="upcoming-date-block">
                         <div className="upcoming-day">{startDate.getDate()}</div>
                         <div className="upcoming-month">{startDate.toLocaleDateString('en-IN', { month: 'short' }).toUpperCase()}</div>
@@ -1614,8 +1620,8 @@ function DashboardPageContent() {
                         </div>
                       </div>
                       <div className="upcoming-right">
-                        <span className={`upcoming-mode ${startDate.getTime() > Date.now() ? (s.sessionStatus === 'cancelled' ? '' : 'mode-live') : ''}`}>
-                          {s.sessionStatus === 'cancelled' ? '🚫 Cancelled' : (startDate.getTime() > Date.now() ? '🔴 Live' : '⏺ Recorded')}
+                        <span className={`upcoming-mode ${startDate.getTime() > currentTime ? (s.sessionStatus === 'cancelled' ? '' : 'mode-live') : ''}`}>
+                          {s.sessionStatus === 'cancelled' ? '🚫 Cancelled' : (startDate.getTime() > currentTime ? '🔴 Live' : '⏺ Recorded')}
                         </span>
                         <div className="upcoming-time">⏰ {startDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</div>
                         {s.sessionStatus === 'cancelled' ? (
@@ -1623,18 +1629,18 @@ function DashboardPageContent() {
                         ) : (
                           <div style={{ display: 'flex', gap: '8px' }}>
                             <button 
-                              className={`join-btn ${isJoinable ? "" : (s.recordingAvailable && startDate.getTime() < Date.now() ? "" : "disabled")}`}
+                              className={`join-btn ${isJoinable ? "" : (s.recordingAvailable && startDate.getTime() < currentTime ? "" : "disabled")}`}
                               onClick={() => {
-                                if (s.recordingAvailable && startDate.getTime() < Date.now()) {
+                                if (s.recordingAvailable && startDate.getTime() < currentTime) {
                                   window.open(`/api/sessions/${s.sessionId}/recording`, '_blank');
                                 } else if (isJoinable) {
                                   window.open(`/api/learner/sessions/${s.sessionId}/join`, '_blank');
                                 }
                               }}
                             >
-                              {s.recordingAvailable && startDate.getTime() < Date.now() ? "Watch Recording ↗" : (isJoinable ? "Join now →" : "Not yet")}
+                              {s.recordingAvailable && startDate.getTime() < currentTime ? "Watch Recording ↗" : (isJoinable ? "Join now →" : "Not yet")}
                             </button>
-                            {startDate.getTime() > Date.now() + (2 * 60 * 60 * 1000) && (
+                            {startDate.getTime() > currentTime + (2 * 60 * 60 * 1000) && (
                               <button 
                                 className="join-btn" 
                                 style={{ background: 'var(--surface-2)', color: 'var(--indigo)', border: '0.5px solid var(--border-md)' }}
@@ -1653,6 +1659,59 @@ function DashboardPageContent() {
                     {loadingSessions ? "Checking for upcoming sessions..." : "No upcoming live sessions found."}
                   </div>
                 )}
+              </div>
+
+              <div className="fade-up" style={{ marginTop: "32px", animationDelay: '0.09s' }}>
+                <div className="section-hd" style={{ marginBottom: "16px" }}>
+                  <div className="section-hd-left">
+                    <div className="section-label">Completed</div>
+                    <div className="section-title">Past Sessions</div>
+                  </div>
+                </div>
+                <div className="upcoming-list">
+                  {sessions.filter(s => new Date(s.scheduledStart).getTime() < currentTime).length > 0 ? sessions.filter(s => new Date(s.scheduledStart).getTime() < currentTime).map((s, i) => {
+                    const startDate = new Date(s.scheduledStart);
+                    return (
+                      <div className="upcoming-card" style={{ opacity: 0.8 }} key={`past-${i}`}>
+                        <div className="upcoming-date-block" style={{ background: 'var(--surface-2)' }}>
+                          <div className="upcoming-day" style={{ color: 'var(--text-3)' }}>{startDate.getDate()}</div>
+                          <div className="upcoming-month" style={{ color: 'var(--text-3)' }}>{startDate.toLocaleDateString('en-IN', { month: 'short' }).toUpperCase()}</div>
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div className="upcoming-name" style={{ color: 'var(--text-2)' }}>{s.sessionTitle}</div>
+                          <div className="upcoming-meta">
+                            {s.courseName} · {s.platform || 'Online'}
+                            {s.paymentStatus === 'refunded' && <span style={{ color: 'var(--alert-red)', fontWeight: 600, marginLeft: '8px' }}>· Refunded</span>}
+                          </div>
+                        </div>
+                        <div className="upcoming-right">
+                          <span className="upcoming-mode" style={{ background: 'var(--surface-2)', color: 'var(--text-3)' }}>
+                            {s.sessionStatus === 'cancelled' ? '🚫 Cancelled' : '⏺ Completed'}
+                          </span>
+                          <div className="upcoming-time" style={{ color: 'var(--text-3)' }}>⏰ {startDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</div>
+                          {s.sessionStatus === 'cancelled' ? (
+                            <button className="join-btn disabled" disabled>Cancelled</button>
+                          ) : (
+                            <button 
+                              className={`join-btn ${s.recordingAvailable ? "" : "disabled"}`}
+                              onClick={() => {
+                                if (s.recordingAvailable) {
+                                  window.open(`/api/sessions/${s.sessionId}/recording`, '_blank');
+                                }
+                              }}
+                            >
+                              {s.recordingAvailable ? "Watch Recording ↗" : "No Recording"}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  }) : (
+                    <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-3)', width: '100%', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>
+                      No past sessions found.
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="fade-up" style={{ marginTop: "8px", animationDelay: '0.12s' }}>
@@ -2170,7 +2229,7 @@ function DashboardPageContent() {
                       const month = sDate.toLocaleDateString('en-IN', { month: 'short' });
                       const fullStr = sDate.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
                       const timeStr = sDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-                      const isPast = sDate.getTime() < Date.now();
+                      const isPast = sDate.getTime() < currentTime;
                       const isFull = s.maxSeats !== null && s.maxSeats !== undefined && s.maxSeats > 0 && (s.maxSeats - s.registeredCount <= 0);
                       const isDisabled = isFull || isPast;
 
@@ -2178,7 +2237,7 @@ function DashboardPageContent() {
                         <div
                           key={s.id}
                           className={`enrol-date-btn ${enrolData.date === fullStr && enrolData.time === timeStr ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`}
-                          onClick={() => !isDisabled && setEnrolData(prev => ({ ...prev, date: fullStr, time: timeStr, sessionId: s.id }))}
+                          onClick={() => !isDisabled && setEnrolData(prev => ({ ...prev, date: fullStr, time: timeStr, sessionId: s.id, scheduledStart: s.scheduledStart }))}
                           style={{ height: 'auto', padding: '12px 8px', cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.5 : 1 }}
                         >
                           <div className="enrol-date-day">{day}</div>
@@ -2200,14 +2259,19 @@ function DashboardPageContent() {
                     </div>
                   )}
 
-                  <button
-                    className="enrol-cta"
-                    onClick={() => setEnrolStep(3)}
-                    disabled={!enrolData.date}
-                    style={{ marginTop: '24px', opacity: !enrolData.date ? 0.5 : 1 }}
-                  >
-                    Continue to payment →
-                  </button>
+                  {(() => {
+                    const isSelectedExpired = enrolData.scheduledStart && new Date(enrolData.scheduledStart as string).getTime() < currentTime;
+                    return (
+                      <button
+                        className="enrol-cta"
+                        onClick={() => setEnrolStep(3)}
+                        disabled={!enrolData.date || isSelectedExpired}
+                        style={{ marginTop: '24px', opacity: (!enrolData.date || isSelectedExpired) ? 0.5 : 1 }}
+                      >
+                        {isSelectedExpired ? 'Slot Expired' : 'Continue to payment →'}
+                      </button>
+                    );
+                  })()}
                 </div>
               </div>
             )}

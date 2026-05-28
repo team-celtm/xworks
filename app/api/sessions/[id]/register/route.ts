@@ -32,6 +32,14 @@ export async function POST(
 
     const session = sessionRes.rows[0];
 
+    const sessionStart = new Date(session.scheduled_start);
+    if (sessionStart.getTime() <= Date.now()) {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'This session slot has expired.' 
+      }, { status: 400 });
+    }
+
     // 2. Check if user is enrolled
     const enrolRes = await pool.query(
       'SELECT id FROM enrolments WHERE user_id = $1::uuid AND course_id = $2::uuid AND status = $3',

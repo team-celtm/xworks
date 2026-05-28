@@ -126,6 +126,25 @@ export async function POST(req: NextRequest) {
     const price = Number(courseRes.rows[0].price);
     const courseName = courseRes.rows[0].name;
 
+    // Validate session expiry (if applicable)
+    if (sessionId) {
+      const sessionCheckRes = await pool.query(
+        'SELECT scheduled_start FROM live_sessions WHERE id = $1::uuid',
+        [sessionId]
+      );
+      if (sessionCheckRes.rows.length === 0) {
+        return NextResponse.json({ success: false, message: 'Session not found.' }, { status: 404 });
+      }
+      
+      const sessionStart = new Date(sessionCheckRes.rows[0].scheduled_start);
+      if (sessionStart.getTime() <= Date.now()) {
+        return NextResponse.json({ 
+          success: false, 
+          message: 'This session slot has expired.' 
+        }, { status: 400 });
+      }
+    }
+
     if (price > 0) {
       return NextResponse.json({ 
         error: 'This is a paid course. Please proceed to payment.',

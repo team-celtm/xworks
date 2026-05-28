@@ -105,6 +105,12 @@ export default function Home() {
   const [user, setUser] = useState<any>(null);
   const [userLoading, setUserLoading] = useState(true);
   const [alertOpen, setAlertOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(Date.now()), 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -1145,7 +1151,7 @@ export default function Home() {
                       const day = d.toLocaleDateString('en-IN', { weekday: 'short' });
                       const num = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
                       const time = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
-                      const isPast = d.getTime() < Date.now();
+                      const isPast = d.getTime() < currentTime;
                       const isFull = s.max_seats && s.registered_count >= s.max_seats;
                       const isDisabled = isFull || isPast;
 
@@ -1158,7 +1164,8 @@ export default function Home() {
                             ...prev,
                             selectedSessionId: s.id,
                             date: `${day} ${num}`,
-                            time
+                            time,
+                            scheduledStart: s.scheduled_start
                           }))}
                         >
                           <div className="enrol-date-day">{day}</div>
@@ -1183,7 +1190,19 @@ export default function Home() {
                   </>
                 )}
 
-                <button className="enrol-cta" onClick={() => enrolGoStep(3)}>Continue to payment →</button>
+                  {(() => {
+                    const isSelectedExpired = enrolData.scheduledStart && new Date(enrolData.scheduledStart as string).getTime() < currentTime;
+                    return (
+                      <button 
+                        className="enrol-cta" 
+                        onClick={() => enrolGoStep(3)}
+                        disabled={isSelectedExpired}
+                        style={{ opacity: isSelectedExpired ? 0.5 : 1 }}
+                      >
+                        {isSelectedExpired ? 'Slot Expired' : 'Continue to payment →'}
+                      </button>
+                    );
+                  })()}
               </div>
             </div>
           )}
