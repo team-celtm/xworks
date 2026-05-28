@@ -34,6 +34,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (sessionInfo.session_status === 'cancelled') {
       return NextResponse.json({ error: 'Session is already cancelled' }, { status: 400 });
     }
+    if (sessionInfo.session_status === 'live' || sessionInfo.session_status === 'completed' || sessionInfo.session_status === 'expired') {
+      return NextResponse.json({ error: 'Cannot cancel a session that has already started or ended' }, { status: 400 });
+    }
+
     const scheduledStart = new Date(sessionInfo.scheduled_start);
     const now = new Date();
     const isLessThan24h = (scheduledStart.getTime() - now.getTime()) < (24 * 60 * 60 * 1000);

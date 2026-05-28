@@ -31,12 +31,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (session.status === 'cancelled') {
       return NextResponse.json({ error: 'Cannot update a cancelled session' }, { status: 400 });
     }
+    
+    if (session.status === 'completed' || session.status === 'expired') {
+      return NextResponse.json({ error: 'Cannot start or update a session that has already ended' }, { status: 400 });
+    }
 
     const scheduledStart = new Date(session.scheduled_start).getTime();
     const scheduledEnd = session.scheduled_end ? new Date(session.scheduled_end).getTime() : scheduledStart + (60 * 60 * 1000);
     const gracePeriodMs = parseInt(process.env.SESSION_GRACE_PERIOD_MINUTES || '10') * 60 * 1000;
 
-    if (Date.now() > scheduledEnd + gracePeriodMs) {
+    // Only prevent starting if it's not already live and the time has expired
+    if (session.status !== 'live' && Date.now() > scheduledEnd + gracePeriodMs) {
       return NextResponse.json({ success: false, message: 'This session has already ended.' }, { status: 400 });
     }
 
