@@ -52,6 +52,12 @@ function InstructorDashboardContent() {
   const [appStatus, setAppStatus] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [currentTime, setCurrentTime] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(Date.now()), 10000);
+    return () => clearInterval(timer);
+  }, []);
 
   const [modalConfig, setModalConfig] = useState<ActionModalState>({
     isOpen: false,
@@ -623,99 +629,144 @@ function InstructorDashboardContent() {
                 </div>
               )}
 
-              {sessions.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  {sessions.map(s => (
-                    <div key={s.sessionId} className="session-row">
-                      <div>
+              {sessions.length > 0 ? (() => {
+                const liveAndUpcoming: any[] = [];
+                const pastSessions: any[] = [];
+
+                sessions.forEach(s => {
+                  const scheduledStart = new Date(s.scheduledStart).getTime();
+                  const scheduledEnd = s.scheduledEnd ? new Date(s.scheduledEnd).getTime() : scheduledStart + (60 * 60 * 1000);
+                  
+                  if (s.sessionStatus === 'cancelled') {
+                    pastSessions.push({ ...s, derivedState: 'cancelled' });
+                    return;
+                  }
+                  
+                  if (currentTime > scheduledEnd) {
+                    pastSessions.push({ ...s, derivedState: s.hostUrl ? 'completed' : 'expired' });
+                  } else {
+                    liveAndUpcoming.push({ ...s, derivedState: (currentTime >= scheduledStart && currentTime <= scheduledEnd) ? 'live' : 'upcoming' });
+                  }
+                });
+
+                const renderSessionCard = (s: any) => {
+                  let badge = { text: 'Upcoming', bg: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' };
+                  if (s.derivedState === 'live') badge = { text: 'Live Now', bg: 'rgba(34, 197, 94, 0.1)', color: '#22c55e' };
+                  if (s.derivedState === 'completed') badge = { text: 'Completed', bg: 'var(--surface-2)', color: 'var(--text-3)' };
+                  if (s.derivedState === 'expired') badge = { text: 'Expired', bg: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b' };
+                  if (s.derivedState === 'cancelled') badge = { text: 'Cancelled', bg: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' };
+
+                  return (
+                    <div key={s.sessionId} className="session-row" style={{ position: 'relative' }}>
+                      <div style={{ position: 'absolute', top: '24px', right: '24px' }}>
+                        <span style={{ padding: '6px 12px', background: badge.bg, color: badge.color, borderRadius: '100px', fontSize: '11px', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                          {s.derivedState === 'live' ? <span style={{ display: 'inline-block', width: '6px', height: '6px', background: '#22c55e', borderRadius: '50%', marginRight: '6px', animation: 'pulse 2s infinite' }}></span> : null}
+                          {badge.text}
+                        </span>
+                      </div>
+                      <div style={{ paddingRight: '120px' }}>
                         <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: 'var(--ink)' }}>{s.sessionTitle}</h3>
                         <div style={{ color: 'var(--text-3)', fontSize: '14px' }}>
                           {s.courseName} • {new Date(s.scheduledStart).toLocaleString()} • {s.registrantCount} learners registered
                         </div>
                       </div>
-                      <div className="session-actions">
-                        {s.sessionStatus === 'cancelled' ? (
-                          <span style={{ padding: '8px 16px', background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', borderRadius: '100px', fontWeight: 600, fontSize: '13px' }}>
-                            Cancelled
-                          </span>
-                        ) : (
-                          <>
-                            {(s.scheduledEnd ? new Date(s.scheduledEnd).getTime() : new Date(s.scheduledStart).getTime() + 60 * 60 * 1000) < Date.now() ? (
-                              <button 
-                                className="join-btn enrol-cta coral"
-                                style={{ padding: '10px 24px', margin: 0, opacity: 0.5, cursor: 'not-allowed' }}
-                                disabled
-                              >
-                                Session Ended
-                              </button>
-                            ) : (
-                              <button 
-                                className="join-btn enrol-cta coral"
-                                style={{ padding: '10px 24px', margin: 0 }}
-                                onClick={async () => {
-                                  if (s.hostUrl) {
-                                    window.open(s.hostUrl, '_blank');
-                                  } else {
-                                    showModal({
-                                      type: 'prompt',
-                                      title: 'Start Session',
-                                      message: 'Enter the meeting link (e.g., Zoom, Google Meet) to start the session:',
-                                      inputPlaceholder: 'https://...',
-                                      onConfirm: async (url) => {
-                                        if (url) {
-                                          try {
-                                            const res = await fetchApi(`/api/instructor/sessions/${s.sessionId}/host`, {
-                                              method: 'PUT',
-                                              headers: { 'Content-Type': 'application/json' },
-                                              body: JSON.stringify({ hostUrl: url })
-                                            });
-                                            if (res.ok) {
-                                              setSessions(prev => prev.map(sess => sess.sessionId === s.sessionId ? { ...sess, hostUrl: url } : sess));
-                                              window.open(url, '_blank');
-                                            } else {
-                                              showModal({ type: 'alert', title: 'Error', message: 'Failed to save Host URL' });
-                                            }
-                                          } catch (err) {
-                                            console.error(err);
-                                            showModal({ type: 'alert', title: 'Error', message: 'Error saving Host URL' });
-                                          }
+                      <div className="session-actions" style={{ marginTop: '20px' }}>
+                        {(s.derivedState === 'upcoming' || s.derivedState === 'live') && (
+                          <button 
+                            className="join-btn enrol-cta coral"
+                            style={{ padding: '10px 24px', margin: 0 }}
+                            onClick={async () => {
+                              if (s.hostUrl) {
+                                window.open(s.hostUrl, '_blank');
+                              } else {
+                                showModal({
+                                  type: 'prompt',
+                                  title: 'Start Session',
+                                  message: 'Enter the meeting link (e.g., Zoom, Google Meet) to start the session:',
+                                  inputPlaceholder: 'https://...',
+                                  onConfirm: async (url) => {
+                                    if (url) {
+                                      try {
+                                        const res = await fetchApi(`/api/instructor/sessions/${s.sessionId}/host`, {
+                                          method: 'PUT',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ hostUrl: url })
+                                        });
+                                        if (res.ok) {
+                                          setSessions(prev => prev.map(sess => sess.sessionId === s.sessionId ? { ...sess, hostUrl: url } : sess));
+                                          window.open(url, '_blank');
+                                        } else {
+                                          const errData = await res.json();
+                                          showModal({ type: 'alert', title: 'Error', message: errData.message || 'Failed to save Host URL' });
                                         }
+                                      } catch (err) {
+                                        console.error(err);
+                                        showModal({ type: 'alert', title: 'Error', message: 'Error saving Host URL' });
                                       }
-                                    });
+                                    }
                                   }
-                                }}
-                              >
-                                Start Session →
-                              </button>
-                            )}
-                            <button 
-                              onClick={() => handleToggleRecording(s.sessionId, s.recordingAvailable)}
-                              style={{ background: 'var(--surface-2)', border: '1px solid var(--border-md)', color: 'var(--indigo)', padding: '10px 18px', borderRadius: '100px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
-                            >
-                              {s.recordingAvailable ? "Recording Live ✅" : "Share Recording 📽️"}
-                            </button>
-                            {(s.scheduledEnd ? new Date(s.scheduledEnd).getTime() : new Date(s.scheduledStart).getTime() + 60 * 60 * 1000) < Date.now() ? (
-                              <button 
-                                style={{ background: 'transparent', border: '1px solid var(--border-md)', color: 'var(--text-3)', padding: '10px 16px', borderRadius: '100px', cursor: 'not-allowed', fontSize: '13px', fontWeight: 600 }}
-                                disabled
-                              >
-                                Cancel
-                              </button>
-                            ) : (
-                              <button 
-                                onClick={() => handleCancel(s.sessionId)}
-                                style={{ background: 'transparent', border: '1px solid var(--alert-red)', color: 'var(--alert-red)', padding: '10px 16px', borderRadius: '100px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
-                              >
-                                Cancel
-                              </button>
-                            )}
-                          </>
+                                });
+                              }
+                            }}
+                          >
+                            Start Session →
+                          </button>
+                        )}
+                        {(s.derivedState === 'upcoming' || s.derivedState === 'live') && (
+                          <button 
+                            onClick={() => handleCancel(s.sessionId)}
+                            style={{ background: 'transparent', border: '1px solid var(--alert-red)', color: 'var(--alert-red)', padding: '10px 16px', borderRadius: '100px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
+                          >
+                            Cancel
+                          </button>
+                        )}
+                        {s.derivedState === 'completed' && (
+                          <button 
+                            onClick={() => handleToggleRecording(s.sessionId, s.recordingAvailable)}
+                            style={{ background: 'var(--surface-2)', border: '1px solid var(--border-md)', color: 'var(--indigo)', padding: '10px 18px', borderRadius: '100px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
+                          >
+                            {s.recordingAvailable ? "Recording Live ✅" : "Share Recording 📽️"}
+                          </button>
+                        )}
+                        {(s.derivedState === 'expired' || s.derivedState === 'cancelled') && (
+                          <span style={{ color: 'var(--text-3)', fontSize: '13px', fontStyle: 'italic', padding: '10px 0' }}>
+                            No actions available
+                          </span>
                         )}
                       </div>
                     </div>
-                  ))}
-                </div>
-              ) : (
+                  );
+                };
+
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
+                    <div>
+                      <h4 style={{ color: 'var(--ink)', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 800, marginBottom: '16px' }}>Live & Upcoming</h4>
+                      {liveAndUpcoming.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                          {liveAndUpcoming.map(renderSessionCard)}
+                        </div>
+                      ) : (
+                        <div style={{ padding: '32px', background: 'var(--surface)', borderRadius: '16px', border: '1px dashed var(--border-md)', color: 'var(--text-3)', textAlign: 'center', fontSize: '14px' }}>
+                          No upcoming sessions.
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <h4 style={{ color: 'var(--ink)', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 800, marginBottom: '16px' }}>Past Sessions</h4>
+                      {pastSessions.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', opacity: 0.85 }}>
+                          {pastSessions.map(renderSessionCard)}
+                        </div>
+                      ) : (
+                        <div style={{ padding: '32px', background: 'var(--surface)', borderRadius: '16px', border: '1px dashed var(--border-md)', color: 'var(--text-3)', textAlign: 'center', fontSize: '14px' }}>
+                          No past sessions yet.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })() : (
                 <div style={{ textAlign: 'center', padding: '40px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)', color: 'var(--text-3)' }}>
                   You have no live sessions scheduled right now.
                 </div>

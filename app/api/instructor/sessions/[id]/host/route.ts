@@ -13,9 +13,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const userId = (payload as any).id;
     const { id: sessionId } = await params;
 
-    // Verify ownership and that it is not cancelled
+    // Verify ownership, status, and expiry
     const ownershipRes = await pool.query(`
-      SELECT ls.id, ls.status 
+      SELECT ls.id, ls.status, ls.scheduled_start, ls.scheduled_end
       FROM live_sessions ls
       JOIN courses c ON ls.course_id = c.id
       JOIN instructors i ON c.instructor_id = i.id
@@ -26,8 +26,18 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Not authorized or session not found' }, { status: 403 });
     }
 
-    if (ownershipRes.rows[0].status === 'cancelled') {
+    const session = ownershipRes.rows[0];
+
+    if (session.status === 'cancelled') {
       return NextResponse.json({ error: 'Cannot update a cancelled session' }, { status: 400 });
+    }
+
+    const scheduledStart = new Date(session.scheduled_start).getTime();
+    const scheduledEnd = session.scheduled_end ? new Date(session.scheduled_end).getTime() : scheduledStart + (60 * 60 * 1000);
+    const gracePeriodMs = parseInt(process.env.SESSION_GRACE_PERIOD_MINUTES || '10') * 60 * 1000;
+
+    if (Date.now() > scheduledEnd + gracePeriodMs) {
+      return NextResponse.json({ success: false, message: 'This session has already ended.' }, { status: 400 });
     }
 
     const { hostUrl } = await req.json();
