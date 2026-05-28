@@ -640,56 +640,75 @@ function InstructorDashboardContent() {
                           </span>
                         ) : (
                           <>
-                            <button 
-                              className="join-btn enrol-cta coral"
-                              style={{ padding: '10px 24px', margin: 0 }}
-                              onClick={async () => {
-                                if (s.hostUrl) {
-                                  window.open(s.hostUrl, '_blank');
-                                } else {
-                                  showModal({
-                                    type: 'prompt',
-                                    title: 'Start Session',
-                                    message: 'Enter the meeting link (e.g., Zoom, Google Meet) to start the session:',
-                                    inputPlaceholder: 'https://...',
-                                    onConfirm: async (url) => {
-                                      if (url) {
-                                        try {
-                                          const res = await fetchApi(`/api/instructor/sessions/${s.sessionId}/host`, {
-                                            method: 'PUT',
-                                            headers: { 'Content-Type': 'application/json' },
-                                            body: JSON.stringify({ hostUrl: url })
-                                          });
-                                          if (res.ok) {
-                                            setSessions(prev => prev.map(sess => sess.sessionId === s.sessionId ? { ...sess, hostUrl: url } : sess));
-                                            window.open(url, '_blank');
-                                          } else {
-                                            showModal({ type: 'alert', title: 'Error', message: 'Failed to save Host URL' });
+                            {(s.scheduledEnd ? new Date(s.scheduledEnd).getTime() : new Date(s.scheduledStart).getTime() + 60 * 60 * 1000) < Date.now() ? (
+                              <button 
+                                className="join-btn enrol-cta coral"
+                                style={{ padding: '10px 24px', margin: 0, opacity: 0.5, cursor: 'not-allowed' }}
+                                disabled
+                              >
+                                Session Ended
+                              </button>
+                            ) : (
+                              <button 
+                                className="join-btn enrol-cta coral"
+                                style={{ padding: '10px 24px', margin: 0 }}
+                                onClick={async () => {
+                                  if (s.hostUrl) {
+                                    window.open(s.hostUrl, '_blank');
+                                  } else {
+                                    showModal({
+                                      type: 'prompt',
+                                      title: 'Start Session',
+                                      message: 'Enter the meeting link (e.g., Zoom, Google Meet) to start the session:',
+                                      inputPlaceholder: 'https://...',
+                                      onConfirm: async (url) => {
+                                        if (url) {
+                                          try {
+                                            const res = await fetchApi(`/api/instructor/sessions/${s.sessionId}/host`, {
+                                              method: 'PUT',
+                                              headers: { 'Content-Type': 'application/json' },
+                                              body: JSON.stringify({ hostUrl: url })
+                                            });
+                                            if (res.ok) {
+                                              setSessions(prev => prev.map(sess => sess.sessionId === s.sessionId ? { ...sess, hostUrl: url } : sess));
+                                              window.open(url, '_blank');
+                                            } else {
+                                              showModal({ type: 'alert', title: 'Error', message: 'Failed to save Host URL' });
+                                            }
+                                          } catch (err) {
+                                            console.error(err);
+                                            showModal({ type: 'alert', title: 'Error', message: 'Error saving Host URL' });
                                           }
-                                        } catch (err) {
-                                          console.error(err);
-                                          showModal({ type: 'alert', title: 'Error', message: 'Error saving Host URL' });
                                         }
                                       }
-                                    }
-                                  });
-                                }
-                              }}
-                            >
-                              Start Session →
-                            </button>
+                                    });
+                                  }
+                                }}
+                              >
+                                Start Session →
+                              </button>
+                            )}
                             <button 
                               onClick={() => handleToggleRecording(s.sessionId, s.recordingAvailable)}
                               style={{ background: 'var(--surface-2)', border: '1px solid var(--border-md)', color: 'var(--indigo)', padding: '10px 18px', borderRadius: '100px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
                             >
                               {s.recordingAvailable ? "Recording Live ✅" : "Share Recording 📽️"}
                             </button>
-                            <button 
-                              onClick={() => handleCancel(s.sessionId)}
-                              style={{ background: 'transparent', border: '1px solid var(--alert-red)', color: 'var(--alert-red)', padding: '10px 16px', borderRadius: '100px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
-                            >
-                              Cancel
-                            </button>
+                            {(s.scheduledEnd ? new Date(s.scheduledEnd).getTime() : new Date(s.scheduledStart).getTime() + 60 * 60 * 1000) < Date.now() ? (
+                              <button 
+                                style={{ background: 'transparent', border: '1px solid var(--border-md)', color: 'var(--text-3)', padding: '10px 16px', borderRadius: '100px', cursor: 'not-allowed', fontSize: '13px', fontWeight: 600 }}
+                                disabled
+                              >
+                                Cancel
+                              </button>
+                            ) : (
+                              <button 
+                                onClick={() => handleCancel(s.sessionId)}
+                                style={{ background: 'transparent', border: '1px solid var(--alert-red)', color: 'var(--alert-red)', padding: '10px 16px', borderRadius: '100px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
+                              >
+                                Cancel
+                              </button>
+                            )}
                           </>
                         )}
                       </div>

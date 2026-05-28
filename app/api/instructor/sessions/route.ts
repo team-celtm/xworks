@@ -17,6 +17,7 @@ export async function GET(req: NextRequest) {
         ls.id as "sessionId",
         ls.title as "sessionTitle",
         ls.scheduled_start as "scheduledStart",
+        ls.scheduled_end as "scheduledEnd",
         ls.status as "sessionStatus",
         ls.host_url as "hostUrl",
         ls.recording_available as "recordingAvailable",
