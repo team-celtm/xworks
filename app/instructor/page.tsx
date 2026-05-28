@@ -8,6 +8,7 @@ import RoleTransitionOverlay from "../components/RoleTransitionOverlay";
 import ActionModal, { ActionModalState } from "../components/ActionModal";
 import EarningsDashboard from "../components/EarningsDashboard";
 import { fetchApi } from '@/lib/apiClient';
+import { useRealtimeSessions } from '@/app/hooks/useRealtimeSessions';
 
 function useUrlSync(key: string, value: any, setValue: any, defaultValue: any, searchParams: any, router: any) {
   useEffect(() => {
@@ -83,7 +84,8 @@ function InstructorDashboardContent() {
   const [stats, setStats] = useState({ total_courses: 0, pending_payout: 0 });
   const [transactions, setTransactions] = useState<any[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
-  const [sessions, setSessions] = useState<any[]>([]);
+  const [initialSessions, setInitialSessions] = useState<any[]>([]);
+  const [sessions, setSessions] = useRealtimeSessions(initialSessions);
   const [allCategories, setAllCategories] = useState<any[]>([]);
   const [isCreatingCourse, setIsCreatingCourse] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -100,14 +102,12 @@ function InstructorDashboardContent() {
       fetchApi('/api/instructor/sessions')
         .then(res => res.json())
         .then(data => {
-          setSessions(Array.isArray(data) ? data : (data.sessions || []));
+          setInitialSessions(Array.isArray(data) ? data : (data.sessions || []));
         })
         .catch(err => console.error("Failed to fetch sessions:", err));
     };
 
     fetchSessions();
-    const interval = setInterval(fetchSessions, 60000); // Poll every minute
-    return () => clearInterval(interval);
   }, []);
 
   const handleToggleRecording = async (sessionId: string, currentAvailable: boolean) => {
@@ -170,6 +170,30 @@ function InstructorDashboardContent() {
           }
         } catch (e) {
           showModal({ type: 'alert', title: 'Error', message: "Error cancelling session" });
+        }
+      }
+    });
+  };
+
+  const handleEndSession = async (sessionId: string) => {
+    showModal({
+      type: 'confirm',
+      title: 'End Session',
+      message: 'Are you sure you want to end this live session? Participants will no longer be able to join.',
+      onConfirm: async () => {
+        try {
+          const res = await fetchApi(`/api/instructor/sessions/${sessionId}/end`, {
+            method: 'PUT'
+          });
+          const result = await res.json();
+          if (res.ok) {
+            showModal({ type: 'alert', title: 'Session Ended', message: 'Session has been successfully ended.' });
+            setSessions(prev => prev.map(s => s.sessionId === sessionId ? { ...s, sessionStatus: 'completed' } : s));
+          } else {
+            showModal({ type: 'alert', title: 'Error', message: "Failed to end session: " + result.error });
+          }
+        } catch (e) {
+          showModal({ type: 'alert', title: 'Error', message: "Error ending session" });
         }
       }
     });
@@ -648,10 +672,17 @@ function InstructorDashboardContent() {
                     return;
                   }
                   
+                  if (s.sessionStatus === 'completed' || s.sessionStatus === 'expired') {
+                    pastSessions.push({ ...s, derivedState: s.sessionStatus });
+                    return;
+                  }
+                  
                   if (currentTime > scheduledEnd) {
                     pastSessions.push({ ...s, derivedState: s.hostUrl ? 'completed' : 'expired' });
                   } else {
-                    liveAndUpcoming.push({ ...s, derivedState: (currentTime >= scheduledStart && currentTime <= scheduledEnd) ? 'live' : 'upcoming' });
+                    // It's live if it's currently in the time window OR if it was explicitly started (status === 'live')
+                    const isLive = s.sessionStatus === 'live' || (currentTime >= scheduledStart && currentTime <= scheduledEnd);
+                    liveAndUpcoming.push({ ...s, derivedState: isLive ? 'live' : 'upcoming' });
                   }
                 });
 
@@ -677,7 +708,7 @@ function InstructorDashboardContent() {
                         </div>
                       </div>
                       <div className="session-actions" style={{ marginTop: '0' }}>
-                        {(s.derivedState === 'upcoming' || s.derivedState === 'live') && (
+                        {s.derivedState === 'upcoming' && (
                           <button 
                             className="join-btn enrol-cta coral"
                             style={{ padding: '10px 24px', margin: 0 }}
@@ -717,6 +748,34 @@ function InstructorDashboardContent() {
                           >
                             Start Session →
                           </button>
+                        )}
+                        {s.derivedState === 'live' && (
+                          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                            <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--alert-red)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ display: 'inline-block', width: '6px', height: '6px', background: 'var(--alert-red)', borderRadius: '50%', animation: 'pulse 2s infinite' }}></span>
+                              {(() => {
+                                const diffMs = currentTime - new Date(s.scheduledStart).getTime();
+                                const hrs = Math.floor(diffMs / 3600000);
+                                const mins = Math.floor((diffMs % 3600000) / 60000);
+                                const secs = Math.floor((diffMs % 60000) / 1000);
+                                return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                              })()}
+                            </div>
+                            <button 
+                              className="join-btn"
+                              style={{ padding: '10px 16px', margin: 0, background: 'var(--surface-2)', color: 'var(--text-1)', border: '1px solid var(--border-md)' }}
+                              onClick={() => s.hostUrl && window.open(s.hostUrl, '_blank')}
+                            >
+                              Join Call
+                            </button>
+                            <button 
+                              className="join-btn enrol-cta"
+                              style={{ padding: '10px 24px', margin: 0, background: 'var(--alert-red)' }}
+                              onClick={() => handleEndSession(s.sessionId)}
+                            >
+                              End Session
+                            </button>
+                          </div>
                         )}
                         {(s.derivedState === 'upcoming' || s.derivedState === 'live') && (
                           <button 

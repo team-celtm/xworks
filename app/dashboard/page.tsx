@@ -10,6 +10,7 @@ import RoleTransitionOverlay from "../components/RoleTransitionOverlay";
 import AlertModal from "../components/AlertModal";
 import { formatDuration } from '@/lib/utils';
 import { fetchApi } from '@/lib/apiClient';
+import { useRealtimeSessions } from '@/app/hooks/useRealtimeSessions';
 
 const triggerPromoConfetti = (elementId: string) => {
   const anchor = document.getElementById(elementId);
@@ -168,7 +169,8 @@ function DashboardPageContent() {
   const [promoOk, setPromoOk] = useState({ text: "", color: "", show: false });
   const [promoLoading, setPromoLoading] = useState(false);
 
-  const [sessions, setSessions] = useState<any[]>([]);
+  const [initialSessions, setInitialSessions] = useState<any[]>([]);
+  const [sessions, setSessions] = useRealtimeSessions(initialSessions);
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [certs, setCerts] = useState<any[]>([]);
   const [loadingCerts, setLoadingCerts] = useState(true);
@@ -362,7 +364,7 @@ function DashboardPageContent() {
       if (res.status === 401) return setSessionExpired(true);
       if (res.ok) {
         const data = await res.json();
-        setSessions(data || []);
+        setInitialSessions(data || []);
       }
     } catch (err) {
       console.error("Failed to fetch sessions:", err);
@@ -538,12 +540,7 @@ function DashboardPageContent() {
     }
   }, []);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      fetchSessions();
-    }, 60000); // 60s background sync
-    return () => clearInterval(interval);
-  }, []);
+
 
   const completedCount = enrolments.filter(e => e.enrolment_status === 'completed' || e.progressPct === 100).length;
 
@@ -1609,13 +1606,13 @@ function DashboardPageContent() {
                   Upcoming Courses
                 </div>
                 <div style={{ fontSize: "13px", color: "var(--text-3)" }}>
-                  {sessions.filter(s => new Date(s.scheduledStart).getTime() >= currentTime).length} upcoming workshops you&apos;ve enrolled in — get ready!
+                  {sessions.filter(s => ['scheduled', 'live'].includes(s.sessionStatus || s.status)).length} upcoming workshops you&apos;ve enrolled in — get ready!
                 </div>
               </div>
               <div className="upcoming-list fade-up" style={{ animationDelay: '0.06s' }}>
-                {sessions.filter(s => new Date(s.scheduledStart).getTime() >= currentTime).length > 0 ? sessions.filter(s => new Date(s.scheduledStart).getTime() >= currentTime).map((s, i) => {
+                {sessions.filter(s => ['scheduled', 'live'].includes(s.sessionStatus || s.status)).length > 0 ? sessions.filter(s => ['scheduled', 'live'].includes(s.sessionStatus || s.status)).map((s, i) => {
                   const startDate = new Date(s.scheduledStart);
-                  const isJoinable = startDate.getTime() <= currentTime + (15 * 60 * 1000); // 15 mins before
+                  const isJoinable = startDate.getTime() <= currentTime + (15 * 60 * 1000) || (s.sessionStatus || s.status) === 'live';
                   return (
                     <div className="upcoming-card" key={`upcoming-${i}`}>
                       <div className="upcoming-date-block">
@@ -1630,8 +1627,15 @@ function DashboardPageContent() {
                         </div>
                       </div>
                       <div className="upcoming-right">
-                        <span className={`upcoming-mode ${startDate.getTime() > currentTime ? (s.sessionStatus === 'cancelled' ? '' : 'mode-live') : ''}`}>
-                          {s.sessionStatus === 'cancelled' ? '🚫 Cancelled' : (startDate.getTime() > currentTime ? '🔴 Live' : '⏺ Recorded')}
+                        <span className={`upcoming-mode ${(s.sessionStatus || s.status) === 'live' ? 'mode-live' : ''}`} style={(s.sessionStatus || s.status) === 'live' ? { background: '#22c55e20', color: '#16a34a', border: '1px solid #22c55e50' } : {}}>
+                          {(s.sessionStatus || s.status) === 'live' ? (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ display: 'inline-block', width: '6px', height: '6px', background: '#22c55e', borderRadius: '50%', animation: 'pulse 2s infinite' }}></span>
+                              LIVE NOW
+                            </span>
+                          ) : (
+                            'Upcoming'
+                          )}
                         </span>
                         <div className="upcoming-time">⏰ {startDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</div>
                         {s.sessionStatus === 'cancelled' ? (
@@ -1679,7 +1683,7 @@ function DashboardPageContent() {
                   </div>
                 </div>
                 <div className="upcoming-list">
-                  {sessions.filter(s => new Date(s.scheduledStart).getTime() < currentTime).length > 0 ? sessions.filter(s => new Date(s.scheduledStart).getTime() < currentTime).map((s, i) => {
+                  {sessions.filter(s => ['completed', 'cancelled', 'expired'].includes(s.sessionStatus || s.status)).length > 0 ? sessions.filter(s => ['completed', 'cancelled', 'expired'].includes(s.sessionStatus || s.status)).map((s, i) => {
                     const startDate = new Date(s.scheduledStart);
                     return (
                       <div className="upcoming-card" style={{ opacity: 0.8 }} key={`past-${i}`}>

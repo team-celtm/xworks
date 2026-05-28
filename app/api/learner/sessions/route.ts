@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
       JOIN courses c ON ls.course_id = c.id
       LEFT JOIN payments p ON e.id = p.enrolment_id::uuid
       WHERE e.user_id = $1::uuid 
-        AND (ls.scheduled_start >= NOW() - INTERVAL '1 hour' OR ls.recording_available = true)
+        AND (ls.scheduled_start >= NOW() - INTERVAL '24 hours' OR ls.recording_available = true OR ls.status IN ('live', 'completed', 'cancelled', 'expired'))
       ORDER BY ls.scheduled_start DESC
     `;
     const { rows } = await pool.query(sql, [userId]);

@@ -53,8 +53,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
     }
 
-    // Update the host_url and join_url
-    await pool.query('UPDATE live_sessions SET host_url = $1, join_url = $1 WHERE id = $2', [hostUrl, sessionId]);
+    // Update the host_url, join_url, and set status to live
+    await pool.query(`
+      UPDATE live_sessions 
+      SET host_url = $1, join_url = $1, status = 'live', updated_at = NOW() 
+      WHERE id = $2
+    `, [hostUrl, sessionId]);
 
     return NextResponse.json({ success: true, hostUrl }, { status: 200 });
 
