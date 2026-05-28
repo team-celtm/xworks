@@ -1468,18 +1468,33 @@ function DashboardPageContent() {
                           </Link>
                        </div>
                     ) : (
-                       <div className="summary-card" style={{ background: 'var(--surface)', border: '1px solid var(--border-md)', boxShadow: '0 10px 30px rgba(55,48,163,0.05)' }}>
-                          <div className="summary-card-info">
-                            <div className="summary-card-title">Become an Instructor</div>
-                            <div className="summary-card-meta">Share your knowledge and earn revenue by teaching premium cyber-tech workshops.</div>
-                          </div>
-                          <Link 
-                            className="enrol-cta coral summary-card-btn" 
-                            style={{ textDecoration: 'none', textAlign: 'center', minWidth: '200px' }}
-                            href="/teach"
-                          >
-                            Apply as Instructor ✨
-                          </Link>
+                       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                         <div className="summary-card" style={{ background: 'var(--surface)', border: '1px solid var(--border-md)', boxShadow: '0 10px 30px rgba(55,48,163,0.05)' }}>
+                            <div className="summary-card-info">
+                              <div className="summary-card-title">Become an Instructor</div>
+                              <div className="summary-card-meta">Share your knowledge and earn revenue by teaching premium cyber-tech workshops.</div>
+                            </div>
+                            <a 
+                              className="enrol-cta coral summary-card-btn" 
+                              style={{ 
+                                textDecoration: 'none', 
+                                textAlign: 'center', 
+                                minWidth: '200px',
+                                opacity: 0.6,
+                                cursor: 'not-allowed'
+                              }}
+                              href="#"
+                              onClick={(e) => { e.preventDefault(); }}
+                              title="Instructor onboarding is temporarily unavailable."
+                              aria-disabled="true"
+                            >
+                              🔒 Coming Soon
+                            </a>
+                         </div>
+                         <div className="alert alert-info" style={{ margin: 0, padding: '12px 16px' }}>
+                           <span className="alert-icon">💡</span>
+                           <div className="alert-content">We're improving the instructor onboarding experience. Applications will reopen soon.</div>
+                         </div>
                        </div>
                     )}
                   </div>

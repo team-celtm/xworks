@@ -855,24 +855,9 @@ function AdminDashboardContent() {
                             <td data-label="Bio" style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{app.bio}</td>
                             <td data-label="Action">
                               <div style={{ display: 'flex', gap: '8px' }}>
-                                <button
-                                  className="admin-btn admin-btn-success"
-                                  disabled={actioningInstructorId === app.id}
-                                  onClick={() => handleApproveInstructor(app.id, 'approve')}
-                                >
-                                  {actioningInstructorId === app.id && instructorAction === 'approve' ? (
-                                    <div className="btn-loader"></div>
-                                  ) : 'Approve'}
-                                </button>
-                                <button
-                                  className="admin-btn admin-btn-danger"
-                                  disabled={actioningInstructorId === app.id}
-                                  onClick={() => handleApproveInstructor(app.id, 'reject')}
-                                >
-                                  {actioningInstructorId === app.id && instructorAction === 'reject' ? (
-                                    <div className="btn-loader"></div>
-                                  ) : 'Reject'}
-                                </button>
+                                <span style={{ color: 'var(--text-3)', fontStyle: 'italic', fontSize: '12px' }}>
+                                  Instructor onboarding temporarily disabled
+                                </span>
                               </div>
                             </td>
                           </tr>

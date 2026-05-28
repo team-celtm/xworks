@@ -40,6 +40,13 @@ export async function GET(req: Request) {
 }
 
 export async function PUT(req: Request) {
+  if (process.env.ENABLE_INSTRUCTOR_APPLICATIONS !== 'true') {
+    return NextResponse.json(
+      { success: false, message: "Instructor onboarding is temporarily unavailable.", error: "Instructor onboarding is temporarily unavailable." },
+      { status: 403 }
+    );
+  }
+
   const admin = await checkAdmin(req);
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 

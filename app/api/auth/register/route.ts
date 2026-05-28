@@ -15,6 +15,13 @@ export async function POST(req: NextRequest) {
     }
 
     if (profile === 'Instructor') {
+      if (process.env.ENABLE_INSTRUCTOR_APPLICATIONS !== 'true') {
+        return NextResponse.json(
+          { success: false, message: "Instructor onboarding is temporarily unavailable.", error: "Instructor onboarding is temporarily unavailable." },
+          { status: 403 }
+        );
+      }
+
       if (!bio || !linkedin) {
         return NextResponse.json({ error: 'Bio and LinkedIn URL are required for instructors' }, { status: 400 });
       }

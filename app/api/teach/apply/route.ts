@@ -5,6 +5,13 @@ import { jwtVerify } from 'jose';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'your-default-secret-change-me';
 
 export async function POST(req: NextRequest) {
+  if (process.env.ENABLE_INSTRUCTOR_APPLICATIONS !== 'true') {
+    return NextResponse.json(
+      { success: false, message: "Instructor onboarding is temporarily unavailable.", error: "Instructor onboarding is temporarily unavailable." },
+      { status: 403 }
+    );
+  }
+
   try {
     const accessToken = req.cookies.get('access_token')?.value;
 

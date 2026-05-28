@@ -431,7 +431,6 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
                 <select className="sel" value={upProfile} onChange={(e) => setUpProfile(e.target.value)}>
                   <option value="">Choose your profile</option>
                   <option>Learner</option>
-                  <option>Instructor</option>
                 </select>
               </div>
               {upProfile === 'Instructor' && (
