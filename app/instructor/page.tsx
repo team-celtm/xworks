@@ -93,7 +93,7 @@ function InstructorDashboardContent() {
     fetchApi('/api/instructor/sessions')
       .then(res => res.json())
       .then(data => {
-        setSessions(data.sessions || []);
+        setSessions(Array.isArray(data) ? data : (data.sessions || []));
       })
       .catch(err => console.error("Failed to fetch sessions:", err));
   }, []);
@@ -567,8 +567,8 @@ function InstructorDashboardContent() {
                       });
                       if (res.ok) {
                         setShowScheduleModal(false);
-                        const data = await fetchApi('/api/instructor/sessions').then(r => r.json()).catch(() => ({sessions: []}));
-                        if (!data.error) setSessions(data);
+                        const data = await fetchApi('/api/instructor/sessions').then(r => r.json()).catch(() => []);
+                        if (!data.error) setSessions(Array.isArray(data) ? data : (data.sessions || []));
                         setScheduleData({ courseId: '', title: '', scheduledStart: '', durationMinutes: 60 });
                       } else {
                         const err = await res.json();
