@@ -84,7 +84,8 @@ export default function Home() {
     thumbEmoji: '💬',
     enrolmentId: null as string | null,
     sessions: [] as any[],
-    selectedSessionId: null as string | null
+    selectedSessionId: null as string | null,
+    scheduledStart: null as string | null
   });
   const [promoCode, setPromoCode] = useState('');
   const [promoMsg, setPromoMsg] = useState({ text: '', type: '' });
@@ -303,7 +304,8 @@ export default function Home() {
       thumbBg, thumbEmoji,
       enrolmentId: null,
       sessions: [],
-      selectedSessionId: null
+      selectedSessionId: null,
+      scheduledStart: null
     });
     setPromoCode('');
     setPromoMsg({ text: '', type: '' });
@@ -1191,7 +1193,7 @@ export default function Home() {
                 )}
 
                   {(() => {
-                    const isSelectedExpired = enrolData.scheduledStart && new Date(enrolData.scheduledStart as string).getTime() < currentTime;
+                    const isSelectedExpired = !!(enrolData.scheduledStart && new Date(enrolData.scheduledStart as string).getTime() < currentTime);
                     return (
                       <button 
                         className="enrol-cta" 

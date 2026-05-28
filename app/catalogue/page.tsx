@@ -101,6 +101,7 @@ interface EnrolData {
   discountAmt?: number;
   selectedSessionId?: string | null;
   courseOriginalPrice?: number;
+  scheduledStart?: string;
 }
 
 function CatalogueContent() {
@@ -995,7 +996,7 @@ function CatalogueContent() {
                   )}
 
                   {(() => {
-                    const isSelectedExpired = enrolData.scheduledStart && new Date(enrolData.scheduledStart as string).getTime() < currentTime;
+                    const isSelectedExpired = !!(enrolData.scheduledStart && new Date(enrolData.scheduledStart as string).getTime() < currentTime);
                     return (
                       <button 
                         className="enrol-cta" 

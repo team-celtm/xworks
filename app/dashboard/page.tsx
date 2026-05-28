@@ -96,6 +96,7 @@ interface DashboardEnrolData {
   thumbBg?: string;
   thumbEmoji?: string;
   courseOriginalPrice?: number;
+  scheduledStart?: string;
 }
 
 interface Note {
@@ -2260,7 +2261,7 @@ function DashboardPageContent() {
                   )}
 
                   {(() => {
-                    const isSelectedExpired = enrolData.scheduledStart && new Date(enrolData.scheduledStart as string).getTime() < currentTime;
+                    const isSelectedExpired = !!(enrolData.scheduledStart && new Date(enrolData.scheduledStart as string).getTime() < currentTime);
                     return (
                       <button
                         className="enrol-cta"
