@@ -205,12 +205,16 @@ export default function Home() {
           const res = await fetchApi(`/api/courses/${enrolData.id}/sessions`);
           const data = await res.json();
           if (Array.isArray(data)) {
+            const available = data.find((s: any) => s.status !== 'cancelled' && new Date(s.scheduled_start).getTime() >= Date.now());
+            const first = available || (data.length > 0 ? data[0] : null);
+            
             setEnrolData(prev => ({
               ...prev,
               sessions: data,
-              selectedSessionId: data.length > 0 ? data[0].id : null,
-              date: data.length > 0 ? new Date(data[0].scheduled_start).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }) : '',
-              time: data.length > 0 ? new Date(data[0].scheduled_start).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }) : ''
+              selectedSessionId: first ? first.id : null,
+              date: first ? new Date(first.scheduled_start).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }) : '',
+              time: first ? new Date(first.scheduled_start).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }) : '',
+              scheduledStart: first ? first.scheduled_start : null
             }));
           }
         } catch (err) {

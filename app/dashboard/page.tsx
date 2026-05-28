@@ -730,12 +730,14 @@ function DashboardPageContent() {
         const data = await res.json();
         setModalSessions(data);
         if (data.length > 0) {
-          const first = data[0];
+          const available = data.find((s: any) => s.status !== 'cancelled' && new Date(s.scheduledStart).getTime() >= Date.now());
+          const first = available || data[0];
           setEnrolData(prev => ({
             ...prev,
             sessionId: first.id,
             date: new Date(first.scheduledStart).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }),
-            time: new Date(first.scheduledStart).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })
+            time: new Date(first.scheduledStart).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
+            scheduledStart: first.scheduledStart
           }));
         }
       }

@@ -342,12 +342,14 @@ function CatalogueContent() {
         const data = await res.json();
         setModalSessions(data);
         if (data.length > 0) {
-          const first = data[0];
+          const available = data.find((s: any) => s.status !== 'cancelled' && new Date(s.scheduled_start).getTime() >= Date.now());
+          const first = available || data[0];
           setEnrolData(prev => ({
             ...prev,
             selectedSessionId: first.id,
             date: new Date(first.scheduled_start).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }),
-            time: new Date(first.scheduled_start).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+            time: new Date(first.scheduled_start).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+            scheduledStart: first.scheduled_start
           }));
         }
       }
