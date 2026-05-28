@@ -20,7 +20,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // Validate registration and get join URL
     const sql = `
-      SELECT sr.id as sr_id, ls.join_url
+      SELECT sr.id as sr_id, ls.join_url, ls.host_url, ls.status, ls.scheduled_start, ls.scheduled_end
       FROM session_registrations sr
       JOIN live_sessions ls ON sr.session_id = ls.id
       JOIN enrolments e ON sr.enrolment_id = e.id
@@ -32,8 +32,31 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return new NextResponse('Unauthorized or Session Not Found', { status: 404 });
     }
 
-    const registrationId = rows[0].sr_id;
-    const joinUrl = rows[0].join_url;
+    const session = rows[0];
+
+    // Edge Case: Cancelled session
+    if (session.status === 'cancelled') {
+      return new NextResponse('This session has been cancelled.', { status: 403 });
+    }
+
+    const currentTime = Date.now();
+    const scheduledStart = new Date(session.scheduled_start).getTime();
+    const scheduledEnd = session.scheduled_end ? new Date(session.scheduled_end).getTime() : scheduledStart + (60 * 60 * 1000);
+    
+    // Edge Case: Too early to join (allow 15 mins early access)
+    const joinableTime = scheduledStart - (15 * 60 * 1000);
+    if (currentTime < joinableTime) {
+      return new NextResponse('It is too early to join this session. Please come back 15 minutes before the start time.', { status: 403 });
+    }
+
+    // Edge Case: Session ended
+    const gracePeriodMs = parseInt(process.env.SESSION_GRACE_PERIOD_MINUTES || '10') * 60 * 1000;
+    if (currentTime > scheduledEnd + gracePeriodMs) {
+      return new NextResponse('This session has already ended.', { status: 403 });
+    }
+
+    const registrationId = session.sr_id;
+    const joinUrl = session.join_url || session.host_url;
 
     // Mark joined_at if not set
     await pool.query(`
