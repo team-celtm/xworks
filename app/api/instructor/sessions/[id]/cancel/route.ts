@@ -18,7 +18,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // 1. Verify Instructor Ownership & Get Session Info
     const sessionRes = await pool.query(`
-      SELECT ls.id as session_id, ls.scheduled_start, ls.title as session_title, c.name as course_name
+      SELECT ls.id as session_id, ls.scheduled_start, ls.title as session_title, ls.status as session_status, c.name as course_name
       FROM live_sessions ls
       JOIN courses c ON ls.course_id = c.id
       JOIN instructors i ON c.instructor_id = i.id
@@ -30,6 +30,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     const sessionInfo = sessionRes.rows[0];
+    
+    if (sessionInfo.session_status === 'cancelled') {
+      return NextResponse.json({ error: 'Session is already cancelled' }, { status: 400 });
+    }
     const scheduledStart = new Date(sessionInfo.scheduled_start);
     const now = new Date();
     const isLessThan24h = (scheduledStart.getTime() - now.getTime()) < (24 * 60 * 60 * 1000);

@@ -4,18 +4,18 @@ import { jwtVerify } from 'jose';
 
 const SESSION_SECRET = process.env.SESSION_SECRET || 'your-default-secret-change-me';
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const accessToken = req.cookies.get('access_token')?.value;
     if (!accessToken) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { payload } = await jwtVerify(accessToken, new TextEncoder().encode(SESSION_SECRET));
     const userId = (payload as any).id;
-    const sessionId = params.id;
+    const { id: sessionId } = await params;
 
-    // Verify ownership
+    // Verify ownership and that it is not cancelled
     const ownershipRes = await pool.query(`
-      SELECT ls.id 
+      SELECT ls.id, ls.status 
       FROM live_sessions ls
       JOIN courses c ON ls.course_id = c.id
       JOIN instructors i ON c.instructor_id = i.id
@@ -26,10 +26,21 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Not authorized or session not found' }, { status: 403 });
     }
 
+    if (ownershipRes.rows[0].status === 'cancelled') {
+      return NextResponse.json({ error: 'Cannot update a cancelled session' }, { status: 400 });
+    }
+
     const { hostUrl } = await req.json();
 
     if (!hostUrl || typeof hostUrl !== 'string') {
         return NextResponse.json({ error: 'Valid hostUrl is required' }, { status: 400 });
+    }
+    
+    // Add simple URL validation
+    try {
+      new URL(hostUrl);
+    } catch {
+      return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
     }
 
     // Update the host_url

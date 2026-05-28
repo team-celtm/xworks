@@ -58,6 +58,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Title cannot be empty' }, { status: 400 });
     }
 
+    if (title.length > 255) {
+      return NextResponse.json({ error: 'Title is too long (maximum 255 characters)' }, { status: 400 });
+    }
+
     const startDate = new Date(scheduledStart);
     const endDate = new Date(scheduledEnd);
 
@@ -69,13 +73,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Cannot schedule a session in the past' }, { status: 400 });
     }
 
-    if (startDate >= endDate) {
-      return NextResponse.json({ error: 'End time must be after start time' }, { status: 400 });
+    const maxFutureDate = new Date();
+    maxFutureDate.setFullYear(maxFutureDate.getFullYear() + 1);
+    if (startDate > maxFutureDate) {
+      return NextResponse.json({ error: 'Cannot schedule a session more than 1 year in advance' }, { status: 400 });
     }
 
-    // Verify course belongs to instructor
+    const durationMs = endDate.getTime() - startDate.getTime();
+    const durationMinutes = durationMs / 60000;
+    
+    if (durationMinutes < 15) {
+      return NextResponse.json({ error: 'Session duration must be at least 15 minutes' }, { status: 400 });
+    }
+    if (durationMinutes > 60 * 12) {
+      return NextResponse.json({ error: 'Session duration cannot exceed 12 hours' }, { status: 400 });
+    }
+
+    // Verify course belongs to instructor, is live, and is not deleted
     const checkRes = await pool.query(`
-      SELECT c.id 
+      SELECT c.id, c.status, c.live
       FROM courses c 
       JOIN instructors i ON c.instructor_id = i.id 
       WHERE c.id = $1 AND i.user_id = $2
@@ -83,6 +99,33 @@ export async function POST(req: NextRequest) {
 
     if (checkRes.rows.length === 0) {
       return NextResponse.json({ error: 'Unauthorized or course not found' }, { status: 403 });
+    }
+
+    const course = checkRes.rows[0];
+    if (course.status && course.status.toLowerCase() === 'deleted') {
+      return NextResponse.json({ error: 'Cannot schedule a session for a deleted course' }, { status: 400 });
+    }
+    if (!course.live) {
+      return NextResponse.json({ error: 'Cannot schedule a live session for a non-live course format' }, { status: 400 });
+    }
+
+    // Check for overlapping sessions for this instructor
+    const overlapRes = await pool.query(`
+      SELECT ls.id 
+      FROM live_sessions ls
+      JOIN courses c ON ls.course_id = c.id
+      JOIN instructors i ON c.instructor_id = i.id
+      WHERE i.user_id = $1 
+      AND ls.status != 'cancelled'
+      AND (
+        (ls.scheduled_start <= $2 AND ls.scheduled_end > $2) OR
+        (ls.scheduled_start < $3 AND ls.scheduled_end >= $3) OR
+        (ls.scheduled_start >= $2 AND ls.scheduled_end <= $3)
+      )
+    `, [userId, scheduledStart, scheduledEnd]);
+
+    if (overlapRes.rows.length > 0) {
+      return NextResponse.json({ error: 'You already have another session scheduled during this time period.' }, { status: 409 });
     }
 
     const insertSql = `

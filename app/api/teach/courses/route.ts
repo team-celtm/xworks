@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized or not an instructor' }, { status: 401 });
     }
 
-    const { rows } = await pool.query('SELECT * FROM courses WHERE instructor_id = $1 ORDER BY name ASC', [instructorId]);
+    const { rows } = await pool.query("SELECT * FROM courses WHERE instructor_id = $1 AND LOWER(status) != 'deleted' ORDER BY name ASC", [instructorId]);
     return NextResponse.json(rows, { status: 200 });
   } catch (error) {
     console.error('API Error /teach/courses GET:', error);

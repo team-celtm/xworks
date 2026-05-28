@@ -14,9 +14,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const { id: sessionId } = await params;
     const { recordingUrl, available } = await req.json();
 
-    // Verify instructor owns the session via courses and instructors junction
+    // Verify instructor owns the session via courses and instructors junction and check status
     const checkSql = `
-      SELECT ls.id 
+      SELECT ls.id, ls.status 
       FROM live_sessions ls
       JOIN courses c ON ls.course_id = c.id
       JOIN instructors i ON c.instructor_id = i.id
@@ -26,6 +26,18 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     if (rows.length === 0) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+    
+    if (rows[0].status === 'cancelled') {
+      return NextResponse.json({ error: 'Cannot add a recording to a cancelled session' }, { status: 400 });
+    }
+    
+    if (recordingUrl) {
+      try {
+        new URL(recordingUrl);
+      } catch {
+        return NextResponse.json({ error: 'Invalid recording URL format' }, { status: 400 });
+      }
     }
 
     // Update recording info and optionally mark as completed

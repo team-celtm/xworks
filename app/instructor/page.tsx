@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import "../dashboard/dashboard.css";
 import RoleTransitionOverlay from "../components/RoleTransitionOverlay";
+import ActionModal, { ActionModalState } from "../components/ActionModal";
 
 export default function InstructorDashboard() {
   const router = useRouter();
@@ -14,6 +15,21 @@ export default function InstructorDashboard() {
   const [appStatus, setAppStatus] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  const [modalConfig, setModalConfig] = useState<ActionModalState>({
+    isOpen: false,
+    type: 'alert',
+    title: '',
+    message: ''
+  });
+
+  const showModal = (config: Omit<ActionModalState, 'isOpen'>) => {
+    setModalConfig({ ...config, isOpen: true });
+  };
+
+  const closeModal = () => {
+    setModalConfig(prev => ({ ...prev, isOpen: false }));
+  };
 
   // Application Form States
   const [bio, setBio] = useState('');
@@ -46,44 +62,68 @@ export default function InstructorDashboard() {
   }, []);
 
   const handleToggleRecording = async (sessionId: string, currentAvailable: boolean) => {
-    let recordingUrl = null;
     if (!currentAvailable) {
-      recordingUrl = prompt("Enter the recording URL for learners:");
-      if (!recordingUrl) return;
-    }
-
-    try {
-      const res = await fetch(`/api/instructor/sessions/${sessionId}/recording`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recordingUrl, available: !currentAvailable })
+      showModal({
+        type: 'prompt',
+        title: 'Share Recording',
+        message: 'Enter the recording URL for learners:',
+        inputPlaceholder: 'https://...',
+        onConfirm: async (url) => {
+          if (!url) return;
+          try {
+            const res = await fetch(`/api/instructor/sessions/${sessionId}/recording`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ recordingUrl: url, available: true })
+            });
+            if (res.ok) {
+              showModal({ type: 'alert', title: 'Success', message: 'Recording status updated!' });
+              setSessions(prev => prev.map(s => s.sessionId === sessionId ? { ...s, recordingAvailable: true } : s));
+            }
+          } catch (e) {
+            showModal({ type: 'alert', title: 'Error', message: 'Error updating recording status' });
+          }
+        }
       });
-      if (res.ok) {
-        alert("Recording status updated!");
-        setSessions(prev => prev.map(s => s.sessionId === sessionId ? { ...s, recordingAvailable: !currentAvailable } : s));
+    } else {
+      try {
+        const res = await fetch(`/api/instructor/sessions/${sessionId}/recording`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ recordingUrl: null, available: false })
+        });
+        if (res.ok) {
+          showModal({ type: 'alert', title: 'Success', message: 'Recording status updated!' });
+          setSessions(prev => prev.map(s => s.sessionId === sessionId ? { ...s, recordingAvailable: false } : s));
+        }
+      } catch (e) {
+        showModal({ type: 'alert', title: 'Error', message: 'Error updating recording status' });
       }
-    } catch (e) {
-      alert("Error updating recording status");
     }
   };
 
   const handleCancel = async (sessionId: string) => {
-    if (!confirm("Are you sure you want to cancel this live session? All registrants will be notified immediately and refunded if eligible.")) return;
-
-    try {
-      const res = await fetch(`/api/instructor/sessions/${sessionId}/cancel`, {
-        method: 'PUT'
-      });
-      const result = await res.json();
-      if (res.ok) {
-        alert(`Session cancelled! Notified ${result.registrantsNotified} registrants.`);
-        setSessions(prev => prev.map(s => s.sessionId === sessionId ? { ...s, sessionStatus: 'cancelled' } : s));
-      } else {
-        alert("Failed to cancel: " + result.error);
+    showModal({
+      type: 'confirm',
+      title: 'Cancel Session',
+      message: 'Are you sure you want to cancel this live session? All registrants will be notified immediately and refunded if eligible.',
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/instructor/sessions/${sessionId}/cancel`, {
+            method: 'PUT'
+          });
+          const result = await res.json();
+          if (res.ok) {
+            showModal({ type: 'alert', title: 'Session Cancelled', message: `Session cancelled! Notified ${result.registrantsNotified} registrants.` });
+            setSessions(prev => prev.map(s => s.sessionId === sessionId ? { ...s, sessionStatus: 'cancelled' } : s));
+          } else {
+            showModal({ type: 'alert', title: 'Error', message: "Failed to cancel: " + result.error });
+          }
+        } catch (e) {
+          showModal({ type: 'alert', title: 'Error', message: "Error cancelling session" });
+        }
       }
-    } catch (e) {
-      alert("Error cancelling session");
-    }
+    });
   };
 
   useEffect(() => {
@@ -320,7 +360,7 @@ export default function InstructorDashboard() {
                       if (res.ok) {
                         const newCourse = await res.json();
                         setCourses(prev => [...prev, newCourse]);
-                        alert('Course Draft Saved!');
+                        showModal({ type: 'alert', title: 'Success', message: 'Course Draft Saved!' });
                         e.currentTarget.reset();
                       }
                     } finally {
@@ -422,26 +462,29 @@ export default function InstructorDashboard() {
               </div>
 
               {showScheduleModal && (
-                <div style={{ background: 'var(--surface-2)', border: '1px solid var(--border-md)', padding: '24px', borderRadius: '16px', marginBottom: '24px' }}>
-                  <h3 style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '16px' }}>Schedule New Session</h3>
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border-md)', padding: '32px', borderRadius: '20px', marginBottom: '32px', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01)' }}>
+                  <div style={{ marginBottom: '24px', borderBottom: '1px solid var(--border-md)', paddingBottom: '16px' }}>
+                    <h3 style={{ fontSize: '20px', fontWeight: '800', color: 'var(--ink)', margin: 0 }}>Schedule New Session</h3>
+                    <p style={{ fontSize: '14px', color: 'var(--text-3)', marginTop: '6px', margin: 0 }}>Plan your upcoming live class and notify registered learners.</p>
+                  </div>
                   <form onSubmit={async (e) => {
                     e.preventDefault();
                     setIsScheduling(true);
                     try {
                       if (!scheduleData.courseId) {
-                        alert('Please select a course.');
+                        showModal({ type: 'alert', title: 'Error', message: 'Please select a course.' });
                         setIsScheduling(false);
                         return;
                       }
                       if (scheduleData.title.trim().length === 0) {
-                        alert('Please enter a valid session title.');
+                        showModal({ type: 'alert', title: 'Error', message: 'Please enter a valid session title.' });
                         setIsScheduling(false);
                         return;
                       }
 
                       const start = new Date(scheduleData.scheduledStart);
                       if (start < new Date()) {
-                        alert('Cannot schedule a session in the past.');
+                        showModal({ type: 'alert', title: 'Error', message: 'Cannot schedule a session in the past.' });
                         setIsScheduling(false);
                         return;
                       }
@@ -464,39 +507,50 @@ export default function InstructorDashboard() {
                         setScheduleData({ courseId: '', title: '', scheduledStart: '', durationMinutes: 60 });
                       } else {
                         const err = await res.json();
-                        alert('Failed to schedule session: ' + err.error);
+                        showModal({ type: 'alert', title: 'Error', message: 'Failed to schedule session: ' + err.error });
                       }
                     } catch(err) {
-                      alert('Error scheduling session');
+                      showModal({ type: 'alert', title: 'Error', message: 'Error scheduling session' });
                     }
                     setIsScheduling(false);
                   }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <select required className="prompt-input" style={{ backgroundColor: '#ffffff', color: '#111827', borderColor: '#d1d5db' }} value={scheduleData.courseId} onChange={e => setScheduleData({...scheduleData, courseId: e.target.value})}>
-                        <option value="" disabled={courses.filter(c => c.live).length === 0}>
-                          {courses.filter(c => c.live).length === 0 ? "No live courses available" : "Select Course..."}
-                        </option>
-                        {courses.filter(c => c.live).map(c => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                      </select>
-                      <input required className="prompt-input" style={{ backgroundColor: '#ffffff', color: '#111827', borderColor: '#d1d5db' }} placeholder="Session Title (e.g. React Hooks Deep Dive)" value={scheduleData.title} onChange={e => setScheduleData({...scheduleData, title: e.target.value})} />
-                      <div style={{ display: 'flex', gap: '16px' }}>
-                        <div style={{ flex: 1 }}>
-                          <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-2)', display: 'block', marginBottom: '4px' }}>Start Time</label>
-                          <input required type="datetime-local" className="prompt-input" style={{ width: '100%', backgroundColor: '#ffffff', color: '#111827', borderColor: '#d1d5db' }} value={scheduleData.scheduledStart} onChange={e => setScheduleData({...scheduleData, scheduledStart: e.target.value})} />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Course</label>
+                        <select required className="prompt-input" style={{ backgroundColor: '#f9fafb', color: '#111827', borderColor: '#e5e7eb', height: '48px', borderRadius: '12px' }} value={scheduleData.courseId} onChange={e => setScheduleData({...scheduleData, courseId: e.target.value})}>
+                          <option value="" disabled={courses.filter(c => c.live).length === 0}>
+                            {courses.filter(c => c.live).length === 0 ? "No live courses available" : "Select Course..."}
+                          </option>
+                          {courses.filter(c => c.live).map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
+                        </select>
+                        <p style={{ fontSize: '12px', color: 'var(--text-3)', margin: 0 }}>Select the live course this session belongs to.</p>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <label style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Session Title</label>
+                        <input required className="prompt-input" style={{ backgroundColor: '#f9fafb', color: '#111827', borderColor: '#e5e7eb', height: '48px', borderRadius: '12px' }} placeholder="e.g. React Hooks Deep Dive" value={scheduleData.title} onChange={e => setScheduleData({...scheduleData, title: e.target.value})} />
+                      </div>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <label style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Start Time</label>
+                          <input required type="datetime-local" className="prompt-input" style={{ width: '100%', backgroundColor: '#f9fafb', color: '#111827', borderColor: '#e5e7eb', height: '48px', borderRadius: '12px' }} value={scheduleData.scheduledStart} onChange={e => setScheduleData({...scheduleData, scheduledStart: e.target.value})} />
                         </div>
-                        <div style={{ width: '120px' }}>
-                          <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-2)', display: 'block', marginBottom: '4px' }}>Duration (min)</label>
-                          <input required type="number" min="15" className="prompt-input" style={{ width: '100%', backgroundColor: '#ffffff', color: '#111827', borderColor: '#d1d5db' }} value={scheduleData.durationMinutes} onChange={e => setScheduleData({...scheduleData, durationMinutes: parseInt(e.target.value)})} />
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <label style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Duration (min)</label>
+                          <input required type="number" min="15" className="prompt-input" style={{ width: '100%', backgroundColor: '#f9fafb', color: '#111827', borderColor: '#e5e7eb', height: '48px', borderRadius: '12px' }} value={scheduleData.durationMinutes} onChange={e => setScheduleData({...scheduleData, durationMinutes: parseInt(e.target.value)})} />
+                          <p style={{ fontSize: '12px', color: 'var(--text-3)', margin: 0 }}>Standard duration is 60 minutes.</p>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-                        <button type="submit" className="enrol-cta coral" disabled={isScheduling} style={{ margin: 0, padding: '10px 24px' }}>
-                          {isScheduling ? 'Scheduling...' : 'Schedule'}
-                        </button>
-                        <button type="button" onClick={() => setShowScheduleModal(false)} style={{ background: 'transparent', border: '1px solid var(--border-md)', color: 'var(--text)', padding: '10px 24px', borderRadius: '100px', fontWeight: 'bold', cursor: 'pointer' }}>
+
+                      <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '16px' }}>
+                        <button type="button" onClick={() => setShowScheduleModal(false)} style={{ background: 'transparent', border: '1px solid var(--border-md)', color: 'var(--text-2)', padding: '12px 24px', borderRadius: '12px', fontWeight: '600', cursor: 'pointer' }}>
                           Cancel
+                        </button>
+                        <button type="submit" className="enrol-cta coral" disabled={isScheduling} style={{ margin: 0, padding: '12px 32px', borderRadius: '12px', boxShadow: '0 4px 14px 0 rgba(251, 146, 60, 0.39)' }}>
+                          {isScheduling ? 'Scheduling...' : 'Schedule Session'}
                         </button>
                       </div>
                     </div>
@@ -528,25 +582,32 @@ export default function InstructorDashboard() {
                                 if (s.hostUrl) {
                                   window.open(s.hostUrl, '_blank');
                                 } else {
-                                  const url = prompt('Enter the meeting link (e.g., Zoom, Google Meet) to start the session:');
-                                  if (url) {
-                                    try {
-                                      const res = await fetch(`/api/instructor/sessions/${s.sessionId}/host`, {
-                                        method: 'PUT',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ hostUrl: url })
-                                      });
-                                      if (res.ok) {
-                                        setSessions(prev => prev.map(sess => sess.sessionId === s.sessionId ? { ...sess, hostUrl: url } : sess));
-                                        window.open(url, '_blank');
-                                      } else {
-                                        alert('Failed to save Host URL');
+                                  showModal({
+                                    type: 'prompt',
+                                    title: 'Start Session',
+                                    message: 'Enter the meeting link (e.g., Zoom, Google Meet) to start the session:',
+                                    inputPlaceholder: 'https://...',
+                                    onConfirm: async (url) => {
+                                      if (url) {
+                                        try {
+                                          const res = await fetch(`/api/instructor/sessions/${s.sessionId}/host`, {
+                                            method: 'PUT',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ hostUrl: url })
+                                          });
+                                          if (res.ok) {
+                                            setSessions(prev => prev.map(sess => sess.sessionId === s.sessionId ? { ...sess, hostUrl: url } : sess));
+                                            window.open(url, '_blank');
+                                          } else {
+                                            showModal({ type: 'alert', title: 'Error', message: 'Failed to save Host URL' });
+                                          }
+                                        } catch (err) {
+                                          console.error(err);
+                                          showModal({ type: 'alert', title: 'Error', message: 'Error saving Host URL' });
+                                        }
                                       }
-                                    } catch (err) {
-                                      console.error(err);
-                                      alert('Error saving Host URL');
                                     }
-                                  }
+                                  });
                                 }
                               }}
                             >
@@ -635,6 +696,7 @@ export default function InstructorDashboard() {
 
         </div>
       </div>
+      <ActionModal config={modalConfig} onClose={closeModal} />
     </div>
   );
 }
