@@ -948,13 +948,15 @@ function CatalogueContent() {
                         const day = d.toLocaleDateString('en-IN', { weekday: 'short' });
                         const num = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
                         const time = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
+                        const isPast = d.getTime() < Date.now();
                         const isFull = s.max_seats && s.registered_count >= s.max_seats;
+                        const isDisabled = isFull || isPast;
 
                         return (
                           <button
                             key={s.id}
-                            className={`enrol-date-btn ${enrolData.selectedSessionId === s.id ? 'selected' : ''} ${isFull ? 'disabled' : ''}`}
-                            disabled={isFull}
+                            className={`enrol-date-btn ${enrolData.selectedSessionId === s.id ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`}
+                            disabled={isDisabled}
                             style={{ height: 'auto', padding: '12px 8px' }}
                             onClick={() => setEnrolData((prev: EnrolData) => ({
                               ...prev,
@@ -965,7 +967,7 @@ function CatalogueContent() {
                           >
                             <div className="enrol-date-day">{day}</div>
                             <div className="enrol-date-num">{num}</div>
-                            <div style={{ fontSize: '10px', marginTop: '4px', opacity: 0.8 }}>{time}</div>
+                            <div style={{ fontSize: '10px', marginTop: '4px', opacity: 0.8 }}>{isPast ? 'Passed' : time}</div>
                           </button>
                         );
                       })

@@ -2170,18 +2170,20 @@ function DashboardPageContent() {
                       const month = sDate.toLocaleDateString('en-IN', { month: 'short' });
                       const fullStr = sDate.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
                       const timeStr = sDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+                      const isPast = sDate.getTime() < Date.now();
                       const isFull = s.maxSeats !== null && s.maxSeats !== undefined && s.maxSeats > 0 && (s.maxSeats - s.registeredCount <= 0);
+                      const isDisabled = isFull || isPast;
 
                       return (
                         <div
                           key={s.id}
-                          className={`enrol-date-btn ${enrolData.date === fullStr && enrolData.time === timeStr ? 'selected' : ''} ${isFull ? 'disabled' : ''}`}
-                          onClick={() => !isFull && setEnrolData(prev => ({ ...prev, date: fullStr, time: timeStr, sessionId: s.id }))}
-                          style={{ height: 'auto', padding: '12px 8px', cursor: isFull ? 'not-allowed' : 'pointer', opacity: isFull ? 0.5 : 1 }}
+                          className={`enrol-date-btn ${enrolData.date === fullStr && enrolData.time === timeStr ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`}
+                          onClick={() => !isDisabled && setEnrolData(prev => ({ ...prev, date: fullStr, time: timeStr, sessionId: s.id }))}
+                          style={{ height: 'auto', padding: '12px 8px', cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.5 : 1 }}
                         >
                           <div className="enrol-date-day">{day}</div>
                           <div className="enrol-date-num">{num} {month}</div>
-                          <div style={{ fontSize: '10px', marginTop: '4px', opacity: 0.8 }}>{isFull ? 'Full' : timeStr}</div>
+                          <div style={{ fontSize: '10px', marginTop: '4px', opacity: 0.8 }}>{isPast ? 'Passed' : isFull ? 'Full' : timeStr}</div>
                         </div>
                       );
                     }) : (
