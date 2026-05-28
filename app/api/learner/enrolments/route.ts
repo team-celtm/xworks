@@ -129,18 +129,33 @@ export async function POST(req: NextRequest) {
     // Validate session expiry (if applicable)
     if (sessionId) {
       const sessionCheckRes = await pool.query(
-        'SELECT scheduled_start FROM live_sessions WHERE id = $1::uuid',
+        'SELECT scheduled_start, status, max_seats, registered_count FROM live_sessions WHERE id = $1::uuid',
         [sessionId]
       );
       if (sessionCheckRes.rows.length === 0) {
         return NextResponse.json({ success: false, message: 'Session not found.' }, { status: 404 });
       }
       
-      const sessionStart = new Date(sessionCheckRes.rows[0].scheduled_start);
+      const sess = sessionCheckRes.rows[0];
+      const sessionStart = new Date(sess.scheduled_start);
       if (sessionStart.getTime() <= Date.now()) {
         return NextResponse.json({ 
           success: false, 
           message: 'This session slot has expired.' 
+        }, { status: 400 });
+      }
+
+      if (sess.status === 'cancelled') {
+        return NextResponse.json({ 
+          success: false, 
+          message: 'This session slot has been cancelled.' 
+        }, { status: 400 });
+      }
+
+      if (sess.max_seats !== null && sess.registered_count >= sess.max_seats) {
+        return NextResponse.json({ 
+          success: false, 
+          message: 'This session slot is full.' 
         }, { status: 400 });
       }
     }

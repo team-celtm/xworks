@@ -40,6 +40,13 @@ export async function POST(
       }, { status: 400 });
     }
 
+    if (session.status === 'cancelled') {
+      return NextResponse.json({ 
+        success: false, 
+        message: 'This session slot has been cancelled.' 
+      }, { status: 400 });
+    }
+
     // 2. Check if user is enrolled
     const enrolRes = await pool.query(
       'SELECT id FROM enrolments WHERE user_id = $1::uuid AND course_id = $2::uuid AND status = $3',
