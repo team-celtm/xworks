@@ -363,6 +363,9 @@ export default function InstructorDashboard() {
                         setCourses(prev => [...prev, newCourse]);
                         showModal({ type: 'alert', title: 'Success', message: 'Course Draft Saved!' });
                         e.currentTarget.reset();
+                      } else {
+                        const errData = await res.json();
+                        showModal({ type: 'alert', title: 'Error', message: errData.error || 'Failed to create course draft.' });
                       }
                     } finally {
                       setIsCreatingCourse(false);
@@ -425,20 +428,45 @@ export default function InstructorDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {courses.map(c => (
+                      {courses.map(c => {
+                        let badgeStyle = { bg: 'var(--surface-2)', color: 'var(--text-2)' };
+                        let displayStatus = c.status.toUpperCase();
+                        if (c.status === 'published') badgeStyle = { bg: 'rgba(34, 197, 94, 0.1)', color: 'var(--green)' };
+                        if (c.status === 'under_review') { badgeStyle = { bg: 'rgba(234, 179, 8, 0.1)', color: '#ca8a04' }; displayStatus = 'UNDER REVIEW'; }
+                        if (c.status === 'rejected') badgeStyle = { bg: 'rgba(239, 68, 68, 0.1)', color: 'var(--red)' };
+                        
+                        return (
                         <tr key={c.id} style={{ borderBottom: '1px solid var(--border-sm)' }}>
                           <td style={{ padding: '16px 8px', fontWeight: 'bold' }}>{c.name}</td>
-                          <td style={{ padding: '16px 8px', color: c.status === 'draft' ? 'var(--text-3)' : c.status === 'published' ? 'var(--green)' : 'var(--blue)' }}>{c.status.toUpperCase()}</td>
                           <td style={{ padding: '16px 8px' }}>
-                            {c.status === 'draft' && (
+                            <span style={{ padding: '4px 10px', background: badgeStyle.bg, color: badgeStyle.color, borderRadius: '100px', fontSize: '11px', fontWeight: 700, letterSpacing: '0.5px' }}>
+                              {displayStatus}
+                            </span>
+                          </td>
+                          <td style={{ padding: '16px 8px' }}>
+                            {(c.status === 'draft' || c.status === 'rejected') && (
                               <button onClick={async () => {
                                 const res = await fetch('/api/teach/courses', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: c.id, action: 'submit_review' }) });
                                 if (res.ok) setCourses(courses.map(course => course.id === c.id ? {...course, status: 'under_review'} : course));
-                              }} style={{ padding:'8px 16px', background:'var(--blue-bg)', color:'var(--blue)', fontWeight: '600', border:'none', borderRadius:'8px', cursor:'pointer' }}>Submit</button>
+                              }} style={{ padding:'8px 16px', background:'var(--blue-bg)', color:'var(--blue)', fontWeight: '600', border:'none', borderRadius:'8px', cursor:'pointer' }}>
+                                {c.status === 'rejected' ? 'Re-Submit' : 'Submit'}
+                              </button>
+                            )}
+                            {c.status === 'published' && (
+                              <button onClick={async () => {
+                                const res = await fetch('/api/teach/courses', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: c.id, action: 'unpublish' }) });
+                                if (res.ok) setCourses(courses.map(course => course.id === c.id ? {...course, status: 'draft'} : course));
+                              }} style={{ padding:'8px 16px', background:'transparent', border: '1px solid var(--border)', color:'var(--text-2)', fontWeight: '600', borderRadius:'8px', cursor:'pointer' }}>
+                                Unpublish
+                              </button>
+                            )}
+                            {c.status === 'under_review' && (
+                              <span style={{ fontSize: '13px', color: 'var(--text-3)', fontWeight: 600 }}>Pending Approval</span>
                             )}
                           </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>

@@ -52,7 +52,7 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
     }
 
-    const status = action === 'approve' ? 'published' : 'draft'; // Revert back to draft if rejected
+    const status = action === 'approve' ? 'published' : 'rejected';
     const updateRes = await pool.query(
       `UPDATE courses SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING id`,
       [status, id]

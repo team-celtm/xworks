@@ -415,7 +415,7 @@ export default function AdminDashboard() {
       if (res.ok) {
         setCourses(prev => prev.filter(c => c.id !== id));
       } else {
-        alert(`Failed to ${action === 'approve' ? 'publish' : 'keep draft'} course`);
+        alert(`Failed to ${action === 'approve' ? 'publish' : 'reject'} course`);
       }
     } catch (err) {
       console.error(err);
@@ -901,7 +901,7 @@ export default function AdminDashboard() {
                                 >
                                   {actioningCourseId === c.id && courseAction === 'reject' ? (
                                     <div className="btn-loader" style={{ borderTopColor: 'var(--text-2)' }}></div>
-                                  ) : 'Keep Draft'}
+                                  ) : 'Reject'}
                                 </button>
                               </div>
                             </td>

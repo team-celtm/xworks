@@ -56,6 +56,20 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { name, category_id, level, dur, price, tag, tag_label, live, nearby, distance, emoji, g, slug } = body;
 
+    // Edge Cases Validation
+    if (!name || name.trim().length === 0) {
+      return NextResponse.json({ error: 'Course name is required' }, { status: 400 });
+    }
+    if (!category_id) {
+      return NextResponse.json({ error: 'Category is required' }, { status: 400 });
+    }
+    if (price < 0) {
+      return NextResponse.json({ error: 'Price cannot be negative' }, { status: 400 });
+    }
+    if (dur < 0) {
+      return NextResponse.json({ error: 'Duration cannot be negative' }, { status: 400 });
+    }
+
     // Use a transaction since we just want to create it
     const { rows } = await pool.query(
       `INSERT INTO courses 
@@ -67,8 +81,11 @@ export async function POST(req: NextRequest) {
     );
 
     return NextResponse.json(rows[0], { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('API Error /teach/courses POST:', error);
+    if (error.code === '23505') {
+      return NextResponse.json({ error: 'A course with this name/slug already exists' }, { status: 400 });
+    }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -82,20 +99,27 @@ export async function PUT(req: NextRequest) {
 
     const { id, action } = await req.json();
 
-    if (!id || action !== 'submit_review') {
+    if (!id || !['submit_review', 'unpublish'].includes(action)) {
       return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
     }
 
-    const { rows } = await pool.query(
-      `UPDATE courses SET status = 'under_review' WHERE id = $1 AND instructor_id = $2 RETURNING id`,
-      [id, instructorId]
-    );
-
-    if (rows.length === 0) {
-      return NextResponse.json({ error: 'Course not found or unauthorized' }, { status: 404 });
+    let query = '';
+    
+    if (action === 'submit_review') {
+      // Only allow submitting if it's currently draft or rejected
+      query = `UPDATE courses SET status = 'under_review' WHERE id = $1 AND instructor_id = $2 AND status IN ('draft', 'rejected') RETURNING id`;
+    } else if (action === 'unpublish') {
+      // Only allow unpublishing if it's currently published
+      query = `UPDATE courses SET status = 'draft' WHERE id = $1 AND instructor_id = $2 AND status = 'published' RETURNING id`;
     }
 
-    return NextResponse.json({ success: true, message: 'Submitted for review' }, { status: 200 });
+    const { rows } = await pool.query(query, [id, instructorId]);
+
+    if (rows.length === 0) {
+      return NextResponse.json({ error: 'Course not found or invalid current status for this action' }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, message: 'Status updated successfully' }, { status: 200 });
   } catch (error) {
     console.error('API Error /teach/courses PUT:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
