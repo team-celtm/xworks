@@ -1273,7 +1273,11 @@ export default function DashboardPage() {
                           {loadingEnrolments ? (
                             [1,2,3].map(i => <div key={i} className="skeleton skeleton-card" style={{ flex: '0 0 240px', margin: '0 8px' }}></div>)
                           ) : (
-                            continueLearningList.length > 0 ? continueLearningList.map(renderEnrolledCard) : workshops.slice(0, 5).map(renderWorkshopCard)
+                            continueLearningList.length > 0 
+                              ? continueLearningList.map(renderEnrolledCard) 
+                              : workshops.length > 0 
+                                ? workshops.slice(0, 5).map(renderWorkshopCard) 
+                                : <div style={{ padding: '40px', color: 'var(--text-3)', width: '100%', textAlign: 'center', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>No courses available yet.</div>
                           )}
                         </div>
                       </div>
@@ -1350,7 +1354,8 @@ export default function DashboardPage() {
                               if (trending.length > 0) return trending.map(renderWorkshopCard);
                               // Fallback to any workshops if tag-based trending is empty, ensuring we always show something
                               const fallbackResults = workshops.length > 3 ? workshops.slice(Math.max(0, workshops.length - 6)) : workshops;
-                              return fallbackResults.map(renderWorkshopCard);
+                              if (fallbackResults.length > 0) return fallbackResults.map(renderWorkshopCard);
+                              return <div style={{ padding: '40px', color: 'var(--text-3)', width: '100%', textAlign: 'center', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>No trending courses available.</div>;
                             })()
                           )}
                         </div>
@@ -1565,7 +1570,7 @@ export default function DashboardPage() {
                   <button className="cbtn cbtn-l" onClick={() => slide("upsell", -1)}>‹</button>
                   <div className="carousel-outer">
                     <div className="carousel-track" id="upsell-track">
-                      {workshops.slice(0, 6).map(renderWorkshopCard)}
+                      {workshops.length > 0 ? workshops.slice(0, 6).map(renderWorkshopCard) : <div style={{ padding: '40px', color: 'var(--text-3)', width: '100%', textAlign: 'center', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>No courses available right now.</div>}
                     </div>
                   </div>
                   <button className="cbtn cbtn-r" onClick={() => slide("upsell", 1)}>›</button>
@@ -1594,7 +1599,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="curious-grid">
-                  {workshops.slice(0, 4).map(renderWorkshopCard)}
+                  {workshops.length > 0 ? workshops.slice(0, 4).map(renderWorkshopCard) : <div style={{ padding: '40px', color: 'var(--text-3)', width: '100%', textAlign: 'center', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>No curated courses yet.</div>}
                 </div>
               </div>
               <div className="fade-up" style={{ animationDelay: '0.12s' }}>
@@ -1605,7 +1610,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="curious-grid">
-                  {workshops.slice(4, 8).map(renderWorkshopCard)}
+                  {workshops.length > 4 ? workshops.slice(4, 8).map(renderWorkshopCard) : <div style={{ padding: '40px', color: 'var(--text-3)', width: '100%', textAlign: 'center', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>Check back later for more!</div>}
                 </div>
               </div>
             </div>

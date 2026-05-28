@@ -102,8 +102,8 @@ export async function POST(req: NextRequest) {
     }
 
     const course = checkRes.rows[0];
-    if (course.status && course.status.toLowerCase() === 'deleted') {
-      return NextResponse.json({ error: 'Cannot schedule a session for a deleted course' }, { status: 400 });
+    if (course.status !== 'published') {
+      return NextResponse.json({ error: 'Cannot schedule a session for a course that is not published' }, { status: 400 });
     }
     if (!course.live) {
       return NextResponse.json({ error: 'Cannot schedule a live session for a non-live course format' }, { status: 400 });

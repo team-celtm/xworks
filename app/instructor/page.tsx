@@ -547,10 +547,10 @@ export default function InstructorDashboard() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         <label style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Course</label>
                         <select required className="prompt-input" style={{ backgroundColor: '#f9fafb', color: '#111827', borderColor: '#e5e7eb', height: '48px', borderRadius: '12px' }} value={scheduleData.courseId} onChange={e => setScheduleData({...scheduleData, courseId: e.target.value})}>
-                          <option value="" disabled={courses.filter(c => c.live).length === 0}>
-                            {courses.filter(c => c.live).length === 0 ? "No live courses available" : "Select Course..."}
+                          <option value="" disabled={courses.filter(c => c.live && c.status === 'published').length === 0}>
+                            {courses.filter(c => c.live && c.status === 'published').length === 0 ? "No published live courses available" : "Select Course..."}
                           </option>
-                          {courses.filter(c => c.live).map(c => (
+                          {courses.filter(c => c.live && c.status === 'published').map(c => (
                             <option key={c.id} value={c.id}>{c.name}</option>
                           ))}
                         </select>

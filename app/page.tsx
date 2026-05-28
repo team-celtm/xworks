@@ -687,7 +687,7 @@ export default function Home() {
                 {isLoading ? (
                   [1, 2, 3, 4].map(i => <div key={i} className="skeleton skeleton-card" style={{ flex: '0 0 260px' }}></div>)
                 ) : (
-                  hasMounted && bestSellers.map((c: any) => {
+                  hasMounted && (bestSellers.length > 0 ? bestSellers.map((c: any) => {
                     const priceStr = '₹' + c.price.toLocaleString('en-IN');
                     return (
                       <div key={c.id} className="course-card" onClick={() => openEnrol(c.id, c.name, `by ${c.instructor} · ★ ${c.rating} · ${formatDuration(c.dur)} · ${c.level}`, priceStr, c.g || 't-amber', c.logo || c.emoji)}>
@@ -724,7 +724,7 @@ export default function Home() {
                         </div>
                       </div>
                     );
-                  })
+                  }) : <div style={{ padding: '60px 20px', color: 'var(--text-3)', width: '100%', textAlign: 'center' }}>More courses coming soon!</div>)
                 )}
               </div>
             </div>
@@ -750,7 +750,7 @@ export default function Home() {
                 {isLoading ? (
                   [1, 2, 3, 4].map(i => <div key={i} className="skeleton skeleton-card" style={{ flex: '0 0 260px' }}></div>)
                 ) : (
-                  hasMounted && newlyAdded.map((c: any) => {
+                  hasMounted && (newlyAdded.length > 0 ? newlyAdded.map((c: any) => {
                     const priceStr = '₹' + c.price.toLocaleString('en-IN');
                     return (
                       <div key={c.id} className="course-card" onClick={() => openEnrol(c.id, c.name, `by ${c.instructor} · ★ ${c.rating} · ${formatDuration(c.dur)} · ${c.level}`, priceStr, c.g || 't-amber', c.logo || c.emoji)}>
@@ -787,7 +787,7 @@ export default function Home() {
                         </div>
                       </div>
                     );
-                  })
+                  }) : <div style={{ padding: '60px 20px', color: 'var(--text-3)', width: '100%', textAlign: 'center' }}>Check back later for fresh drops!</div>)
                 )}
               </div>
             </div>
