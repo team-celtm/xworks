@@ -538,6 +538,13 @@ function DashboardPageContent() {
     }
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchSessions();
+    }, 60000); // 60s background sync
+    return () => clearInterval(interval);
+  }, []);
+
   const completedCount = enrolments.filter(e => e.enrolment_status === 'completed' || e.progressPct === 100).length;
 
   const completedDisplayList = enrolments

@@ -96,12 +96,18 @@ function InstructorDashboardContent() {
   });
 
   useEffect(() => {
-    fetchApi('/api/instructor/sessions')
-      .then(res => res.json())
-      .then(data => {
-        setSessions(Array.isArray(data) ? data : (data.sessions || []));
-      })
-      .catch(err => console.error("Failed to fetch sessions:", err));
+    const fetchSessions = () => {
+      fetchApi('/api/instructor/sessions')
+        .then(res => res.json())
+        .then(data => {
+          setSessions(Array.isArray(data) ? data : (data.sessions || []));
+        })
+        .catch(err => console.error("Failed to fetch sessions:", err));
+    };
+
+    fetchSessions();
+    const interval = setInterval(fetchSessions, 60000); // Poll every minute
+    return () => clearInterval(interval);
   }, []);
 
   const handleToggleRecording = async (sessionId: string, currentAvailable: boolean) => {
@@ -657,20 +663,20 @@ function InstructorDashboardContent() {
                   if (s.derivedState === 'cancelled') badge = { text: 'Cancelled', bg: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' };
 
                   return (
-                    <div key={s.sessionId} className="session-row" style={{ position: 'relative' }}>
-                      <div style={{ position: 'absolute', top: '24px', right: '24px' }}>
-                        <span style={{ padding: '6px 12px', background: badge.bg, color: badge.color, borderRadius: '100px', fontSize: '11px', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase' }}>
-                          {s.derivedState === 'live' ? <span style={{ display: 'inline-block', width: '6px', height: '6px', background: '#22c55e', borderRadius: '50%', marginRight: '6px', animation: 'pulse 2s infinite' }}></span> : null}
-                          {badge.text}
-                        </span>
-                      </div>
-                      <div style={{ paddingRight: '120px' }}>
-                        <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: 'var(--ink)' }}>{s.sessionTitle}</h3>
+                    <div key={s.sessionId} className="session-row">
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                          <h3 style={{ fontSize: '18px', fontWeight: 600, margin: 0, color: 'var(--ink)' }}>{s.sessionTitle}</h3>
+                          <span style={{ padding: '4px 10px', background: badge.bg, color: badge.color, borderRadius: '100px', fontSize: '11px', fontWeight: 800, letterSpacing: '0.5px', textTransform: 'uppercase', display: 'flex', alignItems: 'center' }}>
+                            {s.derivedState === 'live' ? <span style={{ display: 'inline-block', width: '6px', height: '6px', background: '#22c55e', borderRadius: '50%', marginRight: '6px', animation: 'pulse 2s infinite' }}></span> : null}
+                            {badge.text}
+                          </span>
+                        </div>
                         <div style={{ color: 'var(--text-3)', fontSize: '14px' }}>
                           {s.courseName} • {new Date(s.scheduledStart).toLocaleString()} • {s.registrantCount} learners registered
                         </div>
                       </div>
-                      <div className="session-actions" style={{ marginTop: '20px' }}>
+                      <div className="session-actions" style={{ marginTop: '0' }}>
                         {(s.derivedState === 'upcoming' || s.derivedState === 'live') && (
                           <button 
                             className="join-btn enrol-cta coral"
