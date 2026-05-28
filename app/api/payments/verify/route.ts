@@ -132,22 +132,40 @@ export async function POST(req: NextRequest) {
     // 5. AUTO REGISTER FOR SESSION IF PROVIDED
     if (sessionId) {
       try {
-        // Simple check to avoid double registration in this flow
-        const regCheck = await pool.query(
-          'SELECT id FROM session_registrations WHERE enrolment_id = $1 AND session_id = $2',
-          [enrolmentId, sessionId]
+        // Verify session is still valid before auto-registering
+        const sessionCheck = await pool.query(
+          'SELECT scheduled_start, status, max_seats, registered_count FROM live_sessions WHERE id = $1',
+          [sessionId]
         );
-        if (regCheck.rows.length === 0) {
-          await pool.query('BEGIN');
-          await pool.query(
-            "INSERT INTO session_registrations (enrolment_id, session_id, status, registered_at) VALUES ($1, $2, 'registered', NOW())",
-            [enrolmentId, sessionId]
-          );
-          await pool.query(
-            'UPDATE live_sessions SET registered_count = registered_count + 1 WHERE id = $1',
-            [sessionId]
-          );
-          await pool.query('COMMIT');
+
+        if (sessionCheck.rows.length > 0) {
+          const sess = sessionCheck.rows[0];
+          const sessionStart = new Date(sess.scheduled_start);
+          const isExpired = sessionStart.getTime() <= Date.now();
+          const isCancelled = sess.status === 'cancelled';
+          const isFull = sess.max_seats !== null && sess.registered_count >= sess.max_seats;
+
+          if (!isExpired && !isCancelled && !isFull) {
+            // Simple check to avoid double registration in this flow
+            const regCheck = await pool.query(
+              'SELECT id FROM session_registrations WHERE enrolment_id = $1 AND session_id = $2',
+              [enrolmentId, sessionId]
+            );
+            if (regCheck.rows.length === 0) {
+              await pool.query('BEGIN');
+              await pool.query(
+                "INSERT INTO session_registrations (enrolment_id, session_id, status, registered_at) VALUES ($1, $2, 'registered', NOW())",
+                [enrolmentId, sessionId]
+              );
+              await pool.query(
+                'UPDATE live_sessions SET registered_count = registered_count + 1 WHERE id = $1',
+                [sessionId]
+              );
+              await pool.query('COMMIT');
+            }
+          } else {
+            console.warn('Skipped auto-registration during verify because session became invalid', { sessionId, isExpired, isCancelled, isFull });
+          }
         }
       } catch (sessError) {
         console.error('Auto-session registration failed during verification:', sessError);
