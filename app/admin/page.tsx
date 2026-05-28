@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import "../dashboard/dashboard.css";
 import "./admin.css";
@@ -9,6 +9,7 @@ import Logo from "../components/Logo";
 import RoleTransitionOverlay from "../components/RoleTransitionOverlay";
 import { formatDuration } from '@/lib/utils';
 import dynamic from 'next/dynamic';
+import { fetchApi } from '@/lib/apiClient';
 
 const TransactionTable = dynamic(() => import('../components/admin/payments/TransactionTable'), { ssr: false });
 const PaymentFilters = dynamic(() => import('../components/admin/payments/PaymentFilters'), { ssr: false });
@@ -18,9 +19,44 @@ const AuditLogs = dynamic(() => import('../components/admin/payments/AuditLogs')
 const FailedPayments = dynamic(() => import('../components/admin/payments/FailedPayments'), { ssr: false });
 const RefundsHistory = dynamic(() => import('../components/admin/payments/RefundsHistory'), { ssr: false });
 
+function useUrlSync(key: string, value: any, setValue: any, defaultValue: any, searchParams: any, router: any) {
+  useEffect(() => {
+    if (!searchParams) return;
+    const urlVal = searchParams.get(key);
+    if (urlVal !== null && urlVal !== value.toString()) {
+      setValue(typeof defaultValue === 'number' ? Number(urlVal) : urlVal);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!searchParams) return;
+    const urlVal = searchParams.get(key);
+    const isDefault = value === defaultValue;
+    if (value.toString() !== (urlVal || defaultValue.toString()) || (!isDefault && urlVal === null)) {
+      const params = new URLSearchParams(searchParams.toString());
+      if (isDefault) {
+        params.delete(key);
+      } else {
+        params.set(key, value.toString());
+      }
+      router.replace(`?${params.toString()}`, { scroll: false });
+    }
+  }, [value]);
+}
+
 export default function AdminDashboard() {
+  return (
+    <Suspense fallback={<div className="loader" style={{ margin: '100px auto' }}></div>}>
+      <AdminDashboardContent />
+    </Suspense>
+  );
+}
+
+function AdminDashboardContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeView, setActiveView] = useState("admin_overview");
+  useUrlSync('view', activeView, setActiveView, 'admin_overview', searchParams, router);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ totalLearners: 0, totalInstructors: 0, activeCourses: 0, totalEnrolments: 0 });
@@ -40,6 +76,11 @@ export default function AdminDashboard() {
   const [courseStatus, setCourseStatus] = useState('');
   const [courseCategory, setCourseCategory] = useState('');
   const [isCoursesLoading, setIsCoursesLoading] = useState(false);
+
+  useUrlSync('coursePage', coursePage, setCoursePage, 1, searchParams, router);
+  useUrlSync('courseSearch', courseSearch, setCourseSearch, '', searchParams, router);
+  useUrlSync('courseStatus', courseStatus, setCourseStatus, '', searchParams, router);
+  useUrlSync('courseCategory', courseCategory, setCourseCategory, '', searchParams, router);
 
   // Category management states
   const [categoriesList, setCategoriesList] = useState<any[]>([]);
@@ -91,7 +132,7 @@ export default function AdminDashboard() {
     const fd = new FormData();
     fd.append('file', file);
     try {
-      const res = await fetch('/api/admin/upload', {
+      const res = await fetchApi('/api/admin/upload', {
         method: 'POST',
         body: fd
       });
@@ -117,7 +158,7 @@ export default function AdminDashboard() {
     const fd = new FormData();
     fd.append('file', file);
     try {
-      const res = await fetch('/api/admin/upload', {
+      const res = await fetchApi('/api/admin/upload', {
         method: 'POST',
         body: fd
       });
@@ -160,7 +201,7 @@ export default function AdminDashboard() {
   const fetchCategories = async () => {
     setIsLoadingCategories(true);
     try {
-      const res = await fetch('/api/admin/categories');
+      const res = await fetchApi('/api/admin/categories');
       if (res.ok) {
         const data = await res.json();
         setCategoriesList(data.categories || []);
@@ -174,7 +215,7 @@ export default function AdminDashboard() {
 
   const fetchAllCategoriesForSelect = async () => {
     try {
-      const res = await fetch('/api/admin/all-categories');
+      const res = await fetchApi('/api/admin/all-categories');
       if (res.ok) {
         const data = await res.json();
         setAllCategories(data.categories || []);
@@ -197,7 +238,7 @@ export default function AdminDashboard() {
 
     setSubmittingCategory(true);
     try {
-      const res = await fetch('/api/admin/categories', {
+      const res = await fetchApi('/api/admin/categories', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, slug, parent_id, icon, description, color, accent })
@@ -233,7 +274,7 @@ export default function AdminDashboard() {
 
     setSubmittingCategory(true);
     try {
-      const res = await fetch('/api/admin/categories', {
+      const res = await fetchApi('/api/admin/categories', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: editingCategory.id, name, slug, parent_id, icon, description, color, accent })
@@ -259,7 +300,7 @@ export default function AdminDashboard() {
   const handleDeleteCategory = async (id: string) => {
     if (!confirm('Are you sure you want to delete this category? This action cannot be undone.')) return;
     try {
-      const res = await fetch(`/api/admin/categories?id=${id}`, {
+      const res = await fetchApi(`/api/admin/categories?id=${id}`, {
         method: 'DELETE'
       });
       const data = await res.json();
@@ -279,7 +320,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await fetch("/api/auth/me");
+        const res = await fetchApi("/api/auth/me");
         if (res.ok) {
           const data = await res.json();
           if (data.role !== 'admin') {
@@ -301,27 +342,27 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (!user) return;
     if (activeView === 'admin_overview') {
-      fetch('/api/admin/stats').then(r => r.json()).then(d => setStats(d));
+      fetchApi('/api/admin/stats').then(r => r.json()).then(d => setStats(d)).catch(e => console.error(e));
     }
     if (activeView === 'admin_instructors') {
-      fetch('/api/admin/instructors').then(r => r.json()).then(d => setApplications(d.applications || []));
+      fetchApi('/api/admin/instructors').then(r => r.json()).then(d => setApplications(d.applications || [])).catch(e => console.error(e));
     }
     if (activeView === 'admin_courses') {
-      fetch('/api/admin/courses').then(r => r.json()).then(d => setCourses(d.courses || []));
+      fetchApi('/api/admin/courses').then(r => r.json()).then(d => setCourses(d.courses || [])).catch(e => console.error(e));
     }
     if (activeView === 'admin_promos') {
-      fetch('/api/admin/promo_codes').then(r => r.json()).then(d => setPromos(d.promos || []));
+      fetchApi('/api/admin/promo_codes').then(r => r.json()).then(d => setPromos(d.promos || [])).catch(e => console.error(e));
     }
     if (activeView === 'admin_categories' || activeView === 'admin_edit_category') {
       fetchCategories();
     }
     if (activeView === 'admin_create_course' || activeView === 'admin_manage_courses' || activeView === 'admin_cert_repo' || activeView === 'admin_edit_course') {
       if (allCategories.length === 0) fetchAllCategoriesForSelect();
-      if (allInstructors.length === 0) fetch('/api/admin/all-instructors').then(r => r.json()).then(d => setAllInstructors(d.instructors || []));
+      if (allInstructors.length === 0) fetchApi('/api/admin/all-instructors').then(r => r.json()).then(d => setAllInstructors(d.instructors || [])).catch(e => console.error(e));
     }
     if (activeView === 'admin_manage_courses' || activeView === 'admin_cert_repo') {
       setIsCoursesLoading(true);
-      fetch(`/api/admin/courses/all?page=${coursePage}&search=${encodeURIComponent(courseSearch)}&categoryId=${courseCategory}&status=${courseStatus}`)
+      fetchApi(`/api/admin/courses/all?page=${coursePage}&search=${encodeURIComponent(courseSearch)}&categoryId=${courseCategory}&status=${courseStatus}`)
         .then(r => r.json())
         .then(d => {
           setAllCourses(d.courses || []);
@@ -336,7 +377,7 @@ export default function AdminDashboard() {
       if (activeView === 'admin_failed_payments') queryParams.set('status', 'failed');
       if (activeView === 'admin_refunds_history') queryParams.set('status', 'refunded,partially_refunded');
 
-      fetch(`/api/admin/transactions?${queryParams.toString()}`)
+      fetchApi(`/api/admin/transactions?${queryParams.toString()}`)
         .then(r => r.json())
         .then(d => {
           setPayments(d.transactions || []);
@@ -348,8 +389,8 @@ export default function AdminDashboard() {
     if (activeView === 'admin_revenue_analytics') {
       setIsPaymentsLoading(true);
       Promise.all([
-        fetch('/api/admin/revenue/overview').then(r => r.json()),
-        fetch('/api/admin/revenue/analytics').then(r => r.json())
+        fetchApi('/api/admin/revenue/overview').then(r => r.json()),
+        fetchApi('/api/admin/revenue/analytics').then(r => r.json())
       ]).then(([overviewData, analyticsData]) => {
         setPaymentAnalytics(overviewData.overview || null);
         setPaymentChartData(overviewData.chartData || []);
@@ -362,7 +403,7 @@ export default function AdminDashboard() {
     if (!confirm('Are you sure you want to delete this course? This action cannot be undone.')) return;
     setDeletingCourseId(id);
     try {
-      const res = await fetch(`/api/admin/courses/all?id=${id}`, { method: 'DELETE' });
+      const res = await fetchApi(`/api/admin/courses/all?id=${id}`, { method: 'DELETE' });
       if (res.ok) {
         showToast('Course deleted successfully', 'success');
         if (allCourses.length === 1 && coursePage > 1) {
@@ -383,10 +424,11 @@ export default function AdminDashboard() {
   };
 
   const handleApproveInstructor = async (id: string, action: 'approve' | 'reject') => {
+    if (actioningInstructorId) return;
     setActioningInstructorId(id);
     setInstructorAction(action);
     try {
-      const res = await fetch('/api/admin/instructors', {
+      const res = await fetchApi('/api/admin/instructors', {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, action })
       });
@@ -405,10 +447,11 @@ export default function AdminDashboard() {
   };
 
   const handlePublishCourse = async (id: string, action: 'approve' | 'reject') => {
+    if (actioningCourseId) return;
     setActioningCourseId(id);
     setCourseAction(action);
     try {
-      const res = await fetch('/api/admin/courses', {
+      const res = await fetchApi('/api/admin/courses', {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, action })
       });
@@ -445,7 +488,7 @@ export default function AdminDashboard() {
         expiry_date: expiryDate
       };
 
-      const res = await fetch('/api/admin/promo_codes', {
+      const res = await fetchApi('/api/admin/promo_codes', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
@@ -474,7 +517,7 @@ export default function AdminDashboard() {
     }
     setProcessingRefund(true);
     try {
-      const res = await fetch('/api/admin/refunds', {
+      const res = await fetchApi('/api/admin/refunds', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orderId })
@@ -498,7 +541,7 @@ export default function AdminDashboard() {
     const form = e.currentTarget;
     const formData = new FormData(form);
     try {
-      const res = await fetch('/api/admin/certificates', {
+      const res = await fetchApi('/api/admin/certificates', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ credential_id: formData.get('credential_id'), reason: formData.get('reason') })
@@ -535,7 +578,7 @@ export default function AdminDashboard() {
     delete payload.format;
     payload.details = createDetails.map(d => d.trim()).filter(Boolean);
     try {
-      const res = await fetch('/api/admin/courses', {
+      const res = await fetchApi('/api/admin/courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -574,7 +617,7 @@ export default function AdminDashboard() {
     payload.id = editingCourse?.id;
     payload.details = editDetails.map(d => d.trim()).filter(Boolean);
     try {
-      const res = await fetch('/api/admin/courses/all', {
+      const res = await fetchApi('/api/admin/courses/all', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -599,7 +642,7 @@ export default function AdminDashboard() {
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    await fetch("/api/auth/logout", { method: "POST" });
+    await fetchApi("/api/auth/logout", { method: "POST" });
     router.push("/");
   };
 
@@ -1978,7 +2021,7 @@ export default function AdminDashboard() {
             onRefund={async (paymentId, amount) => {
               // Trigger refund API
               try {
-                const res = await fetch('/api/admin/refunds/process', {
+                const res = await fetchApi('/api/admin/refunds/process', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ payment_id: paymentId, amount, action: 'process', reason_category: 'Admin UI Refund' })

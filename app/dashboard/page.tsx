@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import "./dashboard.css";
 import "./notes.css";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Logo from "../components/Logo";
 import RoleTransitionOverlay from "../components/RoleTransitionOverlay";
 import AlertModal from "../components/AlertModal";
 import { formatDuration } from '@/lib/utils';
+import { fetchApi } from '@/lib/apiClient';
 
 const triggerPromoConfetti = (elementId: string) => {
   const anchor = document.getElementById(elementId);
@@ -108,9 +109,44 @@ interface Note {
   updated_at?: string;
 }
 
+function useUrlSync(key: string, value: any, setValue: any, defaultValue: any, searchParams: any, router: any) {
+  useEffect(() => {
+    if (!searchParams) return;
+    const urlVal = searchParams.get(key);
+    if (urlVal !== null && urlVal !== value.toString()) {
+      setValue(typeof defaultValue === 'number' ? Number(urlVal) : urlVal);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!searchParams) return;
+    const urlVal = searchParams.get(key);
+    const isDefault = value === defaultValue;
+    if (value.toString() !== (urlVal || defaultValue.toString()) || (!isDefault && urlVal === null)) {
+      const params = new URLSearchParams(searchParams.toString());
+      if (isDefault) {
+        params.delete(key);
+      } else {
+        params.set(key, value.toString());
+      }
+      router.replace(`?${params.toString()}`, { scroll: false });
+    }
+  }, [value]);
+}
+
 export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div className="loader" style={{ margin: '100px auto' }}></div>}>
+      <DashboardPageContent />
+    </Suspense>
+  );
+}
+
+function DashboardPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeView, setActiveView] = useState("home");
+  useUrlSync('view', activeView, setActiveView, 'home', searchParams, router);
   const [promptQuery, setPromptQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<{ query: string; recorded: Workshop[]; live: Workshop[] } | null>(null);
@@ -144,6 +180,30 @@ export default function DashboardPage() {
   const [isNoteEditorOpen, setIsNoteEditorOpen] = useState(false);
   const [currentNote, setCurrentNote] = useState<Note | null>(null);
   const [noteSearch, setNoteSearch] = useState("");
+  const [isSavingNote, setIsSavingNote] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const draft = localStorage.getItem('xworks_note_draft');
+      if (draft && !currentNote && !isNoteEditorOpen) {
+        try {
+          const parsed = JSON.parse(draft);
+          setCurrentNote(parsed);
+          setIsNoteEditorOpen(true);
+        } catch(e) {}
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (isNoteEditorOpen && currentNote && (currentNote.title || currentNote.content)) {
+        localStorage.setItem('xworks_note_draft', JSON.stringify(currentNote));
+      } else if (!isNoteEditorOpen) {
+        localStorage.removeItem('xworks_note_draft');
+      }
+    }
+  }, [currentNote, isNoteEditorOpen]);
 
   // Settings state
   const [settingsForm, setSettingsForm] = useState({
@@ -153,6 +213,14 @@ export default function DashboardPage() {
     city: "",
     preferences: {} as any
   });
+
+  const updateSettingsForm = (updater: any) => {
+    setSettingsForm((prev: any) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      if (typeof window !== 'undefined') localStorage.setItem('xworks_settings_draft', JSON.stringify(next));
+      return next;
+    });
+  };
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [settingsStatus, setSettingsStatus] = useState("");
 
@@ -189,7 +257,7 @@ export default function DashboardPage() {
 
   const loadWorkshops = async () => {
     try {
-      const res = await fetch("/api/courses");
+      const res = await fetchApi("/api/courses");
       const results = await res.json();
       if (Array.isArray(results)) {
         const mapped = results.map(r => ({
@@ -212,7 +280,7 @@ export default function DashboardPage() {
         setWorkshops(mapped);
 
         // Also fetch trending separately for better data coverage
-        const trendRes = await fetch("/api/courses?sort=best&limit=8");
+        const trendRes = await fetchApi("/api/courses?sort=best&limit=8");
         if (trendRes.ok) {
           const trendData = await trendRes.json();
           setTrendingWorkshops(trendData.map((r: any) => ({
@@ -244,7 +312,7 @@ export default function DashboardPage() {
   const fetchEnrolments = async () => {
     setLoadingEnrolments(true);
     try {
-      const res = await fetch("/api/learner/enrolments");
+      const res = await fetchApi("/api/learner/enrolments");
       if (res.status === 401) return setSessionExpired(true);
       if (res.ok) {
         const data = await res.json();
@@ -259,7 +327,7 @@ export default function DashboardPage() {
 
   const fetchUser = async () => {
     try {
-      const res = await fetch("/api/auth/me");
+      const res = await fetchApi("/api/auth/me");
       if (res.status === 401) return setSessionExpired(true);
       if (res.ok) {
         const data = await res.json();
@@ -283,7 +351,7 @@ export default function DashboardPage() {
   const fetchSessions = async () => {
     setLoadingSessions(true);
     try {
-      const res = await fetch("/api/learner/sessions");
+      const res = await fetchApi("/api/learner/sessions");
       if (res.status === 401) return setSessionExpired(true);
       if (res.ok) {
         const data = await res.json();
@@ -299,7 +367,7 @@ export default function DashboardPage() {
   const fetchNotes = async () => {
     setLoadingNotes(true);
     try {
-      const res = await fetch("/api/learner/notes");
+      const res = await fetchApi("/api/learner/notes");
       if (res.status === 401) return setSessionExpired(true);
       if (res.ok) {
         const data = await res.json();
@@ -313,8 +381,10 @@ export default function DashboardPage() {
   };
 
   const saveNote = async (note: Note) => {
+    if (isSavingNote) return;
+    setIsSavingNote(true);
     try {
-      const res = await fetch("/api/learner/notes", {
+      const res = await fetchApi("/api/learner/notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(note)
@@ -330,6 +400,8 @@ export default function DashboardPage() {
       }
     } catch (err) {
       console.error("Failed to save note:", err);
+    } finally {
+      setIsSavingNote(false);
     }
   };
 
@@ -346,7 +418,7 @@ export default function DashboardPage() {
 
   const deleteNote = async (id: string) => {
     try {
-      const res = await fetch(`/api/learner/notes/${id}`, { method: "DELETE" });
+      const res = await fetchApi(`/api/learner/notes/${id}`, { method: "DELETE" });
       if (res.ok) {
         setNotes(prev => prev.filter(n => n.id !== id));
         setIsNoteEditorOpen(false);
@@ -359,7 +431,7 @@ export default function DashboardPage() {
   const fetchCerts = async () => {
     setLoadingCerts(true);
     try {
-      const res = await fetch("/api/learner/certificates");
+      const res = await fetchApi("/api/learner/certificates");
       if (res.status === 401) return setSessionExpired(true);
       if (res.ok) {
         const data = await res.json();
@@ -374,16 +446,24 @@ export default function DashboardPage() {
 
   const fetchProfile = async () => {
     try {
-      const res = await fetch("/api/learner/profile");
+      const res = await fetchApi("/api/learner/profile");
       if (res.ok) {
         const data = await res.json();
-        setSettingsForm({
-          firstName: data.firstName || "",
-          lastName: data.lastName || "",
-          phone: data.phone || "",
-          city: data.city || "",
-          preferences: data.preferences || {}
-        });
+        const draftStr = typeof window !== 'undefined' ? localStorage.getItem('xworks_settings_draft') : null;
+        if (draftStr) {
+          try {
+            setSettingsForm(JSON.parse(draftStr));
+            setSettingsStatus("Showing unsaved draft");
+          } catch(e) {}
+        } else {
+          setSettingsForm({
+            firstName: data.firstName || "",
+            lastName: data.lastName || "",
+            phone: data.phone || "",
+            city: data.city || "",
+            preferences: data.preferences || {}
+          });
+        }
       }
     } catch (err) {}
   };
@@ -392,13 +472,14 @@ export default function DashboardPage() {
     setIsSavingSettings(true);
     setSettingsStatus("Saving...");
     try {
-      const res = await fetch("/api/learner/profile", {
+      const res = await fetchApi("/api/learner/profile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(settingsForm)
       });
       if (res.ok) {
         setSettingsStatus("Saved! ✨");
+        if (typeof window !== 'undefined') localStorage.removeItem('xworks_settings_draft');
         fetchUser(); // Refresh user header
         setTimeout(() => setSettingsStatus(""), 3000);
       } else {
@@ -412,7 +493,7 @@ export default function DashboardPage() {
   };
 
   const togglePreference = (key: string) => {
-    setSettingsForm(prev => ({
+    updateSettingsForm((prev: any) => ({
       ...prev,
       preferences: {
         ...prev.preferences,
@@ -487,7 +568,7 @@ export default function DashboardPage() {
 
     setIsSearching(true);
     try {
-      const res = await fetch(`/api/courses?q=${encodeURIComponent(q)}`);
+      const res = await fetchApi(`/api/courses?q=${encodeURIComponent(q)}`);
       const results = await res.json();
 
       if (!Array.isArray(results)) {
@@ -544,7 +625,7 @@ export default function DashboardPage() {
   const handleOpenBooking = async (courseId: string, courseName: string, regId?: string) => {
     setBookingSession({ courseId, courseName, regId });
     try {
-      const res = await fetch(`/api/courses/${courseId}/sessions`);
+      const res = await fetchApi(`/api/courses/${courseId}/sessions`);
       if (res.ok) {
         const data = await res.json();
         setAvailableSessions(data);
@@ -564,7 +645,7 @@ export default function DashboardPage() {
       const method = isReschedule ? 'PUT' : 'POST';
       const body = isReschedule ? { newSessionId: sessionId } : {};
 
-      const res = await fetch(url, { 
+      const res = await fetchApi(url, { 
         method,
         headers: { 'Content-Type': 'application/json' },
         body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined
@@ -637,7 +718,7 @@ export default function DashboardPage() {
     setEnrolModalOpen(true);
 
     try {
-      const res = await fetch(`/api/courses/id/${w.id}/sessions`);
+      const res = await fetchApi(`/api/courses/id/${w.id}/sessions`);
       if (res.ok) {
         const data = await res.json();
         setModalSessions(data);
@@ -675,7 +756,7 @@ export default function DashboardPage() {
 
     setPromoLoading(true);
     try {
-      const res = await fetch("/api/promo-codes/validate", {
+      const res = await fetchApi("/api/promo-codes/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code, courseId: enrolData.courseId, format: enrolData.format })
@@ -734,7 +815,7 @@ export default function DashboardPage() {
       // 0. Handle Free Course / 100% Discount Case
       if (enrolData.finalPrice === 0) {
         setPromoOk({ text: 'Creating free enrolment...', color: "#1E1B4B", show: true });
-        const freeRes = await fetch("/api/enrolments", {
+        const freeRes = await fetchApi("/api/enrolments", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -753,7 +834,7 @@ export default function DashboardPage() {
       }
 
       // 1. Create order
-      const res = await fetch("/api/payments/create-order", {
+      const res = await fetchApi("/api/payments/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -783,7 +864,7 @@ export default function DashboardPage() {
           setEnrolStep(5);
           setPromoOk({ text: 'Verifying your payment securely...', color: "#1E1B4B", show: true });
           try {
-            const verifyRes = await fetch("/api/payments/verify", {
+            const verifyRes = await fetchApi("/api/payments/verify", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -840,7 +921,7 @@ export default function DashboardPage() {
   const handleLogout = async () => {
     setIsLoggingOut(true);
     try {
-      const res = await fetch('/api/auth/logout', { method: 'POST' });
+      const res = await fetchApi('/api/auth/logout', { method: 'POST' });
       // Keep overlay visible for a brief moment
       setTimeout(() => {
         router.push('/Login');
@@ -1645,12 +1726,17 @@ export default function DashboardPage() {
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                     <div className="settings-field">
-                      <label>First name</label>
-                      <input className="settings-input" value={settingsForm.firstName} onChange={e => setSettingsForm(p => ({ ...p, firstName: e.target.value }))} />
+                      <label>First Name</label>
+                      <div className="settings-input-wrap">
+                        <span className="input-icon">👤</span>
+                        <input className="settings-input" value={settingsForm.firstName} onChange={e => updateSettingsForm((p: any) => ({ ...p, firstName: e.target.value }))} />
+                      </div>
                     </div>
                     <div className="settings-field">
-                      <label>Last name</label>
-                      <input className="settings-input" value={settingsForm.lastName} onChange={e => setSettingsForm(p => ({ ...p, lastName: e.target.value }))} />
+                      <label>Last Name</label>
+                      <div className="settings-input-wrap">
+                        <input className="settings-input" value={settingsForm.lastName} onChange={e => updateSettingsForm((p: any) => ({ ...p, lastName: e.target.value }))} />
+                      </div>
                     </div>
                   </div>
                   <div className="settings-field">
@@ -1658,12 +1744,18 @@ export default function DashboardPage() {
                     <input className="settings-input" style={{ opacity: 0.6, cursor: 'not-allowed' }} value={user?.email || ""} readOnly />
                   </div>
                   <div className="settings-field">
-                    <label>Phone</label>
-                    <input className="settings-input" value={settingsForm.phone} onChange={e => setSettingsForm(p => ({ ...p, phone: e.target.value }))} />
+                    <label>Phone Number</label>
+                    <div className="settings-input-wrap">
+                      <span className="input-icon">📱</span>
+                      <input className="settings-input" value={settingsForm.phone} onChange={e => updateSettingsForm((p: any) => ({ ...p, phone: e.target.value }))} />
+                    </div>
                   </div>
                   <div className="settings-field">
                     <label>City</label>
-                    <input className="settings-input" value={settingsForm.city} onChange={e => setSettingsForm(p => ({ ...p, city: e.target.value }))} />
+                    <div className="settings-input-wrap">
+                      <span className="input-icon">📍</span>
+                      <input className="settings-input" value={settingsForm.city} onChange={e => updateSettingsForm((p: any) => ({ ...p, city: e.target.value }))} />
+                    </div>
                   </div>
                   <button className="settings-save" onClick={handleSaveSettings} disabled={isSavingSettings}>
                     {isSavingSettings ? "Saving..." : "Save changes"}
@@ -1688,15 +1780,20 @@ export default function DashboardPage() {
                     <div className="settings-card-title">🎯 Learning Preferences</div>
                     <div className="settings-field">
                       <label>Interests (comma separated)</label>
-                      <input className="settings-input" value={settingsForm.preferences.interests || ""} onChange={e => setSettingsForm(p => ({ ...p, preferences: { ...p.preferences, interests: e.target.value } }))} />
+                      <div className="settings-input-wrap">
+                        <span className="input-icon">💡</span>
+                        <input className="settings-input" value={settingsForm.preferences.interests || ""} onChange={e => updateSettingsForm((p: any) => ({ ...p, preferences: { ...p.preferences, interests: e.target.value } }))} />
+                      </div>
                     </div>
                     <div className="settings-field">
                       <label>Preferred language</label>
-                      <select className="settings-input" value={settingsForm.preferences.lang || "English"} onChange={e => setSettingsForm(p => ({ ...p, preferences: { ...p.preferences, lang: e.target.value } }))}>
+                      <select className="settings-input" value={settingsForm.preferences.lang || "English"} onChange={e => updateSettingsForm((p: any) => ({ ...p, preferences: { ...p.preferences, lang: e.target.value } }))}>
                         <option>English</option><option>Hindi</option><option>Tamil</option>
                       </select>
                     </div>
-                    <button className="settings-save" style={{ marginTop: '16px', borderRadius: '10px' }} onClick={handleSaveSettings}>Save Preferences</button>
+                    <button className="settings-save" style={{ marginTop: '16px', borderRadius: '10px' }} onClick={handleSaveSettings} disabled={isSavingSettings}>
+                      {isSavingSettings ? "Saving..." : "Save Preferences"}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1865,7 +1962,9 @@ export default function DashboardPage() {
                     {currentNote.id && (
                       <button className="v-btn v-btn-danger" onClick={() => { if (confirm("Delete this note?")) deleteNote(currentNote.id as string); }}>Delete</button>
                     )}
-                    <button className="v-btn v-btn-primary" onClick={() => saveNote(currentNote)}>Save Note</button>
+                    <button className="v-btn v-btn-primary" onClick={() => saveNote(currentNote)} disabled={isSavingNote}>
+                      {isSavingNote ? "Saving..." : "Save Note"}
+                    </button>
                   </div>
                 </div>
                 

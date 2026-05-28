@@ -1,16 +1,52 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import "../dashboard/dashboard.css";
 import RoleTransitionOverlay from "../components/RoleTransitionOverlay";
 import ActionModal, { ActionModalState } from "../components/ActionModal";
 import EarningsDashboard from "../components/EarningsDashboard";
+import { fetchApi } from '@/lib/apiClient';
+
+function useUrlSync(key: string, value: any, setValue: any, defaultValue: any, searchParams: any, router: any) {
+  useEffect(() => {
+    if (!searchParams) return;
+    const urlVal = searchParams.get(key);
+    if (urlVal !== null && urlVal !== value.toString()) {
+      setValue(typeof defaultValue === 'number' ? Number(urlVal) : urlVal);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!searchParams) return;
+    const urlVal = searchParams.get(key);
+    const isDefault = value === defaultValue;
+    if (value.toString() !== (urlVal || defaultValue.toString()) || (!isDefault && urlVal === null)) {
+      const params = new URLSearchParams(searchParams.toString());
+      if (isDefault) {
+        params.delete(key);
+      } else {
+        params.set(key, value.toString());
+      }
+      router.replace(`?${params.toString()}`, { scroll: false });
+    }
+  }, [value]);
+}
 
 export default function InstructorDashboard() {
+  return (
+    <Suspense fallback={<div className="loader" style={{ margin: '100px auto' }}></div>}>
+      <InstructorDashboardContent />
+    </Suspense>
+  );
+}
+
+function InstructorDashboardContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [activeView, setActiveView] = useState("inst_courses");
+  useUrlSync('view', activeView, setActiveView, 'inst_courses', searchParams, router);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [appStatus, setAppStatus] = useState<string | null>(null);
@@ -54,12 +90,12 @@ export default function InstructorDashboard() {
   });
 
   useEffect(() => {
-    fetch('/api/instructor/sessions')
+    fetchApi('/api/instructor/sessions')
       .then(res => res.json())
       .then(data => {
-        if (!data.error) setSessions(data);
+        setSessions(data.sessions || []);
       })
-      .catch(console.error);
+      .catch(err => console.error("Failed to fetch sessions:", err));
   }, []);
 
   const handleToggleRecording = async (sessionId: string, currentAvailable: boolean) => {
@@ -72,7 +108,7 @@ export default function InstructorDashboard() {
         onConfirm: async (url) => {
           if (!url) return;
           try {
-            const res = await fetch(`/api/instructor/sessions/${sessionId}/recording`, {
+            const res = await fetchApi(`/api/instructor/sessions/${sessionId}/recording`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ recordingUrl: url, available: true })
@@ -88,7 +124,7 @@ export default function InstructorDashboard() {
       });
     } else {
       try {
-        const res = await fetch(`/api/instructor/sessions/${sessionId}/recording`, {
+        const res = await fetchApi(`/api/instructor/sessions/${sessionId}/recording`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ recordingUrl: null, available: false })
@@ -110,7 +146,7 @@ export default function InstructorDashboard() {
       message: 'Are you sure you want to cancel this live session? All registrants will be notified immediately and refunded if eligible.',
       onConfirm: async () => {
         try {
-          const res = await fetch(`/api/instructor/sessions/${sessionId}/cancel`, {
+          const res = await fetchApi(`/api/instructor/sessions/${sessionId}/cancel`, {
             method: 'PUT'
           });
           const result = await res.json();
@@ -130,18 +166,18 @@ export default function InstructorDashboard() {
   useEffect(() => {
     if (!user || user.role !== 'instructor') return;
     if (activeView === 'inst_courses' || activeView === 'inst_sessions') {
-      fetch('/api/teach/courses').then(r=>r.json()).then(d => {
+      fetchApi('/api/teach/courses').then(r=>r.json()).then(d => {
         if (Array.isArray(d)) setCourses(d);
-      });
-      fetch('/api/categories').then(r => r.json()).then(d => setAllCategories(d || []));
+      }).catch(e => console.error("Failed to fetch courses:", e));
+      fetchApi('/api/categories').then(r => r.json()).then(d => setAllCategories(d || [])).catch(e => console.error(e));
     }
     if (activeView === 'inst_earnings') {
-      fetch('/api/instructor/stats').then(r=>r.json()).then(d => {
+      fetchApi('/api/instructor/stats').then(r=>r.json()).then(d => {
         if (d.success) {
           setStats(d.stats);
           setTransactions(d.transactions);
         }
-      });
+      }).catch(e => console.error("Failed to fetch stats:", e));
     }
   }, [activeView, user]);
 
@@ -149,8 +185,8 @@ export default function InstructorDashboard() {
     const fetchUserAndStatus = async () => {
       try {
         const [res, statRes] = await Promise.all([
-          fetch("/api/auth/me"),
-          fetch("/api/instructor/status")
+          fetchApi("/api/auth/me"),
+          fetchApi("/api/instructor/status")
         ]);
 
         if (res.ok) {
@@ -178,7 +214,7 @@ export default function InstructorDashboard() {
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
-    await fetch("/api/auth/logout", { method: "POST" });
+    await fetchApi("/api/auth/logout", { method: "POST" });
     router.push("/");
   };
 
@@ -186,7 +222,7 @@ export default function InstructorDashboard() {
     if (!bio || !linkedin) return;
     setSubmitting(true);
     try {
-      const res = await fetch("/api/instructor/status", {
+      const res = await fetchApi("/api/instructor/status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ bio, linkedin_url: linkedin })
@@ -348,7 +384,7 @@ export default function InstructorDashboard() {
                     const live = format === 'live';
                     const nearby = format === 'inperson';
                     try {
-                      const res = await fetch('/api/teach/courses', { 
+                      const res = await fetchApi('/api/teach/courses', { 
                         method: 'POST', 
                         headers: {'Content-Type':'application/json'}, 
                         body: JSON.stringify({ 
@@ -446,7 +482,7 @@ export default function InstructorDashboard() {
                           <td style={{ padding: '16px 8px' }}>
                             {(c.status === 'draft' || c.status === 'rejected') && (
                               <button onClick={async () => {
-                                const res = await fetch('/api/teach/courses', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: c.id, action: 'submit_review' }) });
+                                const res = await fetchApi('/api/teach/courses', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: c.id, action: 'submit_review' }) });
                                 if (res.ok) setCourses(courses.map(course => course.id === c.id ? {...course, status: 'under_review'} : course));
                               }} style={{ padding:'8px 16px', background:'var(--blue-bg)', color:'var(--blue)', fontWeight: '600', border:'none', borderRadius:'8px', cursor:'pointer' }}>
                                 {c.status === 'rejected' ? 'Re-Submit' : 'Submit'}
@@ -454,7 +490,7 @@ export default function InstructorDashboard() {
                             )}
                             {c.status === 'published' && (
                               <button onClick={async () => {
-                                const res = await fetch('/api/teach/courses', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: c.id, action: 'unpublish' }) });
+                                const res = await fetchApi('/api/teach/courses', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: c.id, action: 'unpublish' }) });
                                 if (res.ok) setCourses(courses.map(course => course.id === c.id ? {...course, status: 'draft'} : course));
                               }} style={{ padding:'8px 16px', background:'transparent', border: '1px solid var(--border)', color:'var(--text-2)', fontWeight: '600', borderRadius:'8px', cursor:'pointer' }}>
                                 Unpublish
@@ -519,7 +555,7 @@ export default function InstructorDashboard() {
                       }
 
                       const end = new Date(start.getTime() + scheduleData.durationMinutes * 60000);
-                      const res = await fetch('/api/instructor/sessions', {
+                      const res = await fetchApi('/api/instructor/sessions', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -531,7 +567,7 @@ export default function InstructorDashboard() {
                       });
                       if (res.ok) {
                         setShowScheduleModal(false);
-                        const data = await fetch('/api/instructor/sessions').then(r => r.json());
+                        const data = await fetchApi('/api/instructor/sessions').then(r => r.json()).catch(() => ({sessions: []}));
                         if (!data.error) setSessions(data);
                         setScheduleData({ courseId: '', title: '', scheduledStart: '', durationMinutes: 60 });
                       } else {
@@ -619,7 +655,7 @@ export default function InstructorDashboard() {
                                     onConfirm: async (url) => {
                                       if (url) {
                                         try {
-                                          const res = await fetch(`/api/instructor/sessions/${s.sessionId}/host`, {
+                                          const res = await fetchApi(`/api/instructor/sessions/${s.sessionId}/host`, {
                                             method: 'PUT',
                                             headers: { 'Content-Type': 'application/json' },
                                             body: JSON.stringify({ hostUrl: url })

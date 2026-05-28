@@ -8,6 +8,7 @@ import Footer from './components/Footer';
 import Logo from './components/Logo';
 import AlertModal from './components/AlertModal';
 import { formatDuration } from '@/lib/utils';
+import { fetchApi } from '@/lib/apiClient';
 
 const triggerPromoConfetti = (elementId: string) => {
   const anchor = document.getElementById(elementId);
@@ -108,7 +109,7 @@ export default function Home() {
   useEffect(() => {
     const fetchUser = async () => {
       try {
-        const res = await fetch("/api/auth/me", { cache: 'no-store' });
+        const res = await fetchApi("/api/auth/me", { cache: 'no-store' });
         if (res.ok) {
           const data = await res.json();
           setUser(data);
@@ -138,9 +139,9 @@ export default function Home() {
     const fetchData = async () => {
       try {
         const [bsRes, naRes, catRes] = await Promise.all([
-          fetch('/api/courses?sort=best&limit=10'),
-          fetch('/api/courses?sort=new&limit=10'),
-          fetch('/api/categories')
+          fetchApi('/api/courses?sort=best&limit=10'),
+          fetchApi('/api/courses?sort=new&limit=10'),
+          fetchApi('/api/categories')
         ]);
         const [bs, na, cats] = await Promise.all([bsRes.json(), naRes.json(), catRes.json()]);
         if (Array.isArray(bs)) setBestSellers(bs);
@@ -165,7 +166,7 @@ export default function Home() {
       const fetchBrowserData = async () => {
         setIsBrowserLoading(true);
         try {
-          const res = await fetch(`/api/courses?category=${activeSubjectSlug}`);
+          const res = await fetchApi(`/api/courses?category=${activeSubjectSlug}`);
           const data = await res.json();
           if (Array.isArray(data)) setBrowserCourses(data);
         } catch (err) {
@@ -194,7 +195,7 @@ export default function Home() {
     if (enrolData.isOpen && enrolData.step === 2 && enrolData.id) {
       const fetchSessions = async () => {
         try {
-          const res = await fetch(`/api/courses/${enrolData.id}/sessions`);
+          const res = await fetchApi(`/api/courses/${enrolData.id}/sessions`);
           const data = await res.json();
           if (Array.isArray(data)) {
             setEnrolData(prev => ({
@@ -261,7 +262,7 @@ export default function Home() {
     setIsCatLoading(true);
 
     try {
-      const res = await fetch(`/api/courses?category=${key}`);
+      const res = await fetchApi(`/api/courses?category=${key}`);
       const data = await res.json();
       if (Array.isArray(data)) setCatCourses(data);
     } catch (err) {
@@ -344,7 +345,7 @@ export default function Home() {
     try {
       // If it's a paid course, start Razorpay flow
       if (enrolData.finalPrice && enrolData.finalPrice > 0) {
-        const orderRes = await fetch('/api/payments/create-order', {
+        const orderRes = await fetchApi('/api/payments/create-order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -381,7 +382,7 @@ export default function Home() {
             setPromoMsg({ text: 'Verifying your payment securely...', type: 'info' });
 
             try {
-              const verifyRes = await fetch('/api/payments/verify', {
+              const verifyRes = await fetchApi('/api/payments/verify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -429,7 +430,7 @@ export default function Home() {
 
       // Free Course Enrolment Flow
       setPromoMsg({ text: 'Creating free enrolment...', type: 'info' });
-      const res = await fetch('/api/learner/enrolments', {
+      const res = await fetchApi('/api/learner/enrolments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -449,7 +450,7 @@ export default function Home() {
 
         // AUTO REGISTER FOR SESSION IF SELECTED
         if (enrolData.format === 'live' && enrolData.selectedSessionId) {
-          await fetch(`/api/sessions/${enrolData.selectedSessionId}/register`, { method: 'POST' });
+          await fetchApi(`/api/sessions/${enrolData.selectedSessionId}/register`, { method: 'POST' });
         }
 
         enrolGoStep(4); // Success step
@@ -475,7 +476,7 @@ export default function Home() {
     }
     setPromoLoading(true);
     try {
-      const res = await fetch('/api/promo-codes/validate', {
+      const res = await fetchApi('/api/promo-codes/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, courseId: enrolData.id, format: enrolData.format })

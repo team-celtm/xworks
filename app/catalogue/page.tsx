@@ -8,6 +8,7 @@ import { formatDuration } from '@/lib/utils';
 import './catalogue.css';
 import Logo from '../components/Logo';
 import AlertModal from '../components/AlertModal';
+import { fetchApi } from '@/lib/apiClient';
 
 declare global {
   interface Window {
@@ -115,14 +116,27 @@ function CatalogueContent() {
 
   const [state, setState] = useState({
     cat: searchParams?.get('cat') || 'all',
-    level: 'all',
-    format: 'all',
-    price: 'all',
-    search: '',
-    sort: 'popular',
-    page: 1,
+    level: searchParams?.get('level') || 'all',
+    format: searchParams?.get('format') || 'all',
+    price: searchParams?.get('price') || 'all',
+    search: searchParams?.get('search') || '',
+    sort: searchParams?.get('sort') || 'popular',
+    page: parseInt(searchParams?.get('page') || '1', 10),
     perPage: 12,
   });
+
+  useEffect(() => {
+    setState({
+      cat: searchParams?.get('cat') || 'all',
+      level: searchParams?.get('level') || 'all',
+      format: searchParams?.get('format') || 'all',
+      price: searchParams?.get('price') || 'all',
+      search: searchParams?.get('search') || '',
+      sort: searchParams?.get('sort') || 'popular',
+      page: parseInt(searchParams?.get('page') || '1', 10),
+      perPage: 12,
+    });
+  }, [searchParams]);
   const [isNavigating, setIsNavigating] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [userLoading, setUserLoading] = useState(true);
@@ -132,7 +146,7 @@ function CatalogueContent() {
     const fetchUser = async () => {
       setUserLoading(true);
       try {
-        const res = await fetch("/api/auth/me");
+        const res = await fetchApi("/api/auth/me");
         if (res.ok) {
           const data = await res.json();
           setUser(data);
@@ -148,7 +162,7 @@ function CatalogueContent() {
   useEffect(() => {
     async function fetchCategories() {
       try {
-        const res = await fetch('/api/categories');
+        const res = await fetchApi('/api/categories');
         const data = await res.json();
         if (Array.isArray(data)) setDbCategories(data);
       } catch (err) {
@@ -165,7 +179,7 @@ function CatalogueContent() {
         return;
       }
       try {
-        const res = await fetch(`/api/categories?parent=${state.cat}`);
+        const res = await fetchApi(`/api/categories?parent=${state.cat}`);
         const data = await res.json();
         if (Array.isArray(data)) setSubCategories(data);
       } catch (err) {
@@ -183,7 +197,7 @@ function CatalogueContent() {
         if (state.search.trim()) params.set('q', state.search.trim());
         if (state.cat !== 'all') params.set('category', state.cat);
 
-        const res = await fetch(`/api/courses?${params.toString()}`);
+        const res = await fetchApi(`/api/courses?${params.toString()}`);
         if (!res.ok) throw new Error('Failed to fetch workshops');
         const data = await res.json();
         setWorkshops(data);
@@ -203,7 +217,22 @@ function CatalogueContent() {
   }, [state.search, state.cat]);
 
   const updateState = (updates: Partial<typeof state>) => {
-    setState((prev: any) => ({ ...prev, ...updates, page: updates.page ?? 1 }));
+    const newState = { ...state, ...updates, page: updates.page ?? 1 };
+    setState(newState);
+    
+    if (!searchParams) return;
+    const params = new URLSearchParams(searchParams.toString());
+    const setOrDel = (k: string, v: string, def: string) => v !== def ? params.set(k, v) : params.delete(k);
+    
+    setOrDel('cat', newState.cat, 'all');
+    setOrDel('level', newState.level, 'all');
+    setOrDel('format', newState.format, 'all');
+    setOrDel('price', newState.price, 'all');
+    setOrDel('search', newState.search, '');
+    setOrDel('sort', newState.sort, 'popular');
+    setOrDel('page', String(newState.page), '1');
+    
+    router.replace(`?${params.toString()}`, { scroll: false });
   };
 
   const filtered = useMemo(() => {
@@ -301,7 +330,7 @@ function CatalogueContent() {
     setPromoError('');
 
     try {
-      const res = await fetch(`/api/courses/${w.id}/sessions`);
+      const res = await fetchApi(`/api/courses/${w.id}/sessions`);
       if (res.ok) {
         const data = await res.json();
         setModalSessions(data);
@@ -359,7 +388,7 @@ function CatalogueContent() {
     try {
       // If it's a paid course, start Razorpay flow
       if (enrolData.finalPrice && enrolData.finalPrice > 0) {
-        const orderRes = await fetch('/api/payments/create-order', {
+        const orderRes = await fetchApi('/api/payments/create-order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -396,7 +425,7 @@ function CatalogueContent() {
             setPromoError('Verifying your payment securely...');
 
             try {
-              const verifyRes = await fetch('/api/payments/verify', {
+              const verifyRes = await fetchApi('/api/payments/verify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -415,7 +444,7 @@ function CatalogueContent() {
 
                 // NEW: Session Registration
                 if (enrolData.format === 'live' && enrolData.selectedSessionId) {
-                  await fetch(`/api/sessions/${enrolData.selectedSessionId}/register`, { method: 'POST' });
+                  await fetchApi(`/api/sessions/${enrolData.selectedSessionId}/register`, { method: 'POST' });
                 }
 
                 setEnrolStep(4); // Success step
@@ -451,7 +480,7 @@ function CatalogueContent() {
 
       // Free Course Enrolment Flow
       setPromoError('Creating free enrolment...');
-      const res = await fetch('/api/learner/enrolments', {
+      const res = await fetchApi('/api/learner/enrolments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -471,7 +500,7 @@ function CatalogueContent() {
 
         // NEW: Session Registration
         if (enrolData.format === 'live' && enrolData.selectedSessionId) {
-          await fetch(`/api/sessions/${enrolData.selectedSessionId}/register`, { method: 'POST' });
+          await fetchApi(`/api/sessions/${enrolData.selectedSessionId}/register`, { method: 'POST' });
         }
 
         setEnrolStep(4); // Success step
@@ -498,7 +527,7 @@ function CatalogueContent() {
     }
     setPromoLoading(true);
     try {
-      const res = await fetch('/api/promo-codes/validate', {
+      const res = await fetchApi('/api/promo-codes/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, courseId: enrolData.id, format: enrolData.format })

@@ -7,6 +7,7 @@ import '../../catalogue/catalogue.css';
 import Logo from '../../components/Logo';
 import AlertModal from '../../components/AlertModal';
 import { formatDuration } from '@/lib/utils';
+import { fetchApi } from '@/lib/apiClient';
 
 declare global {
   interface Window {
@@ -79,7 +80,7 @@ export default function CourseDetailPage() {
     const fetchUser = async () => {
       setUserLoading(true);
       try {
-        const res = await fetch("/api/auth/me");
+        const res = await fetchApi("/api/auth/me");
         if (res.ok) {
           const data = await res.json();
           setUser(data);
@@ -97,13 +98,13 @@ export default function CourseDetailPage() {
   useEffect(() => {
     async function fetchDetail() {
       try {
-        const res = await fetch(`/api/courses/${slug}`);
+        const res = await fetchApi(`/api/courses/${slug}`);
         if (!res.ok) throw new Error('Course not found');
         const data = await res.json();
         setCourse(data);
 
         // Fetch user enrolments if logged in
-        const eres = await fetch('/api/learner/enrolments');
+        const eres = await fetchApi('/api/learner/enrolments');
         if (eres.ok) {
           const edata = await eres.json();
           const match = edata.find((e: any) => e.course_id === data.id && e.enrolment_status === 'active');
@@ -111,7 +112,7 @@ export default function CourseDetailPage() {
         }
 
         // Fetch sessions if it's a live course
-        const sres = await fetch(`/api/courses/id/${data.id}/sessions`);
+        const sres = await fetchApi(`/api/courses/id/${data.id}/sessions`);
         if (sres.ok) {
           const sdata = await sres.json();
           setSessions(sdata);
@@ -152,7 +153,7 @@ export default function CourseDetailPage() {
     setError(null);
 
     try {
-      const res = await fetch('/api/learner/enrolments', {
+      const res = await fetchApi('/api/learner/enrolments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ courseId: course.id, sessionId: selectedSessionId })
@@ -167,7 +168,7 @@ export default function CourseDetailPage() {
 
       if (res.status === 402) {
         // Paid course - Intiate Razorpay
-        const orderRes = await fetch('/api/payments/create-order', {
+        const orderRes = await fetchApi('/api/payments/create-order', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ courseId: course.id, sessionId: selectedSessionId })
@@ -185,7 +186,7 @@ export default function CourseDetailPage() {
           order_id: orderData.orderId,
           handler: async (response: any) => {
             setEnrolling(true);
-            const verifyRes = await fetch('/api/payments/verify', {
+            const verifyRes = await fetchApi('/api/payments/verify', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({

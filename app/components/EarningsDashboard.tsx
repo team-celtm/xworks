@@ -9,6 +9,7 @@ import {
 import { 
   TrendingUp, Users, Wallet, CreditCard, DollarSign, Activity, AlertCircle, FileText
 } from 'lucide-react';
+import { fetchApi } from '@/lib/apiClient';
 
 export default function EarningsDashboard() {
   const [data, setData] = useState<any>(null);
@@ -22,7 +23,7 @@ export default function EarningsDashboard() {
   const [payoutStatus, setPayoutStatus] = useState<{ loading: boolean, error: string | null, success: string | null }>({ loading: false, error: null, success: null });
 
   const fetchPayouts = () => {
-    fetch('/api/instructor/payouts')
+    fetchApi('/api/instructor/payouts')
       .then(r => r.json())
       .then(d => {
         if (d.success) setPayouts(d.payouts);
@@ -31,7 +32,7 @@ export default function EarningsDashboard() {
   };
 
   useEffect(() => {
-    fetch('/api/instructor/stats')
+    fetchApi('/api/instructor/stats')
       .then(res => res.json())
       .then(resData => {
         if (resData.success) {
@@ -423,7 +424,7 @@ export default function EarningsDashboard() {
                   onClick={async () => {
                     setPayoutStatus({ loading: true, error: null, success: null });
                     try {
-                      const res = await fetch('/api/instructor/payouts', {
+                      const res = await fetchApi('/api/instructor/payouts', {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ amount: Number(withdrawAmount), bankDetails })
                       });

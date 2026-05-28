@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
+import { fetchApi } from '@/lib/apiClient';
 
 export default function AuditLogs() {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/admin/audit-logs')
+    fetchApi('/api/admin/audit-logs')
       .then(res => res.json())
       .then(data => {
         if (data.auditLogs) setLogs(data.auditLogs);

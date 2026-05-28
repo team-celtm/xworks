@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { fetchApi } from '@/lib/apiClient';
 
 export default function RefundsHistory() {
   const [refunds, setRefunds] = useState<any[]>([]);
@@ -6,7 +7,7 @@ export default function RefundsHistory() {
 
   useEffect(() => {
     // We are re-using the transactions endpoint filtered by refunded status
-    fetch('/api/admin/transactions?status=refunded,partially_refunded')
+    fetchApi('/api/admin/transactions?status=refunded,partially_refunded')
       .then(res => res.json())
       .then(data => {
         if (data.transactions) setRefunds(data.transactions);

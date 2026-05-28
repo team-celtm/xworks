@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import RoleTransitionOverlay from './RoleTransitionOverlay';
 import Logo from './Logo';
+import { fetchApi } from '@/lib/apiClient';
 
 interface AuthScreenProps {
   defaultTab?: 'in' | 'up';
@@ -37,7 +38,7 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
       } else {
         const fetchRole = async () => {
           try {
-            const res = await fetch('/api/auth/me');
+            const res = await fetchApi('/api/auth/me');
             if (res.ok) {
               const data = await res.json();
               const returnUrl = searchParams.get('returnUrl');
@@ -131,7 +132,7 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
     setLoading(true);
     setErrorText('');
     try {
-      const res = await fetch('/api/auth/forgot-password', {
+      const res = await fetchApi('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: inEmail })
@@ -169,7 +170,7 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
     setLoading(true);
     setErrorText('');
     try {
-      const res = await fetch('/api/auth/reset-password', {
+      const res = await fetchApi('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: resetToken, password: resetPwd })
@@ -199,7 +200,7 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
     }
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetchApi('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: inEmail, password: inPwd })
@@ -267,7 +268,7 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
     }
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await fetchApi('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

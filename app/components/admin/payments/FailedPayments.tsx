@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { fetchApi } from '@/lib/apiClient';
 
 export default function FailedPayments() {
   const [logs, setLogs] = useState<any[]>([]);
@@ -9,7 +10,7 @@ export default function FailedPayments() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/admin/payments/failed?page=${page}`)
+    fetchApi(`/api/admin/payments/failed?page=${page}`)
       .then(res => res.json())
       .then(data => {
         if (data.failedPayments) setLogs(data.failedPayments);
