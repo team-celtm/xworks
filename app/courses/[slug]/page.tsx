@@ -69,6 +69,12 @@ export default function CourseDetailPage() {
   const [alertOpen, setAlertOpen] = useState(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
+  const [currentTime, setCurrentTime] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(Date.now()), 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (course) {
@@ -117,7 +123,7 @@ export default function CourseDetailPage() {
           const sdata = await sres.json();
           setSessions(sdata);
           if (sdata.length > 0) {
-            const availableSession = sdata.find((s: any) => s.status !== 'cancelled');
+            const availableSession = sdata.find((s: any) => s.status !== 'cancelled' && new Date(s.scheduledStart).getTime() >= Date.now());
             if (availableSession) {
               setSelectedSessionId(availableSession.id);
             }
@@ -388,14 +394,17 @@ export default function CourseDetailPage() {
                   <h2>Live Sessions</h2>
                   <div className="sessions-list">
                     {sessions.map(s => {
-                      const isSelected = selectedSessionId === s.id;
+                      const isPast = new Date(s.scheduledStart).getTime() < currentTime;
                       const isCancelled = s.status === 'cancelled';
-                      const full = !isCancelled && s.maxSeats !== null && s.maxSeats !== undefined && s.maxSeats > 0 && (s.maxSeats - s.registeredCount <= 0);
+                      const full = !isCancelled && !isPast && s.maxSeats !== null && s.maxSeats !== undefined && s.maxSeats > 0 && (s.maxSeats - s.registeredCount <= 0);
+                      const isDisabled = isCancelled || isPast || full;
+                      const isSelected = selectedSessionId === s.id && !isDisabled;
+
                       return (
                         <div key={s.id}
-                          onClick={() => !full && !isCancelled && setSelectedSessionId(s.id)}
-                          className={`session-item ${isSelected ? 'selected' : ''} ${full ? 'full' : ''} ${isCancelled ? 'cancelled' : ''}`}
-                          style={{ opacity: isCancelled ? 0.6 : 1, cursor: isCancelled ? 'not-allowed' : '' }}
+                          onClick={() => !isDisabled && setSelectedSessionId(s.id)}
+                          className={`session-item ${isSelected ? 'selected' : ''} ${isDisabled ? 'full' : ''}`}
+                          style={{ opacity: isDisabled ? 0.6 : 1, cursor: isDisabled ? 'not-allowed' : 'pointer' }}
                         >
                           <div>
                             <div className="session-title" style={{ textDecoration: isCancelled ? 'line-through' : 'none' }}>{s.title}</div>
@@ -404,9 +413,9 @@ export default function CourseDetailPage() {
                             </div>
                           </div>
                           <div className="session-right">
-                            <div className={`session-status ${isCancelled ? 'status-cancelled' : full ? 'status-soldout' : 'status-available'}`} style={isCancelled ? { background: 'rgba(239, 68, 68, 0.1)', color: '#EF4444' } : {}}>
-                              {!full && !isCancelled && <span className="pulse-dot"></span>}
-                              {isCancelled ? 'Cancelled' : full ? 'Sold out' : s.maxSeats ? `${s.maxSeats - s.registeredCount} seats left` : 'Seats available'}
+                            <div className={`session-status ${isCancelled || isPast ? 'status-cancelled' : full ? 'status-soldout' : 'status-available'}`} style={isCancelled || isPast ? { background: 'rgba(239, 68, 68, 0.1)', color: '#EF4444' } : {}}>
+                              {!isDisabled && <span className="pulse-dot"></span>}
+                              {isCancelled ? 'Cancelled' : isPast ? 'Session Ended' : full ? 'Sold out' : s.maxSeats ? `${s.maxSeats - s.registeredCount} seats left` : 'Seats available'}
                             </div>
                             <div className="session-platform">{isCancelled ? 'CANCELLED' : `on ${s.platform || 'Platform'}`}</div>
                           </div>
@@ -472,19 +481,31 @@ export default function CourseDetailPage() {
                     </button>
                   ) : (
                     <>
-                      <button
-                        className={`enrol-cta-btn ${success ? 'success-state' : ''}`}
-                        onClick={handleEnrol}
-                        disabled={enrolling || success}
-                      >
-                        {enrolling ? (
-                          <div className="btn-loader"></div>
-                        ) : success ? (
-                          '✓ Enrolled Successfully'
-                        ) : (
-                          'Enrol now →'
-                        )}
-                      </button>
+                    {(() => {
+                      const sel = sessions.find(s => s.id === selectedSessionId);
+                      const isExpired = sel && new Date(sel.scheduledStart).getTime() < currentTime;
+                      const noSessionSelected = course.live && sessions.length > 0 && !selectedSessionId;
+                      const disableEnrol = enrolling || success || isExpired || noSessionSelected;
+
+                      return (
+                        <button
+                          className={`enrol-cta-btn ${success ? 'success-state' : ''}`}
+                          onClick={handleEnrol}
+                          disabled={disableEnrol}
+                          style={{ opacity: disableEnrol && !success ? 0.5 : 1 }}
+                        >
+                          {enrolling ? (
+                            <div className="btn-loader"></div>
+                          ) : success ? (
+                            '✓ Enrolled Successfully'
+                          ) : isExpired ? (
+                            'Session Ended'
+                          ) : (
+                            'Enrol now →'
+                          )}
+                        </button>
+                      );
+                    })()}
                       {error && !loading && (
                         <div className="error-msg">
                           {error}
