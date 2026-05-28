@@ -1,3 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --indigo:#3730A3;--indigo-mid:#4F46E5;--indigo-dark:#1E1B4B;

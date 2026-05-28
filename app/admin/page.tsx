@@ -13,7 +13,7 @@ import { fetchApi } from '@/lib/apiClient';
 
 const TransactionTable = dynamic(() => import('../components/admin/payments/TransactionTable'), { ssr: false });
 const PaymentFilters = dynamic(() => import('../components/admin/payments/PaymentFilters'), { ssr: false });
-const RevenueCards = dynamic(() => import('../components/admin/payments/RevenueCards'), { ssr: false });
+const RevenueDashboard = dynamic(() => import('../components/admin/payments/revenue/RevenueDashboard'), { ssr: false });
 const PaymentDetails = dynamic(() => import('../components/admin/payments/PaymentDetails'), { ssr: false });
 const AuditLogs = dynamic(() => import('../components/admin/payments/AuditLogs'), { ssr: false });
 const FailedPayments = dynamic(() => import('../components/admin/payments/FailedPayments'), { ssr: false });
@@ -1968,17 +1968,11 @@ function AdminDashboardContent() {
           )}
 
           {activeView === 'admin_revenue_analytics' && (
-            <div className="view active fade-up">
-              <div className="section-hd">
-                <div>
-                  <div className="section-label">Financial Operations</div>
-                  <div className="section-title">Revenue Analytics</div>
-                </div>
-              </div>
+            <div className="view active fade-up" style={{ padding: 0 }}>
               {isPaymentsLoading ? (
                 <div style={{ padding: '40px', textAlign: 'center' }}><div className="dashboard-loader"></div></div>
               ) : (
-                <RevenueCards analytics={paymentAnalytics} chartData={paymentChartData} deepAnalytics={paymentDeepAnalytics} />
+                <RevenueDashboard analytics={paymentAnalytics} chartData={paymentChartData} deepAnalytics={paymentDeepAnalytics} />
               )}
             </div>
           )}
