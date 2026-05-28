@@ -89,6 +89,16 @@ export default function EarningsDashboard() {
     refund_amount: Number(stats?.refund_amount || 0)
   };
 
+  const safeCharts = {
+    revenueChart: charts?.revenueChart || [],
+    coursePerformance: charts?.coursePerformance || []
+  };
+
+  const safeTransactions = transactions || [];
+
+  const allRevenueZero = safeCharts.revenueChart.length === 0 || safeCharts.revenueChart.every((c: any) => c.revenue === 0);
+  const allCourseRevenueZero = safeCharts.coursePerformance.length === 0 || safeCharts.coursePerformance.every((c: any) => c.revenue === 0);
+
   const statCards = [
     { title: "Net Earnings", value: `₹ ${safeStats.net_earnings.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, icon: <Wallet size={20} color="#10b981" />, bg: "rgba(16, 185, 129, 0.1)" },
     { title: "Pending Payout", value: `₹ ${safeStats.pending_payout.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, icon: <DollarSign size={20} color="#3b82f6" />, bg: "rgba(59, 130, 246, 0.1)" },
@@ -146,18 +156,25 @@ export default function EarningsDashboard() {
             <TrendingUp size={18} color="#3b82f6" /> 30-Day Revenue Trend
           </h3>
           <div style={{ height: '300px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={charts.revenueChart}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-md)" vertical={false} />
-                <XAxis dataKey="date" stroke="var(--text-3)" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="var(--text-3)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value}`} />
-                <RechartsTooltip 
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
-                  formatter={(value: any) => [`₹${Number(value).toFixed(2)}`, 'Revenue'] as any}
-                />
-                <Line type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
-              </LineChart>
-            </ResponsiveContainer>
+            {allRevenueZero ? (
+              <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)' }}>
+                <TrendingUp size={48} color="var(--border-md)" style={{ marginBottom: '16px' }} />
+                <p>No revenue in the last 30 days.</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={safeCharts.revenueChart}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-md)" vertical={false} />
+                  <XAxis dataKey="date" stroke="var(--text-3)" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="var(--text-3)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value}`} />
+                  <RechartsTooltip 
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                    formatter={(value: any) => [`₹${Number(value).toFixed(2)}`, 'Revenue'] as any}
+                  />
+                  <Line type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
@@ -166,19 +183,26 @@ export default function EarningsDashboard() {
             <Activity size={18} color="#f97316" /> Top Performing Courses
           </h3>
           <div style={{ height: '300px' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={charts.coursePerformance} layout="vertical" margin={{ left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--border-md)" horizontal={false} />
-                <XAxis type="number" stroke="var(--text-3)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value}`} />
-                <YAxis dataKey="name" type="category" stroke="var(--text-2)" fontSize={12} tickLine={false} axisLine={false} width={120} />
-                <RechartsTooltip 
-                  cursor={{ fill: 'var(--surface-hover)' }}
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
-                  formatter={(value: any) => [`₹${Number(value).toFixed(2)}`, 'Revenue'] as any}
-                />
-                <Bar dataKey="revenue" fill="#f97316" radius={[0, 4, 4, 0]} barSize={32} />
-              </BarChart>
-            </ResponsiveContainer>
+            {allCourseRevenueZero ? (
+              <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-3)' }}>
+                <Activity size={48} color="var(--border-md)" style={{ marginBottom: '16px' }} />
+                <p>No course performance data available yet.</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={safeCharts.coursePerformance} layout="vertical" margin={{ left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border-md)" horizontal={false} />
+                  <XAxis type="number" stroke="var(--text-3)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `₹${value}`} />
+                  <YAxis dataKey="name" type="category" stroke="var(--text-2)" fontSize={12} tickLine={false} axisLine={false} width={120} />
+                  <RechartsTooltip 
+                    cursor={{ fill: 'var(--surface-hover)' }}
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
+                    formatter={(value: any) => [`₹${Number(value).toFixed(2)}`, 'Revenue'] as any}
+                  />
+                  <Bar dataKey="revenue" fill="#f97316" radius={[0, 4, 4, 0]} barSize={32} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
       </motion.div>
@@ -191,27 +215,34 @@ export default function EarningsDashboard() {
           </h3>
           <p style={{ fontSize: '13px', color: 'var(--text-3)', marginBottom: '16px' }}>XWORKS uses an 80/20 revenue split for instructors.</p>
           <div style={{ height: '240px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={[
-                    { name: 'Your Net Earnings', value: safeStats.net_earnings },
-                    { name: 'XWORKS Platform Fee', value: safeStats.platform_fee },
-                  ]}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  <Cell fill="#10b981" />
-                  <Cell fill="#ef4444" />
-                </Pie>
-                <RechartsTooltip formatter={(value: any) => [`₹${Number(value).toFixed(2)}`, 'Amount'] as any} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} />
-                <Legend verticalAlign="bottom" height={36} iconType="circle" />
-              </PieChart>
-            </ResponsiveContainer>
+            {(safeStats.net_earnings === 0 && safeStats.platform_fee === 0) ? (
+              <div style={{ textAlign: 'center', color: 'var(--text-3)' }}>
+                <div style={{ width: '120px', height: '120px', borderRadius: '50%', border: '8px solid var(--border-md)', margin: '0 auto 16px' }} />
+                <p>No revenue to split yet.</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={[
+                      { name: 'Your Net Earnings', value: safeStats.net_earnings },
+                      { name: 'XWORKS Platform Fee', value: safeStats.platform_fee },
+                    ]}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    <Cell fill="#10b981" />
+                    <Cell fill="#ef4444" />
+                  </Pie>
+                  <RechartsTooltip formatter={(value: any) => [`₹${Number(value).toFixed(2)}`, 'Amount'] as any} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }} />
+                  <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
@@ -229,7 +260,7 @@ export default function EarningsDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {charts.coursePerformance.map((c: any, i: number) => (
+                {safeCharts.coursePerformance.map((c: any, i: number) => (
                   <tr key={i} style={{ borderBottom: '1px solid var(--border-sm)', fontSize: '14px' }}>
                     <td style={{ padding: '12px 8px', fontWeight: '600', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</td>
                     <td style={{ padding: '12px 8px', color: 'var(--text-2)' }}>{c.sales}</td>
@@ -238,7 +269,7 @@ export default function EarningsDashboard() {
                 ))}
               </tbody>
             </table>
-            {charts.coursePerformance.length === 0 && (
+            {safeCharts.coursePerformance.length === 0 && (
                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-3)' }}>No course earnings yet.</div>
             )}
           </div>
@@ -251,7 +282,7 @@ export default function EarningsDashboard() {
           <FileText size={18} color="#64748b" /> Recent Transactions
         </h3>
         
-        {transactions.length === 0 ? (
+        {safeTransactions.length === 0 ? (
           <div style={{ padding: '40px', border: '2px dashed var(--border-md)', borderRadius: '16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
             <img src="https://illustrations.popsy.co/amber/freelancer.svg" alt="No earnings" style={{ width: '200px' }} />
             <p style={{ color: 'var(--text-3)', fontSize: '16px', fontWeight: 'bold' }}>No transactions yet. Publish a course to start earning!</p>
@@ -271,7 +302,7 @@ export default function EarningsDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {transactions.map((tx: any, i: number) => (
+                {safeTransactions.map((tx: any, i: number) => (
                   <tr key={i} style={{ borderBottom: '1px solid var(--border-sm)', fontSize: '14px' }}>
                     <td style={{ padding: '16px 8px', fontWeight: '600' }}>{tx.courseName}</td>
                     <td style={{ padding: '16px 8px', color: 'var(--text-2)' }}>{tx.studentName}</td>
@@ -304,9 +335,14 @@ export default function EarningsDashboard() {
           </h3>
           <button 
             onClick={() => setShowWithdrawModal(true)}
+            disabled={safeStats.pending_payout <= 0}
             style={{ 
-              background: '#10b981', color: '#fff', padding: '10px 20px', borderRadius: '12px', 
-              fontWeight: 'bold', border: 'none', cursor: 'pointer', boxShadow: '0 4px 14px 0 rgba(16, 185, 129, 0.39)' 
+              background: safeStats.pending_payout <= 0 ? 'var(--border-md)' : '#10b981', 
+              color: safeStats.pending_payout <= 0 ? 'var(--text-3)' : '#fff', 
+              padding: '10px 20px', borderRadius: '12px', 
+              fontWeight: 'bold', border: 'none', 
+              cursor: safeStats.pending_payout <= 0 ? 'not-allowed' : 'pointer', 
+              boxShadow: safeStats.pending_payout <= 0 ? 'none' : '0 4px 14px 0 rgba(16, 185, 129, 0.39)' 
             }}
           >
             Request Withdrawal
@@ -395,6 +431,14 @@ export default function EarningsDashboard() {
                       if (d.success) {
                         setPayoutStatus({ loading: false, error: null, success: 'Payout requested!' });
                         fetchPayouts(); // refresh
+                        // Also update pending payout locally
+                        setData({
+                           ...data,
+                           stats: {
+                             ...data.stats,
+                             pending_payout: safeStats.pending_payout - Number(withdrawAmount)
+                           }
+                        });
                         setTimeout(() => setShowWithdrawModal(false), 1500);
                       } else {
                         setPayoutStatus({ loading: false, error: d.error || 'Failed to request payout', success: null });
@@ -403,8 +447,8 @@ export default function EarningsDashboard() {
                       setPayoutStatus({ loading: false, error: 'Network error', success: null });
                     }
                   }}
-                  disabled={payoutStatus.loading || !withdrawAmount || Number(withdrawAmount) > safeStats.pending_payout}
-                  style={{ flex: 1, padding: '12px', background: '#10b981', color: '#fff', borderRadius: '12px', fontWeight: 'bold', border: 'none', cursor: 'pointer', opacity: (payoutStatus.loading || !withdrawAmount || Number(withdrawAmount) > safeStats.pending_payout) ? 0.5 : 1 }}
+                  disabled={payoutStatus.loading || !withdrawAmount || Number(withdrawAmount) <= 0 || Number(withdrawAmount) > safeStats.pending_payout || !bankDetails.accountName || !bankDetails.accountNumber || !bankDetails.ifsc}
+                  style={{ flex: 1, padding: '12px', background: '#10b981', color: '#fff', borderRadius: '12px', fontWeight: 'bold', border: 'none', cursor: 'pointer', opacity: (payoutStatus.loading || !withdrawAmount || Number(withdrawAmount) <= 0 || Number(withdrawAmount) > safeStats.pending_payout || !bankDetails.accountName || !bankDetails.accountNumber || !bankDetails.ifsc) ? 0.5 : 1 }}
                 >
                   {payoutStatus.loading ? 'Requesting...' : 'Withdraw'}
                 </button>
