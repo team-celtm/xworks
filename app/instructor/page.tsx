@@ -769,8 +769,42 @@ function InstructorDashboardContent() {
                               Join Call
                             </button>
                             <button 
+                              className="join-btn"
+                              style={{ padding: '10px 16px', margin: 0, background: 'transparent', color: 'var(--text-2)', border: '1px solid var(--border-md)' }}
+                              onClick={() => {
+                                showModal({
+                                  type: 'prompt',
+                                  title: 'Update Session Link',
+                                  message: 'Enter the new meeting link (e.g., Zoom, Google Meet):',
+                                  inputPlaceholder: 'https://...',
+                                  onConfirm: async (url) => {
+                                    if (url) {
+                                      try {
+                                        const res = await fetchApi(`/api/instructor/sessions/${s.sessionId}/host`, {
+                                          method: 'PUT',
+                                          headers: { 'Content-Type': 'application/json' },
+                                          body: JSON.stringify({ hostUrl: url })
+                                        });
+                                        if (res.ok) {
+                                          setSessions(prev => prev.map(sess => sess.sessionId === s.sessionId ? { ...sess, hostUrl: url } : sess));
+                                          showModal({ type: 'alert', title: 'Success', message: 'Session link updated dynamically!' });
+                                        } else {
+                                          const errData = await res.json();
+                                          showModal({ type: 'alert', title: 'Error', message: errData.message || 'Failed to update link' });
+                                        }
+                                      } catch (err) {
+                                        showModal({ type: 'alert', title: 'Error', message: 'Error updating link' });
+                                      }
+                                    }
+                                  }
+                                });
+                              }}
+                            >
+                              Update Link
+                            </button>
+                            <button 
                               className="join-btn enrol-cta"
-                              style={{ padding: '10px 24px', margin: 0, background: 'var(--alert-red)' }}
+                              style={{ padding: '10px 24px', margin: 0, background: '#ef4444', color: '#ffffff', border: 'none' }}
                               onClick={() => handleEndSession(s.sessionId)}
                             >
                               End Session
