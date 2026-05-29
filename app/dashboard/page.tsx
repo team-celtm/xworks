@@ -569,7 +569,37 @@ function DashboardPageContent() {
       };
     });
 
-  const continueLearningList = enrolments.filter(e => e.enrolment_status === 'active');
+  const continueLearningList = (() => {
+    const list = enrolments.filter(e => {
+      let p = Number(e.progressPct);
+      if (isNaN(p) || p < 0) p = 0;
+      if (p > 100) p = 100;
+      
+      if (e.enrolment_status !== 'active') return false;
+      if (e.course_status !== 'published') return false;
+      if (p <= 0 || p >= 100) return false;
+      
+      if (e.live && e.scheduledStart && new Date(e.scheduledStart).getTime() <= Date.now()) {
+        return false;
+      }
+      return true;
+    });
+
+    const seen = new Set();
+    const deduped = list.filter(e => {
+      if (seen.has(e.course_id)) return false;
+      seen.add(e.course_id);
+      return true;
+    });
+
+    deduped.sort((a, b) => {
+      const aTime = new Date(a.lastAccessedAt || a.enrolledAt).getTime();
+      const bTime = new Date(b.lastAccessedAt || b.enrolledAt).getTime();
+      return bTime - aTime;
+    });
+
+    return deduped;
+  })();
 
   const handleSearch = async (queryToSearch?: string) => {
     const q = (typeof queryToSearch === 'string' ? queryToSearch : promptQuery).trim();
@@ -1355,32 +1385,30 @@ function DashboardPageContent() {
                 </div>
               ) : (
                 <div id="homeCarousels" style={{ display: "flex", flexDirection: "column", gap: "24px", animationDelay: "0.12s" }} className="fade-up">
-                  <div>
-                    <div className="section-hd">
-                      <div className="section-hd-left">
-                        <div className="section-label">Continue learning</div>
-                        <div className="section-title">Pick up where you left off</div>
-                      </div>
-                      <Link className="section-pill" href="/catalogue">View all →</Link>
-                    </div>
-                    <div className="carousel-wrap">
-                      <button className="cbtn cbtn-l" onClick={() => slide("cont", -1)}>‹</button>
-                      <div className="carousel-outer">
-                        <div className="carousel-track" id="cont-track">
-                          {loadingEnrolments ? (
-                            [1,2,3].map(i => <div key={i} className="skeleton skeleton-card" style={{ flex: '0 0 240px', margin: '0 8px' }}></div>)
-                          ) : (
-                            continueLearningList.length > 0 
-                              ? continueLearningList.map(renderEnrolledCard) 
-                              : workshops.length > 0 
-                                ? workshops.slice(0, 5).map(renderWorkshopCard) 
-                                : <div style={{ padding: '40px', color: 'var(--text-3)', width: '100%', textAlign: 'center', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)' }}>No courses available yet.</div>
-                          )}
+                  {continueLearningList.length > 0 && (
+                    <div>
+                      <div className="section-hd">
+                        <div className="section-hd-left">
+                          <div className="section-label">Continue learning</div>
+                          <div className="section-title">Pick up where you left off</div>
                         </div>
+                        <Link className="section-pill" href="/catalogue">View all →</Link>
                       </div>
-                      <button className="cbtn cbtn-r" onClick={() => slide("cont", 1)}>›</button>
+                      <div className="carousel-wrap">
+                        <button className="cbtn cbtn-l" onClick={() => slide("cont", -1)}>‹</button>
+                        <div className="carousel-outer">
+                          <div className="carousel-track" id="cont-track">
+                            {loadingEnrolments ? (
+                              [1,2,3].map(i => <div key={i} className="skeleton skeleton-card" style={{ flex: '0 0 240px', margin: '0 8px' }}></div>)
+                            ) : (
+                              continueLearningList.map(renderEnrolledCard)
+                            )}
+                          </div>
+                        </div>
+                        <button className="cbtn cbtn-r" onClick={() => slide("cont", 1)}>›</button>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {sessions.length > 0 && (
                     <div className="fade-up" style={{ animationDelay: '0.14s' }}>
