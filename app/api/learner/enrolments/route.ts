@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
         ORDER BY scheduled_start ASC
         LIMIT 1
       ) ls ON true
-      WHERE e.user_id = $1::uuid
+      WHERE e.user_id = $1::uuid AND c.status != 'deleted'
       ORDER BY e.enrolled_at DESC
     `;
 
