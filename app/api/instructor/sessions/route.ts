@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
       JOIN courses c ON ls.course_id = c.id
       JOIN instructors i ON c.instructor_id = i.id
       WHERE i.user_id = $1 
-        AND ls.status != 'cancelled'
+        AND ls.status IN ('scheduled', 'live')
         AND (
           (ls.scheduled_start <= $2 AND ls.scheduled_end > $2) OR
           (ls.scheduled_start < $3 AND ls.scheduled_end >= $3) OR
