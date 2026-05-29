@@ -8,6 +8,7 @@ export interface ActionModalState {
   inputPlaceholder?: string;
   onConfirm?: (value?: string) => void;
   onCancel?: () => void;
+  confirmText?: string;
 }
 
 export default function ActionModal({
@@ -130,7 +131,7 @@ export default function ActionModal({
             className="enrol-cta coral"
             style={{ margin: 0, padding: '10px 28px', borderRadius: '12px', boxShadow: '0 4px 14px 0 rgba(251, 146, 60, 0.39)' }}
           >
-            {config.type === 'alert' ? 'Got it' : 'Confirm'}
+            {config.type === 'alert' ? 'Got it' : (config.confirmText || 'Confirm')}
           </button>
         </div>
       </form>

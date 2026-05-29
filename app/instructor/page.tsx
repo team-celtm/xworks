@@ -54,6 +54,7 @@ function InstructorDashboardContent() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [currentTime, setCurrentTime] = useState(Date.now());
+  const [startingSessionId, setStartingSessionId] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(Date.now()), 10000);
@@ -752,48 +753,96 @@ function InstructorDashboardContent() {
                               ⚠️ Flagged: Missing Duration
                             </span>
                           )}
+                          {parseInt(s.registrantCount) === 0 && (
+                            <span style={{ background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', padding: '2px 8px', borderRadius: '100px', fontSize: '11px', fontWeight: 600 }}>
+                              ⚠️ {s.derivedState === 'upcoming' ? 'No Registrations Yet' : '0 Learners Registered'}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="session-actions" style={{ marginTop: '0' }}>
                         {s.derivedState === 'upcoming' && (
                           <button 
                             className="join-btn enrol-cta coral"
-                            style={{ padding: '10px 24px', margin: 0 }}
+                            disabled={startingSessionId === s.sessionId}
+                            style={{ padding: '10px 24px', margin: 0, opacity: startingSessionId === s.sessionId ? 0.7 : 1 }}
                             onClick={async () => {
                               if (s.hostUrl) {
                                 window.open(s.hostUrl, '_blank');
-                              } else {
+                                return;
+                              }
+
+                              const askForUrlAndStart = (forceStart: boolean = false) => {
                                 showModal({
                                   type: 'prompt',
                                   title: 'Start Session',
                                   message: 'Enter the meeting link (e.g., Zoom, Google Meet) to start the session:',
                                   inputPlaceholder: 'https://...',
-                                  onConfirm: async (url) => {
-                                    if (url) {
-                                      try {
-                                        const res = await fetchApi(`/api/instructor/sessions/${s.sessionId}/host`, {
-                                          method: 'PUT',
-                                          headers: { 'Content-Type': 'application/json' },
-                                          body: JSON.stringify({ hostUrl: url })
+                                  onConfirm: (url) => {
+                                    if (!url) return;
+                                    setStartingSessionId(s.sessionId);
+                                    fetchApi(`/api/instructor/sessions/${s.sessionId}/host`, {
+                                      method: 'PUT',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ hostUrl: url, forceStart })
+                                    }).then(async (res) => {
+                                      if (res.status === 409) {
+                                        setStartingSessionId(null);
+                                        showModal({
+                                          type: 'confirm',
+                                          title: 'No Learners Registered',
+                                          message: 'This session currently has no registered learners.\n\nStarting the session now may result in an empty workshop.\n\nWould you like to continue anyway?',
+                                          confirmText: 'Start Anyway',
+                                          onConfirm: () => {
+                                            setStartingSessionId(s.sessionId);
+                                            fetchApi(`/api/instructor/sessions/${s.sessionId}/host`, {
+                                              method: 'PUT',
+                                              headers: { 'Content-Type': 'application/json' },
+                                              body: JSON.stringify({ hostUrl: url, forceStart: true })
+                                            }).then(async r => {
+                                              if (r.ok) {
+                                                setSessions(prev => prev.map(sess => sess.sessionId === s.sessionId ? { ...sess, hostUrl: url } : sess));
+                                                window.open(url, '_blank');
+                                              } else {
+                                                const e = await r.json();
+                                                showModal({ type: 'alert', title: 'Error', message: e.message || e.error || 'Failed to start session' });
+                                              }
+                                            }).finally(() => setStartingSessionId(null));
+                                          }
                                         });
-                                        if (res.ok) {
-                                          setSessions(prev => prev.map(sess => sess.sessionId === s.sessionId ? { ...sess, hostUrl: url } : sess));
-                                          window.open(url, '_blank');
-                                        } else {
-                                          const errData = await res.json();
-                                          showModal({ type: 'alert', title: 'Error', message: errData.message || 'Failed to save Host URL' });
-                                        }
-                                      } catch (err) {
-                                        console.error(err);
-                                        showModal({ type: 'alert', title: 'Error', message: 'Error saving Host URL' });
+                                        return;
                                       }
-                                    }
+                                      if (res.ok) {
+                                        setSessions(prev => prev.map(sess => sess.sessionId === s.sessionId ? { ...sess, hostUrl: url } : sess));
+                                        window.open(url, '_blank');
+                                      } else {
+                                        const errData = await res.json();
+                                        showModal({ type: 'alert', title: 'Error', message: errData.message || errData.error || 'Failed to save Host URL' });
+                                      }
+                                    }).catch(err => {
+                                      console.error(err);
+                                      showModal({ type: 'alert', title: 'Error', message: 'Unable to start session. Please try again.' });
+                                    }).finally(() => {
+                                      setStartingSessionId(null);
+                                    });
                                   }
                                 });
+                              };
+
+                              if (parseInt(s.registrantCount) === 0) {
+                                showModal({
+                                  type: 'confirm',
+                                  title: 'No Learners Registered',
+                                  message: 'This session currently has no registered learners.\n\nStarting the session now may result in an empty workshop.\n\nWould you like to continue anyway?',
+                                  confirmText: 'Start Anyway',
+                                  onConfirm: () => askForUrlAndStart(true)
+                                });
+                              } else {
+                                askForUrlAndStart(false);
                               }
                             }}
                           >
-                            Start Session →
+                            {startingSessionId === s.sessionId ? 'Starting...' : 'Start Session →'}
                           </button>
                         )}
                         {s.derivedState === 'live' && (

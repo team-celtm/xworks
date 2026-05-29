@@ -13,9 +13,10 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const userId = (payload as any).id;
     const { id: sessionId } = await params;
 
-    // Verify ownership, status, and expiry
+    // Verify ownership, status, expiry, and registrant count
     const ownershipRes = await pool.query(`
-      SELECT ls.id, ls.status, ls.scheduled_start, ls.scheduled_end
+      SELECT ls.id, ls.status, ls.scheduled_start, ls.scheduled_end, ls.max_seats,
+             (SELECT COUNT(*) FROM session_registrations sr WHERE sr.session_id = ls.id) as registrant_count
       FROM live_sessions ls
       JOIN courses c ON ls.course_id = c.id
       JOIN instructors i ON c.instructor_id = i.id
@@ -23,10 +24,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     `, [sessionId, userId]);
 
     if (ownershipRes.rows.length === 0) {
-      return NextResponse.json({ error: 'Not authorized or session not found' }, { status: 403 });
+      return NextResponse.json({ error: 'Session unavailable or not authorized' }, { status: 404 });
     }
 
     const session = ownershipRes.rows[0];
+
+    // Capacity = 0 check
+    if (session.max_seats === 0) {
+      console.error(`[CONFIGURATION ERROR] Session ${sessionId} has max_seats=0.`);
+      return NextResponse.json({ error: 'Session capacity is 0. Cannot start session.' }, { status: 400 });
+    }
 
     if (session.status === 'cancelled') {
       return NextResponse.json({ error: 'Cannot update a cancelled session' }, { status: 400 });
@@ -45,7 +52,20 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ success: false, message: 'This session has already ended.' }, { status: 400 });
     }
 
-    const { hostUrl } = await req.json();
+    const { hostUrl, forceStart } = await req.json();
+
+    // Zero Registration Protection Logic
+    if (session.status !== 'live' && parseInt(session.registrant_count) === 0) {
+      const allowEmpty = process.env.ALLOW_EMPTY_SESSION_START === 'true';
+      if (!allowEmpty) {
+        return NextResponse.json({ error: 'Cannot start session because no learners are registered.' }, { status: 400 });
+      }
+      if (!forceStart) {
+        return NextResponse.json({ error: 'Session has no learners. Confirm start?', code: 'ZERO_REGISTRATIONS_CONFIRM' }, { status: 409 });
+      }
+      // Audit log the forced empty start
+      console.log(`[AUDIT LOG] Instructor (User ID: ${userId}) forced start of session ${sessionId} with 0 registrations.`);
+    }
 
     if (!hostUrl || typeof hostUrl !== 'string') {
         return NextResponse.json({ error: 'Valid hostUrl is required' }, { status: 400 });

@@ -30,7 +30,7 @@ export async function GET(req: Request) {
       SELECT 
         c.id, c.slug, c.name, c.parent_id, c.icon, c.description, c.color, c.accent,
         p.name AS parent_name,
-        (SELECT COUNT(*) FROM courses WHERE category_id = c.id) AS course_count
+        (SELECT COUNT(*) FROM courses WHERE category_id = c.id AND status != 'deleted') AS course_count
       FROM categories c
       LEFT JOIN categories p ON c.parent_id = p.id
       ORDER BY COALESCE(p.name, c.name), c.parent_id IS NOT NULL, c.name
@@ -202,20 +202,30 @@ export async function DELETE(req: Request) {
     // 1. Check for child sub-categories
     const childCheck = await pool.query('SELECT COUNT(*) FROM categories WHERE parent_id = $1', [id]);
     if (parseInt(childCheck.rows[0].count) > 0) {
+      console.log(`[AUDIT LOG] Category deletion blocked for ID ${id}. Reason: contains subcategories.`);
       return NextResponse.json({ 
-        error: 'Cannot delete category because it has active sub-categories. Please delete or reassign them first.' 
+        error: 'Cannot delete category because it contains subcategories.' 
       }, { status: 400 });
     }
 
     // 2. Check for assigned courses
-    const courseCheck = await pool.query('SELECT COUNT(*) FROM courses WHERE category_id = $1', [id]);
-    if (parseInt(courseCheck.rows[0].count) > 0) {
+    const blockOnDraft = process.env.BLOCK_CATEGORY_DELETE_ON_DRAFT === 'true';
+    const courseStatusCondition = blockOnDraft 
+      ? "status IN ('published', 'draft')" 
+      : "status = 'published'";
+
+    const courseCheck = await pool.query(`SELECT COUNT(*) FROM courses WHERE category_id = $1 AND ${courseStatusCondition}`, [id]);
+    const activeCount = parseInt(courseCheck.rows[0].count);
+
+    if (activeCount > 0) {
+      console.log(`[AUDIT LOG] Category deletion blocked for ID ${id}. Reason: has ${activeCount} active courses.`);
       return NextResponse.json({ 
-        error: 'Cannot delete category because it has associated courses. Please delete or reassign the courses first.' 
+        error: `This category is currently used by ${activeCount} active courses. Please reassign or delete those courses first.` 
       }, { status: 400 });
     }
 
     await pool.query('DELETE FROM categories WHERE id = $1', [id]);
+    console.log(`[AUDIT LOG] Category ID ${id} deleted successfully.`);
     return NextResponse.json({ success: true, message: 'Category deleted successfully' });
   } catch (err) {
     console.error(err);
