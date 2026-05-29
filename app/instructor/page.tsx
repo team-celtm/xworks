@@ -659,34 +659,53 @@ function InstructorDashboardContent() {
                 </div>
               )}
 
-              {sessions.length > 0 ? (() => {
-                const liveAndUpcoming: any[] = [];
-                const pastSessions: any[] = [];
+              {(() => {
+                const liveNow: any[] = [];
+                const upcoming: any[] = [];
+                const completed: any[] = [];
+                const expired: any[] = [];
+                const cancelled: any[] = [];
 
                 sessions.forEach(s => {
                   const scheduledStart = new Date(s.scheduledStart).getTime();
                   const scheduledEnd = s.scheduledEnd ? new Date(s.scheduledEnd).getTime() : scheduledStart + (60 * 60 * 1000);
                   
                   if (s.sessionStatus === 'cancelled') {
-                    pastSessions.push({ ...s, derivedState: 'cancelled' });
+                    cancelled.push({ ...s, derivedState: 'cancelled' });
                     return;
                   }
                   
-                  if (s.sessionStatus === 'completed' || s.sessionStatus === 'expired') {
-                    pastSessions.push({ ...s, derivedState: s.sessionStatus });
+                  if (s.sessionStatus === 'completed') {
+                    completed.push({ ...s, derivedState: 'completed' });
                     return;
                   }
+                  
+                  if (s.sessionStatus === 'expired') {
+                    expired.push({ ...s, derivedState: 'expired' });
+                    return;
+                  }
+
                   if (s.sessionStatus === 'live') {
-                    liveAndUpcoming.push({ ...s, derivedState: 'live' });
+                    if (currentTime > scheduledEnd) {
+                       completed.push({ ...s, derivedState: 'completed' });
+                    } else {
+                       liveNow.push({ ...s, derivedState: 'live' });
+                    }
                     return;
                   }
 
                   if (currentTime > scheduledEnd) {
-                    pastSessions.push({ ...s, derivedState: 'expired' });
+                    expired.push({ ...s, derivedState: 'expired' });
                   } else {
-                    liveAndUpcoming.push({ ...s, derivedState: 'upcoming' });
+                    upcoming.push({ ...s, derivedState: 'upcoming' });
                   }
                 });
+
+                upcoming.sort((a, b) => new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime() || a.sessionId.localeCompare(b.sessionId));
+                liveNow.sort((a, b) => new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime() || a.sessionId.localeCompare(b.sessionId));
+                completed.sort((a, b) => new Date(b.scheduledStart).getTime() - new Date(a.scheduledStart).getTime() || b.sessionId.localeCompare(a.sessionId));
+                cancelled.sort((a, b) => new Date(b.scheduledStart).getTime() - new Date(a.scheduledStart).getTime() || b.sessionId.localeCompare(a.sessionId));
+                expired.sort((a, b) => new Date(b.scheduledStart).getTime() - new Date(a.scheduledStart).getTime() || b.sessionId.localeCompare(a.sessionId));
 
                 const renderSessionCard = (s: any) => {
                   let badge = { text: 'Upcoming', bg: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' };
@@ -813,7 +832,7 @@ function InstructorDashboardContent() {
                             </button>
                           </div>
                         )}
-                        {(s.derivedState === 'upcoming' || s.derivedState === 'live') && (
+                        {(s.derivedState === 'upcoming') && (
                           <button 
                             onClick={() => handleCancel(s.sessionId)}
                             style={{ background: 'transparent', border: '1px solid var(--alert-red)', color: 'var(--alert-red)', padding: '10px 16px', borderRadius: '100px', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
@@ -842,36 +861,72 @@ function InstructorDashboardContent() {
                 return (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
                     <div>
-                      <h4 style={{ color: 'var(--ink)', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 800, marginBottom: '16px' }}>Live & Upcoming</h4>
-                      {liveAndUpcoming.length > 0 ? (
+                      <h4 style={{ color: 'var(--ink)', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 800, marginBottom: '16px' }}>Live Now</h4>
+                      {liveNow.length > 0 ? (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                          {liveAndUpcoming.map(renderSessionCard)}
+                          {liveNow.map(renderSessionCard)}
                         </div>
                       ) : (
                         <div style={{ padding: '32px', background: 'var(--surface)', borderRadius: '16px', border: '1px dashed var(--border-md)', color: 'var(--text-3)', textAlign: 'center', fontSize: '14px' }}>
-                          No upcoming sessions.
+                          No live sessions currently running.
                         </div>
                       )}
                     </div>
+
                     <div>
-                      <h4 style={{ color: 'var(--ink)', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 800, marginBottom: '16px' }}>Past Sessions</h4>
-                      {pastSessions.length > 0 ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', opacity: 0.85 }}>
-                          {pastSessions.map(renderSessionCard)}
+                      <h4 style={{ color: 'var(--ink)', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 800, marginBottom: '16px' }}>Upcoming Sessions</h4>
+                      {upcoming.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                          {upcoming.map(renderSessionCard)}
                         </div>
                       ) : (
                         <div style={{ padding: '32px', background: 'var(--surface)', borderRadius: '16px', border: '1px dashed var(--border-md)', color: 'var(--text-3)', textAlign: 'center', fontSize: '14px' }}>
-                          No past sessions yet.
+                          No upcoming sessions scheduled.
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <h4 style={{ color: 'var(--ink)', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 800, marginBottom: '16px' }}>Completed Sessions</h4>
+                      {completed.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', opacity: 0.85 }}>
+                          {completed.map(renderSessionCard)}
+                        </div>
+                      ) : (
+                        <div style={{ padding: '32px', background: 'var(--surface)', borderRadius: '16px', border: '1px dashed var(--border-md)', color: 'var(--text-3)', textAlign: 'center', fontSize: '14px' }}>
+                          Past sessions will appear here.
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <h4 style={{ color: 'var(--ink)', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 800, marginBottom: '16px' }}>Expired Sessions</h4>
+                      {expired.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', opacity: 0.85 }}>
+                          {expired.map(renderSessionCard)}
+                        </div>
+                      ) : (
+                        <div style={{ padding: '32px', background: 'var(--surface)', borderRadius: '16px', border: '1px dashed var(--border-md)', color: 'var(--text-3)', textAlign: 'center', fontSize: '14px' }}>
+                          Past sessions will appear here.
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <h4 style={{ color: 'var(--ink)', fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 800, marginBottom: '16px' }}>Cancelled Sessions</h4>
+                      {cancelled.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', opacity: 0.85 }}>
+                          {cancelled.map(renderSessionCard)}
+                        </div>
+                      ) : (
+                        <div style={{ padding: '32px', background: 'var(--surface)', borderRadius: '16px', border: '1px dashed var(--border-md)', color: 'var(--text-3)', textAlign: 'center', fontSize: '14px' }}>
+                          Past sessions will appear here.
                         </div>
                       )}
                     </div>
                   </div>
                 );
-              })() : (
-                <div style={{ textAlign: 'center', padding: '40px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)', color: 'var(--text-3)' }}>
-                  You have no live sessions scheduled right now.
-                </div>
-              )}
+              })()}
             </div>
           )}
 
