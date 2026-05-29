@@ -58,3 +58,15 @@ export function formatDuration(totalSeconds: number): string {
   if (s > 0 || parts.length === 0) parts.push(`${s}s`);
   return parts.join(' ');
 }
+
+export function slugify(text: string): string {
+  if (!text) return '';
+  return text
+    .toString()
+    .normalize('NFD')                   // split an accented letter in the base letter and the accent
+    .replace(/[\u0300-\u036f]/g, '')   // remove all previously split accents
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')       // replace all non-alphanumeric chars with hyphen
+    .replace(/^-+|-+$/g, '');          // remove leading and trailing hyphens
+}

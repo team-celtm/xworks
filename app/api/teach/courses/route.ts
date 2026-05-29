@@ -46,6 +46,8 @@ export async function GET(req: NextRequest) {
   }
 }
 
+import { slugify } from '@/lib/utils';
+
 export async function POST(req: NextRequest) {
   try {
     const instructorId = await getInstructorId(req);
@@ -55,7 +57,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     let { name, category_id, level, dur, price, tag, tag_label, live, nearby, distance, emoji, g, slug } = body;
-    slug = slug?.trim();
+    slug = slugify(slug || name);
 
     // Edge Cases Validation
     if (!name || name.trim().length === 0) {

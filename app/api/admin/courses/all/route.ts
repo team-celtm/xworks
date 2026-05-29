@@ -119,6 +119,8 @@ export async function DELETE(req: Request) {
   }
 }
 
+import { slugify } from '@/lib/utils';
+
 export async function PUT(req: Request) {
   const admin = await checkAdmin();
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -129,7 +131,7 @@ export async function PUT(req: Request) {
       id, name, slug, category_id, instructor_id, price,
       level, dur, emoji, g, tag, tag_label, certificate_type, logo, details, what_you_will_learn
     } = body;
-    slug = slug?.trim();
+    slug = slugify(slug || name);
 
     if (!id || !name || !slug || !category_id || !instructor_id) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
