@@ -4,7 +4,7 @@ import pool from '@/lib/db';
 export async function GET(req: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   try {
     const resolvedParams = await params;
-    const slug = resolvedParams.slug;
+    const slug = resolvedParams.slug?.trim();
 
     const query = `
       SELECT 

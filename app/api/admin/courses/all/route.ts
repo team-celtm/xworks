@@ -125,10 +125,11 @@ export async function PUT(req: Request) {
 
   try {
     const body = await req.json();
-    const {
+    let {
       id, name, slug, category_id, instructor_id, price,
       level, dur, emoji, g, tag, tag_label, certificate_type, logo, details, what_you_will_learn
     } = body;
+    slug = slug?.trim();
 
     if (!id || !name || !slug || !category_id || !instructor_id) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
