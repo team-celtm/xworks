@@ -71,7 +71,8 @@ export default function CourseDetailPage() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
   const [currentTime, setCurrentTime] = useState(Date.now());
-  const [enrolModalOpen, setEnrolModalOpen] = useState(false);
+  const [isEnrolModalOpen, setIsEnrolModalOpen] = useState(false);
+  const [enrolModalData, setEnrolModalData] = useState<any>(null);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(Date.now()), 5000);
@@ -165,7 +166,17 @@ export default function CourseDetailPage() {
       return;
     }
     setError(null);
-    setEnrolModalOpen(true);
+    setEnrolModalData({
+      id: course.id,
+      name: course.name,
+      meta: `by ${course.instructor} · ★ ${course.rating} · ${formatDuration(course.dur)} · ${course.categoryName}`,
+      basePrice: Number(course.price) || 0,
+      thumbBg: course.g,
+      thumbEmoji: course.logo || course.emoji,
+      isLive: course.live,
+      isNearby: course.nearby,
+    });
+    setIsEnrolModalOpen(true);
   };
 
   if (loading) return (
@@ -1034,9 +1045,9 @@ export default function CourseDetailPage() {
         message="Administrators and Instructors are not allowed to enrol in or make payments for courses."
       />
       <EnrolModal
-        isOpen={enrolModalOpen}
-        onClose={() => setEnrolModalOpen(false)}
-        course={course}
+        isOpen={isEnrolModalOpen}
+        onClose={() => setIsEnrolModalOpen(false)}
+        initialData={enrolModalData}
         user={user}
         preselectedSessionId={selectedSessionId}
         onSuccess={() => router.push('/dashboard?view=upcoming')}

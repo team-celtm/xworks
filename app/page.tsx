@@ -10,51 +10,7 @@ import AlertModal from './components/AlertModal';
 import { formatDuration } from '@/lib/utils';
 import { fetchApi } from '@/lib/apiClient';
 
-const triggerPromoConfetti = (elementId: string) => {
-  const anchor = document.getElementById(elementId);
-  if (!anchor) return;
-  const rect = anchor.getBoundingClientRect();
-  const container = document.createElement('div');
-  container.style.position = 'fixed';
-  container.style.top = `${rect.top}px`;
-  container.style.left = `${rect.left + rect.width / 2}px`;
-  container.style.width = '0';
-  container.style.height = '0';
-  container.style.pointerEvents = 'none';
-  container.style.zIndex = '99999';
-  document.body.appendChild(container);
-
-  const colors = ['#4F46E5', '#F59E0B', '#10B981', '#EC4899', '#3B82F6', '#8B5CF6'];
-  for (let i = 0; i < 40; i++) {
-    const particle = document.createElement('div');
-    particle.className = 'confetti-particle';
-    
-    const color = colors[Math.floor(Math.random() * colors.length)];
-    const size = Math.random() * 6 + 5;
-    const angle = Math.random() * Math.PI * 2;
-    const velocity = Math.random() * 80 + 40;
-    const tx = Math.cos(angle) * velocity;
-    const ty = Math.sin(angle) * velocity - 30;
-    
-    particle.style.position = 'absolute';
-    particle.style.width = `${size}px`;
-    particle.style.height = `${size}px`;
-    particle.style.backgroundColor = color;
-    particle.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
-    particle.style.transform = 'translate(-50%, -50%)';
-    
-    particle.style.setProperty('--tx', `${tx}px`);
-    particle.style.setProperty('--ty', `${ty}px`);
-    particle.style.setProperty('--rot', `${Math.random() * 360}deg`);
-    
-    container.appendChild(particle);
-  }
-  
-  setTimeout(() => {
-    container.remove();
-  }, 1800);
-};
-
+import EnrolModal from './components/EnrolModal';
 
 export default function Home() {
   const router = useRouter();
@@ -64,32 +20,8 @@ export default function Home() {
 
   const [catOverlay, setCatOverlay] = useState({ isOpen: false, key: null as string | null, isClosing: false });
 
-  const [enrolData, setEnrolData] = useState({
-    isOpen: false,
-    id: null as string | number | null,
-    step: 1,
-    name: '',
-    meta: '',
-    price: '₹1,299',
-    basePrice: 1299,
-    finalPrice: 1299,
-    courseOriginalPrice: 1299,
-    format: 'live',
-    formatLabel: 'Live session',
-    date: '',
-    time: '',
-    promoApplied: false,
-    payMethod: 'UPI',
-    thumbBg: 'linear-gradient(135deg,#1A2E5A,#3A7ACC)',
-    thumbEmoji: '💬',
-    enrolmentId: null as string | null,
-    sessions: [] as any[],
-    selectedSessionId: null as string | null,
-    scheduledStart: null as string | null
-  });
-  const [promoCode, setPromoCode] = useState('');
-  const [promoMsg, setPromoMsg] = useState({ text: '', type: '' });
-  const [promoLoading, setPromoLoading] = useState(false);
+  const [isEnrolModalOpen, setIsEnrolModalOpen] = useState(false);
+  const [enrolModalData, setEnrolModalData] = useState<any>(null);
 
   const [bsSlide, setBsSlide] = useState(0);
   const [naSlide, setNaSlide] = useState(0);
@@ -135,12 +67,12 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const shouldLock = isMobileNavOpen || isWorkshopModalOpen || catOverlay.isOpen || enrolData.isOpen;
+    const shouldLock = isMobileNavOpen || isWorkshopModalOpen || catOverlay.isOpen || isEnrolModalOpen;
     document.body.style.overflow = shouldLock ? 'hidden' : '';
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isMobileNavOpen, isWorkshopModalOpen, catOverlay.isOpen, enrolData.isOpen]);
+  }, [isMobileNavOpen, isWorkshopModalOpen, catOverlay.isOpen, isEnrolModalOpen]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -198,32 +130,7 @@ export default function Home() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  useEffect(() => {
-    if (enrolData.isOpen && enrolData.step === 2 && enrolData.id) {
-      const fetchSessions = async () => {
-        try {
-          const res = await fetchApi(`/api/courses/${enrolData.id}/sessions`);
-          const data = await res.json();
-          if (Array.isArray(data)) {
-            const available = data.find((s: any) => s.status !== 'cancelled' && new Date(s.scheduled_start).getTime() >= Date.now());
-            const first = available || (data.length > 0 ? data[0] : null);
-            
-            setEnrolData(prev => ({
-              ...prev,
-              sessions: data,
-              selectedSessionId: first ? first.id : null,
-              date: first ? new Date(first.scheduled_start).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }) : '',
-              time: first ? new Date(first.scheduled_start).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }) : '',
-              scheduledStart: first ? first.scheduled_start : null
-            }));
-          }
-        } catch (err) {
-          console.error('Failed to fetch sessions:', err);
-        }
-      };
-      fetchSessions();
-    }
-  }, [enrolData.isOpen, enrolData.step, enrolData.id]);
+
 
   // Intersection observer
   useEffect(() => {
@@ -296,220 +203,17 @@ export default function Home() {
       return;
     }
     const basePrice = parseInt(price.replace(/[^0-9]/g, '')) || 0;
-    setEnrolData({
-      isOpen: true,
+    setEnrolModalData({
       id,
-      step: 1,
-      name, meta, price, basePrice, finalPrice: basePrice,
-      courseOriginalPrice: basePrice,
-      format: 'live', formatLabel: 'Live session',
-      date: '', time: '',
-      promoApplied: false, payMethod: 'UPI',
-      thumbBg, thumbEmoji,
-      enrolmentId: null,
-      sessions: [],
-      selectedSessionId: null,
-      scheduledStart: null
+      name,
+      meta,
+      basePrice,
+      thumbBg,
+      thumbEmoji,
+      isLive: true,
+      isNearby: false,
     });
-    setPromoCode('');
-    setPromoMsg({ text: '', type: '' });
-  };
-  const closeEnrol = () => {
-    setEnrolData(prev => ({ ...prev, isOpen: false }));
-  };
-
-  const enrolGoStep = (step: number) => {
-    setEnrolData(prev => ({ ...prev, step }));
-  };
-
-  const enrolSelectFormat = (format: string) => {
-    const labels: Record<string, string> = { live: 'live session', recorded: 'recorded access', inperson: 'in-person session' };
-    setEnrolData(prev => {
-      const original = prev.courseOriginalPrice || prev.basePrice || 1299;
-      let newBasePrice = original;
-      if (format === 'recorded') {
-        newBasePrice = Math.round(original * 0.8);
-      } else if (format === 'inperson') {
-        newBasePrice = original + 500;
-      }
-      return {
-        ...prev,
-        format,
-        basePrice: newBasePrice,
-        finalPrice: newBasePrice,
-        promoApplied: false,
-        formatLabel: labels[format] || format
-      };
-    });
-    setPromoCode('');
-    setPromoMsg({ text: '', type: '' });
-  };
-
-  const [isEnrolling, setIsEnrolling] = useState(false);
-
-  const handleModalEnrol = async () => {
-    if (!enrolData.id) return;
-
-    setIsEnrolling(true);
-    enrolGoStep(5); // Show processing screen
-    setPromoMsg({ text: 'Initializing payment gateway...', type: 'info' });
-
-    try {
-      // If it's a paid course, start Razorpay flow
-      if (enrolData.finalPrice && enrolData.finalPrice > 0) {
-        const orderRes = await fetchApi('/api/payments/create-order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            courseId: enrolData.id,
-            promoCode: enrolData.promoApplied ? promoCode : null,
-            format: enrolData.format,
-            sessionId: enrolData.selectedSessionId
-          })
-        });
-
-        const orderData = await orderRes.json();
-
-        if (!orderRes.ok) {
-          if (orderRes.status === 401) {
-            router.push(`/Login?returnUrl=/`);
-            return;
-          }
-          setPromoMsg({ text: orderData.error || 'Could not create payment order', type: 'error' });
-          enrolGoStep(6);
-          setIsEnrolling(false);
-          return;
-        }
-
-        const options = {
-          key: orderData.keyId,
-          amount: orderData.amount,
-          currency: 'INR',
-          name: 'XWORKS',
-          description: `Enrolment for ${orderData.courseName}`,
-          order_id: orderData.orderId,
-          handler: async (response: any) => {
-            setIsEnrolling(true);
-            enrolGoStep(5);
-            setPromoMsg({ text: 'Verifying your payment securely...', type: 'info' });
-
-            try {
-              const verifyRes = await fetchApi('/api/payments/verify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  razorpay_order_id: response.razorpay_order_id,
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_signature: response.razorpay_signature,
-                  courseId: enrolData.id,
-                  promoCode: enrolData.promoApplied ? promoCode : null,
-                  sessionId: enrolData.selectedSessionId
-                })
-              });
-              const verifyData = await verifyRes.json();
-              if (verifyRes.ok) {
-                setEnrolData(prev => ({ ...prev, enrolmentId: verifyData.enrolmentId }));
-                enrolGoStep(4); // Success step
-              } else {
-                setPromoMsg({ text: verifyData.error || 'Payment verification failed', type: 'error' });
-                enrolGoStep(6); // Failed step
-              }
-            } catch (vErr: any) {
-              setPromoMsg({ text: vErr.message || 'Verification connection failed', type: 'error' });
-              enrolGoStep(6);
-            } finally {
-              setIsEnrolling(false);
-            }
-          },
-          prefill: {
-            name: '',
-            email: '',
-          },
-          theme: { color: '#4F46E5' },
-          modal: {
-            ondismiss: () => {
-              setIsEnrolling(false);
-              setPromoMsg({ text: 'Payment checkout was closed.', type: 'error' });
-              enrolGoStep(6); // Cancelled step
-            }
-          }
-        };
-
-        const rzp = new (window as any).Razorpay(options);
-        rzp.open();
-        return;
-      }
-
-      // Free Course Enrolment Flow
-      setPromoMsg({ text: 'Creating free enrolment...', type: 'info' });
-      const res = await fetchApi('/api/learner/enrolments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          courseId: enrolData.id,
-          sessionId: enrolData.selectedSessionId
-        })
-      });
-
-      if (res.status === 401) {
-        router.push(`/Login?returnUrl=/`);
-        return;
-      }
-
-      const data = await res.json();
-      if (res.ok) {
-        setEnrolData(prev => ({ ...prev, enrolmentId: data.enrolmentId }));
-
-        // AUTO REGISTER FOR SESSION IF SELECTED
-        if (enrolData.format === 'live' && enrolData.selectedSessionId) {
-          await fetchApi(`/api/sessions/${enrolData.selectedSessionId}/register`, { method: 'POST' });
-        }
-
-        enrolGoStep(4); // Success step
-      } else {
-        setPromoMsg({ text: data.error || 'Failed to enrol', type: 'error' });
-        enrolGoStep(6);
-      }
-    } catch (err: any) {
-      console.error('Enrol failed:', err);
-      setPromoMsg({ text: err.message || 'An error occurred during enrolment', type: 'error' });
-      enrolGoStep(6);
-    } finally {
-      setIsEnrolling(false);
-    }
-  };
-
-  const applyPromo = async () => {
-    const code = promoCode.trim().toUpperCase();
-    if (!code) {
-      setPromoMsg({ text: 'Please enter a promo code', type: 'error' });
-      setEnrolData(prev => ({ ...prev, promoApplied: false, finalPrice: prev.basePrice }));
-      return;
-    }
-    setPromoLoading(true);
-    try {
-      const res = await fetchApi('/api/promo-codes/validate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, courseId: enrolData.id, format: enrolData.format })
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        const discountPercentage = parseFloat(data.discountPercentage);
-        const discount = Math.round(enrolData.basePrice * (discountPercentage / 100));
-        setEnrolData(prev => ({ ...prev, promoApplied: true, finalPrice: prev.basePrice - discount }));
-        setPromoMsg({ text: `✓ Code applied — ${discountPercentage}% off!`, type: 'success' });
-        setTimeout(() => triggerPromoConfetti('promo-apply-btn'), 50);
-      } else {
-        setPromoMsg({ text: data.error || 'Invalid code', type: 'error' });
-        setEnrolData(prev => ({ ...prev, promoApplied: false, finalPrice: prev.basePrice }));
-      }
-    } catch (err) {
-      setPromoMsg({ text: 'Validation failed', type: 'error' });
-      setEnrolData(prev => ({ ...prev, promoApplied: false, finalPrice: prev.basePrice }));
-    } finally {
-      setPromoLoading(false);
-    }
+    setIsEnrolModalOpen(true);
   };
 
   const doSlide = (id: 'bs' | 'na', dir: number) => {
@@ -527,14 +231,14 @@ export default function Home() {
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        if (enrolData.isOpen) closeEnrol();
+        if (isEnrolModalOpen) setIsEnrolModalOpen(false);
         else if (isWorkshopModalOpen) closeWorkshopBrowser();
         else if (catOverlay.isOpen) closeCatPage();
       }
     };
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
-  }, [enrolData.isOpen, isWorkshopModalOpen, catOverlay.isOpen]);
+  }, [isEnrolModalOpen, isWorkshopModalOpen, catOverlay.isOpen]);
 
   // Derived state for category
   const activeCat = catOverlay.key ? (categories.find(c => c.slug === catOverlay.key) || CAT_DATA[catOverlay.key]) : null;
@@ -1094,266 +798,7 @@ export default function Home() {
         </div>
       )}
 
-      {/* ════ ENROL MODAL ════ */}
-      {hasMounted && (
-        <div className={`enrol-backdrop ${enrolData.isOpen ? 'open' : ''}`} onClick={(e) => { if ((e.target as any).className.includes('enrol-backdrop')) closeEnrol(); }}>
-          <div className="enrol-modal" style={{ display: enrolData.isOpen ? 'block' : 'none' }}>
-            
-            {enrolData.step === 1 && (
-              <div>
-                <div className="enrol-modal-hd">
-                  <div className="enrol-modal-title">Enrol in workshop</div>
-                  <button className="enrol-modal-close" onClick={closeEnrol}>✕</button>
-                </div>
-                <div className="enrol-stepper">
-                  <div className="enrol-step-item"><div className="enrol-step-dot active">1</div><div className="enrol-step-label active">Format</div></div><div className="enrol-step-line pending"></div>
-                  <div className="enrol-step-item"><div className="enrol-step-dot pending">2</div><div className="enrol-step-label">Schedule</div></div><div className="enrol-step-line pending"></div>
-                  <div className="enrol-step-item"><div className="enrol-step-dot pending">3</div><div className="enrol-step-label">Payment</div></div>
-                </div>
-                <div className="enrol-body">
-                  <div className="enrol-course-mini">
-                    <div className="enrol-thumb" style={enrolData.thumbBg ? { background: enrolData.thumbBg } : {}}>
-                      {enrolData.thumbEmoji && (enrolData.thumbEmoji.startsWith('http') || enrolData.thumbEmoji.startsWith('/')) ? (
-                        <img src={enrolData.thumbEmoji} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '6px' }} />
-                      ) : (
-                        enrolData.thumbEmoji
-                      )}
-                    </div>
-                    <div><div className="enrol-course-name">{enrolData.name}</div><div className="enrol-course-meta">{enrolData.meta}</div></div>
-                  </div>
-                  <div className="enrol-format-grid" style={{ gridTemplateColumns: '1fr' }}>
-                    <div className={`enrol-format-btn ${enrolData.format === 'live' ? 'selected' : ''}`} onClick={() => enrolSelectFormat('live')}>
-                      <div className="enrol-format-icon">🔴</div>
-                      <div className="enrol-format-name">Live session</div>
-                      <div className="enrol-format-sub">Interactive · Q&A included</div>
-                      <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '5px', color: '#3730A3' }}>₹{(enrolData.courseOriginalPrice || 1299).toLocaleString('en-IN')}</div>
-                    </div>
-                  </div>
-                  <div className="enrol-divider"></div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <div style={{ fontSize: '13px', color: '#4B5080' }}>Price for <span>{enrolData.formatLabel}</span></div>
-                    <div style={{ fontFamily: "'Syne',sans-serif", fontSize: '20px', fontWeight: 800, color: '#3730A3' }}>₹{enrolData.basePrice.toLocaleString('en-IN')}</div>
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#9294B8', marginBottom: '18px' }}>Includes certificate · Lifetime recording access · Class notes PDF</div>
-                  <button className="enrol-cta" onClick={() => enrolGoStep(2)}>Continue to schedule →</button>
-                </div>
-              </div>
-            )}
 
-          {enrolData.step === 2 && (
-            <div>
-              <div className="enrol-modal-hd"><button className="enrol-back" onClick={() => enrolGoStep(1)}>← Back</button><div className="enrol-modal-title">Pick a date & time</div><button className="enrol-modal-close" onClick={closeEnrol}>✕</button></div>
-              <div className="enrol-stepper">
-                <div className="enrol-step-item"><div className="enrol-step-dot done">✓</div><div className="enrol-step-label">Format</div></div><div className="enrol-step-line done"></div>
-                <div className="enrol-step-item"><div className="enrol-step-dot active">2</div><div className="enrol-step-label active">Schedule</div></div><div className="enrol-step-line pending"></div>
-                <div className="enrol-step-item"><div className="enrol-step-dot pending">3</div><div className="enrol-step-label">Payment</div></div>
-              </div>
-              <div className="enrol-body">
-                <div className="enrol-section-label">Available sessions</div>
-                <div className="enrol-date-grid">
-                  {enrolData.sessions.length > 0 ? (
-                    enrolData.sessions.map((s) => {
-                      const d = new Date(s.scheduled_start);
-                      const day = d.toLocaleDateString('en-IN', { weekday: 'short' });
-                      const num = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-                      const time = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
-                      const isPast = d.getTime() < currentTime;
-                      const isFull = s.max_seats && s.registered_count >= s.max_seats;
-                      const isDisabled = isFull || isPast;
-
-                      return (
-                        <button
-                          key={s.id}
-                          className={`enrol-date-btn ${enrolData.selectedSessionId === s.id ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`}
-                          disabled={isDisabled}
-                          onClick={() => setEnrolData(prev => ({
-                            ...prev,
-                            selectedSessionId: s.id,
-                            date: `${day} ${num}`,
-                            time,
-                            scheduledStart: s.scheduled_start
-                          }))}
-                        >
-                          <div className="enrol-date-day">{day}</div>
-                          <div className="enrol-date-num">{num}</div>
-                          <div style={{ fontSize: '10px', marginTop: '4px', opacity: 0.8 }}>{isPast ? 'Passed' : time}</div>
-                        </button>
-                      );
-                    })
-                  ) : (
-                    <div style={{ gridColumn: '1/-1', padding: '16px 0', textAlign: 'center', color: 'var(--text-3)', fontSize: '14px' }}>
-                      No upcoming live sessions found. You can still enrol to access recordings or pick a date later.
-                    </div>
-                  )}
-                </div>
-
-                {enrolData.selectedSessionId && (
-                  <>
-                    <div className="enrol-section-label">Selected slot</div>
-                    <div className="enrol-session-info">
-                      {enrolData.date} · {enrolData.time} &nbsp;·&nbsp; {enrolData.format === 'live' ? 'Online via Zoom' : 'Location TBD'}
-                    </div>
-                  </>
-                )}
-
-                  {(() => {
-                    const isSelectedExpired = !!(enrolData.scheduledStart && new Date(enrolData.scheduledStart as string).getTime() < currentTime);
-                    return (
-                      <button 
-                        className="enrol-cta" 
-                        onClick={() => enrolGoStep(3)}
-                        disabled={isSelectedExpired}
-                        style={{ opacity: isSelectedExpired ? 0.5 : 1 }}
-                      >
-                        {isSelectedExpired ? 'Slot Expired' : 'Continue to payment →'}
-                      </button>
-                    );
-                  })()}
-              </div>
-            </div>
-          )}
-
-          {enrolData.step === 3 && (
-            <div>
-              <div className="enrol-modal-hd"><button className="enrol-back" onClick={() => enrolGoStep(2)}>← Back</button><div className="enrol-modal-title">Payment</div><button className="enrol-modal-close" onClick={closeEnrol}>✕</button></div>
-              <div className="enrol-stepper">
-                <div className="enrol-step-item"><div className="enrol-step-dot done">✓</div><div className="enrol-step-label">Format</div></div><div className="enrol-step-line done"></div>
-                <div className="enrol-step-item"><div className="enrol-step-dot done">✓</div><div className="enrol-step-label">Schedule</div></div><div className="enrol-step-line done"></div>
-                <div className="enrol-step-item"><div className="enrol-step-dot active">3</div><div className="enrol-step-label active">Payment</div></div>
-              </div>
-              <div className="enrol-body">
-                <div className="enrol-order-row"><span className="enrol-order-label">Workshop</span><span className="enrol-order-val">{enrolData.name}</span></div>
-                <div className="enrol-order-row"><span className="enrol-order-label">Format</span><span className="enrol-order-val">₹{enrolData.basePrice.toLocaleString('en-IN')}</span></div>
-                {enrolData.promoApplied && (
-                  <div className="enrol-order-row promo-discount-row"><span className="enrol-order-label" style={{ color: '#16A34A' }}>Promo discount</span><span className="enrol-order-val" style={{ color: '#16A34A' }}>−₹{(enrolData.basePrice - enrolData.finalPrice).toLocaleString('en-IN')}</span></div>
-                )}
-                <div className="enrol-divider"></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                  <span className="enrol-total">Total</span><span key={enrolData.finalPrice} className="enrol-total enrol-total-price-val">₹{enrolData.finalPrice.toLocaleString('en-IN')}</span>
-                </div>
-                <div className="enrol-promo-row">
-                  <input
-                    className="enrol-promo-input"
-                    value={promoCode}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setPromoCode(val);
-                      if (!val.trim()) {
-                        setPromoMsg({ text: '', type: '' });
-                        setEnrolData(prev => ({ ...prev, promoApplied: false, finalPrice: prev.basePrice }));
-                      }
-                    }}
-                    type="text"
-                    placeholder="Promo code (try XWORKS20)"
-                    disabled={promoLoading}
-                  />
-                  <button id="promo-apply-btn" className={`enrol-promo-apply ${promoLoading ? 'loading' : ''}`} onClick={applyPromo} disabled={promoLoading}>
-                    {promoLoading ? <span className="promo-spinner"></span> : 'Apply'}
-                  </button>
-                </div>
-                {promoMsg.text && (
-                  <div className="enrol-promo-ok" style={{ color: promoMsg.type === 'error' ? '#D84040' : '#16A34A' }}>{promoMsg.text}</div>
-                )}
-                <div className="enrol-section-label">Pay with</div>
-                <div className="enrol-pay-methods">
-                  {['UPI', 'Card', 'Net banking', 'EMI'].map(method => (
-                    <button key={method} className={`enrol-pay-btn ${enrolData.payMethod === method ? 'selected' : ''}`} onClick={() => setEnrolData(prev => ({ ...prev, payMethod: method }))}>{method}</button>
-                  ))}
-                </div>
-                <div className="enrol-upi-field">
-                  {enrolData.payMethod === 'UPI' && <span>UPI ID: &nbsp;<strong>priya@okaxis</strong></span>}
-                  {enrolData.payMethod === 'Card' && <span style={{ color: '#4B5080' }}>Card ending in &nbsp;<strong>•••• 4242</strong> &nbsp;(Visa)</span>}
-                  {enrolData.payMethod === 'Net banking' && <span style={{ color: '#4B5080' }}>Bank: &nbsp;<strong>HDFC Bank</strong></span>}
-                </div>
-                <button className={`enrol-cta coral ${isEnrolling ? 'loading' : ''}`} onClick={handleModalEnrol} disabled={isEnrolling}>
-                  {isEnrolling ? 'Processing...' : enrolData.finalPrice === 0 ? 'Enrol for Free →' : `Pay ₹${enrolData.finalPrice.toLocaleString('en-IN')} securely →`}
-                </button>
-                <div className="enrol-fine">🔒 Secured by Razorpay &nbsp;·&nbsp; 100% refund if class is cancelled</div>
-              </div>
-            </div>
-          )}
-
-          {enrolData.step === 4 && (
-            <div>
-              <div className="enrol-success">
-                <div className="enrol-status-container">
-                  <div className="status-icon-box">
-                    <svg className="checkmark-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
-                      <circle className="checkmark-circle" cx="26" cy="26" r="25" fill="none" />
-                      <path className="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
-                    </svg>
-                  </div>
-                  <div className="enrol-success-badge">Booking confirmed</div>
-                  <div className="enrol-success-title">You're enrolled!</div>
-                  <div className="enrol-success-sub">Your seat is reserved. A calendar invite and Zoom link have been sent to your email.</div>
-                </div>
-                <div className="enrol-confirm-card">
-                  <div className="enrol-confirm-row"><span className="enrol-confirm-label">Workshop</span><span className="enrol-confirm-val">{enrolData.name}</span></div>
-                  <div className="enrol-confirm-row"><span className="enrol-confirm-label">Date & time</span><span className="enrol-confirm-val">{enrolData.date} · {enrolData.time}</span></div>
-                  <div className="enrol-confirm-row"><span className="enrol-confirm-label">Format</span><span className="enrol-confirm-val">{enrolData.format === 'live' ? 'Live · Zoom' : enrolData.format === 'recorded' ? 'Recorded · Watch anytime' : 'In-person · Venue'}</span></div>
-                  <div className="enrol-confirm-row"><span className="enrol-confirm-label">Amount paid</span><span className="enrol-confirm-val" style={{ color: '#3730A3' }}>₹{enrolData.finalPrice.toLocaleString('en-IN')}</span></div>
-                </div>
-                <div className="enrol-success-btns">
-                  <button className="enrol-success-btn" onClick={closeEnrol}>Close</button>
-                  <button
-                    className="enrol-success-btn primary"
-                    onClick={() => {
-                      closeEnrol();
-                      router.push(user?.role === 'admin' ? '/admin' : '/dashboard?view=upcoming');
-                    }}
-                  >
-                    Go to Dashboard →
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {enrolData.step === 5 && (
-            <div className="enrol-status-container" style={{ padding: '60px 24px' }}>
-              <div className="status-icon-box">
-                <div className="status-spinner"></div>
-              </div>
-              <div className="status-title">{promoMsg.text || 'Processing Payment'}</div>
-              <div className="status-desc">Please do not close this window or refresh the page while we secure your enrolment.</div>
-            </div>
-          )}
-
-          {enrolData.step === 6 && (
-            <div className="enrol-status-container" style={{ padding: '50px 24px' }}>
-              <div className="status-icon-box">
-                <svg className="cross-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
-                  <circle className="cross-circle" cx="26" cy="26" r="25" fill="none" />
-                  <path className="cross-line1" fill="none" d="M16 16l20 20" />
-                  <path className="cross-line2" fill="none" d="M36 16L16 36" />
-                </svg>
-              </div>
-              <div className="status-title">Payment Cancelled or Failed</div>
-              <div className="status-desc">{promoMsg.type === 'error' ? promoMsg.text : 'The payment transaction could not be completed. Please check your connection and try again.'}</div>
-              <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
-                <button className="status-btn" onClick={() => { setPromoMsg({ text: '', type: '' }); enrolGoStep(3); }}>Try Again</button>
-                <button className="status-btn secondary" onClick={closeEnrol}>Close</button>
-              </div>
-            </div>
-          )}
-
-          {enrolData.step === 7 && (
-            <div className="enrol-status-container" style={{ padding: '50px 24px' }}>
-              <div className="status-icon-box">
-                <svg className="pending-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 52 52">
-                  <circle className="pending-circle" cx="26" cy="26" r="25" fill="none" />
-                  <path className="pending-dash" fill="none" strokeLinecap="round" strokeWidth="4" d="M26 14v20" />
-                  <circle className="pending-dot" cx="26" cy="40" r="2" fill="#F59E0B" />
-                </svg>
-              </div>
-              <div className="status-title">Verification Pending</div>
-              <div className="status-desc">We are verifying your transaction with the payment gateway. You can check your status in your dashboard shortly.</div>
-              <button className="status-btn" onClick={closeEnrol}>Close & Check Dashboard</button>
-            </div>
-          )}
-        </div>
-      </div>
-      )}
       <AlertModal
         isOpen={alertOpen}
         onClose={() => setAlertOpen(false)}

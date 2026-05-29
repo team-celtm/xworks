@@ -51,10 +51,9 @@ const triggerPromoConfetti = (elementId: string) => {
 export default function EnrolModal({
   isOpen,
   onClose,
-  course,
+  initialData,
   user,
-  onSuccess,
-  preselectedSessionId = null
+  onSuccess
 }: any) {
   const router = useRouter();
   const [enrolStep, setEnrolStep] = useState(1);
@@ -65,25 +64,26 @@ export default function EnrolModal({
   const [modalSessions, setModalSessions] = useState<any[]>([]);
 
   useEffect(() => {
-    if (isOpen && course) {
-      const basePrice = Number(course.price) || 0;
+    if (isOpen && initialData) {
       setEnrolData({
-        courseId: String(course.id),
-        name: course.name,
-        meta: `by ${course.instructor} · ★ ${course.rating} · ${course.dur}h · ${course.tagLabel || course.categoryName || ''}`,
-        price: `₹${basePrice.toLocaleString("en-IN")}`,
-        basePrice: basePrice,
-        finalPrice: basePrice,
-        courseOriginalPrice: basePrice,
-        format: course.live ? "live" : "recorded",
-        formatLabel: course.live ? "live session" : "recorded",
+        courseId: String(initialData.id),
+        name: initialData.name,
+        meta: initialData.meta,
+        price: `₹${initialData.basePrice.toLocaleString("en-IN")}`,
+        basePrice: initialData.basePrice,
+        finalPrice: initialData.basePrice,
+        courseOriginalPrice: initialData.basePrice,
+        format: initialData.isLive ? "live" : "recorded",
+        formatLabel: initialData.isLive ? "live session" : "recorded",
         date: "",
         time: "",
         payMethod: "UPI",
         promoApplied: false,
-        thumbBg: course.g || 'g-ai',
-        thumbEmoji: course.logo || course.emoji || '🎓',
-        sessionId: preselectedSessionId
+        thumbBg: initialData.thumbBg || 't-amber',
+        thumbEmoji: initialData.thumbEmoji || '🎓',
+        sessionId: initialData.preselectedSessionId || null,
+        isLive: initialData.isLive,
+        isNearby: initialData.isNearby
       });
       setEnrolStep(1);
       setPromoCode("");
@@ -91,13 +91,13 @@ export default function EnrolModal({
 
       const fetchSessions = async () => {
         try {
-          const res = await fetchApi(`/api/courses/id/${course.id}/sessions`);
+          const res = await fetchApi(`/api/courses/id/${initialData.id}/sessions`);
           if (res.ok) {
             const data = await res.json();
             setModalSessions(data);
             if (data.length > 0) {
               const available = data.find((s: any) => s.status !== 'cancelled' && new Date(s.scheduledStart).getTime() >= Date.now() && (!s.maxSeats || (s.maxSeats - s.registeredCount > 0)));
-              const targetSession = preselectedSessionId ? data.find((s:any) => s.id === preselectedSessionId) : available;
+              const targetSession = initialData.preselectedSessionId ? data.find((s:any) => String(s.id) === String(initialData.preselectedSessionId)) : available;
               if (targetSession) {
                 setEnrolData((prev: any) => ({
                   ...prev,
@@ -115,7 +115,7 @@ export default function EnrolModal({
       };
       fetchSessions();
     }
-  }, [isOpen, course, preselectedSessionId]);
+  }, [isOpen, initialData]);
 
   if (!isOpen || !enrolData) return null;
 
@@ -181,7 +181,7 @@ export default function EnrolModal({
     try {
       if (!user) {
         alert("Please login first");
-        router.push(`/Login?returnUrl=/courses/${course.slug}`);
+        router.push(`/Login?returnUrl=${window.location.pathname}`);
         return;
       }
       if (user.role === 'admin' || user.role === 'instructor') {
@@ -204,7 +204,7 @@ export default function EnrolModal({
           })
         });
         if (freeRes.status === 401) {
-            router.push(`/Login?returnUrl=/courses/${course.slug}`);
+            router.push(`/Login?returnUrl=${window.location.pathname}`);
             return;
         }
         const freeData = await freeRes.json();
@@ -361,8 +361,8 @@ export default function EnrolModal({
                   { id: "recorded", lbl: "Recorded", icon: "📹", sub: "Watch anytime · Self-paced", priceCalc: (b: number) => Math.round(b * 0.8) },
                   { id: "inperson", lbl: "In-person", icon: "📍", sub: "Nearby · Limited seats", priceCalc: (b: number) => b + 500 }
                 ].map((f) => {
-                  if (!course.live && f.id === 'live') return null;
-                  if (!course.nearby && f.id === 'inperson') return null;
+                  if (!enrolData.isLive && f.id === 'live') return null;
+                  if (!enrolData.isNearby && f.id === 'inperson') return null;
                   return (
                     <div
                       key={f.id}
