@@ -1151,21 +1151,27 @@ export default function Home() {
               <div className="enrol-body">
                 <div className="enrol-section-label">Available sessions</div>
                 <div className="enrol-date-grid">
-                  {enrolData.sessions.length > 0 ? (
-                    enrolData.sessions.map((s) => {
+                  {(() => {
+                    const validSessions = enrolData.sessions.filter(s => new Date(s.scheduled_start).getTime() >= currentTime);
+                    if (validSessions.length === 0) {
+                      return (
+                        <div style={{ gridColumn: '1/-1', padding: '16px 0', textAlign: 'center', color: 'var(--text-3)', fontSize: '14px' }}>
+                          No upcoming live sessions found. You can still enrol to access recordings or pick a date later.
+                        </div>
+                      );
+                    }
+                    return validSessions.map((s) => {
                       const d = new Date(s.scheduled_start);
                       const day = d.toLocaleDateString('en-IN', { weekday: 'short' });
                       const num = d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
                       const time = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' });
-                      const isPast = d.getTime() < currentTime;
                       const isFull = s.max_seats && s.registered_count >= s.max_seats;
-                      const isDisabled = isFull || isPast;
 
                       return (
                         <button
                           key={s.id}
-                          className={`enrol-date-btn ${enrolData.selectedSessionId === s.id ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`}
-                          disabled={isDisabled}
+                          className={`enrol-date-btn ${enrolData.selectedSessionId === s.id ? 'selected' : ''} ${isFull ? 'disabled' : ''}`}
+                          disabled={isFull}
                           onClick={() => setEnrolData(prev => ({
                             ...prev,
                             selectedSessionId: s.id,
@@ -1176,15 +1182,11 @@ export default function Home() {
                         >
                           <div className="enrol-date-day">{day}</div>
                           <div className="enrol-date-num">{num}</div>
-                          <div style={{ fontSize: '10px', marginTop: '4px', opacity: 0.8 }}>{isPast ? 'Passed' : time}</div>
+                          <div style={{ fontSize: '10px', marginTop: '4px', opacity: 0.8 }}>{isFull ? 'Full' : time}</div>
                         </button>
                       );
-                    })
-                  ) : (
-                    <div style={{ gridColumn: '1/-1', padding: '16px 0', textAlign: 'center', color: 'var(--text-3)', fontSize: '14px' }}>
-                      No upcoming live sessions found. You can still enrol to access recordings or pick a date later.
-                    </div>
-                  )}
+                    });
+                  })()}
                 </div>
 
                 {enrolData.selectedSessionId && (
@@ -1289,7 +1291,7 @@ export default function Home() {
                 </div>
                 <div className="enrol-confirm-card">
                   <div className="enrol-confirm-row"><span className="enrol-confirm-label">Workshop</span><span className="enrol-confirm-val">{enrolData.name}</span></div>
-                  <div className="enrol-confirm-row"><span className="enrol-confirm-label">Date & time</span><span className="enrol-confirm-val">{enrolData.date} · {enrolData.time}</span></div>
+                  <div className="enrol-confirm-row"><span className="enrol-confirm-label">Date & time</span><span className="enrol-confirm-val">{enrolData.date ? `${enrolData.date} · ${enrolData.time}` : 'To be scheduled'}</span></div>
                   <div className="enrol-confirm-row"><span className="enrol-confirm-label">Format</span><span className="enrol-confirm-val">{enrolData.format === 'live' ? 'Live · Zoom' : enrolData.format === 'recorded' ? 'Recorded · Watch anytime' : 'In-person · Venue'}</span></div>
                   <div className="enrol-confirm-row"><span className="enrol-confirm-label">Amount paid</span><span className="enrol-confirm-val" style={{ color: '#3730A3' }}>₹{enrolData.finalPrice.toLocaleString('en-IN')}</span></div>
                 </div>

@@ -2268,34 +2268,38 @@ function DashboardPageContent() {
                 <div className="enrol-body">
                   <div className="enrol-section-label">Available Sessions</div>
                   <div className="enrol-date-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '10px' }}>
-                    {modalSessions.length > 0 ? modalSessions.map((s) => {
-                      const sDate = new Date(s.scheduledStart);
-                      const day = sDate.toLocaleDateString('en-IN', { weekday: 'short' });
-                      const num = sDate.getDate();
-                      const month = sDate.toLocaleDateString('en-IN', { month: 'short' });
-                      const fullStr = sDate.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
-                      const timeStr = sDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-                      const isPast = sDate.getTime() < currentTime;
-                      const isFull = s.maxSeats !== null && s.maxSeats !== undefined && s.maxSeats > 0 && (s.maxSeats - s.registeredCount <= 0);
-                      const isDisabled = isFull || isPast;
+                    {(() => {
+                      const validSessions = modalSessions.filter(s => new Date(s.scheduledStart).getTime() >= currentTime);
+                      if (validSessions.length === 0) {
+                        return (
+                          <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '20px', color: 'var(--text-3)', fontSize: '14px' }}>
+                            No upcoming live sessions found. You can still enrol to access recordings or pick a date later.
+                          </div>
+                        );
+                      }
+                      return validSessions.map((s) => {
+                        const sDate = new Date(s.scheduledStart);
+                        const day = sDate.toLocaleDateString('en-IN', { weekday: 'short' });
+                        const num = sDate.getDate();
+                        const month = sDate.toLocaleDateString('en-IN', { month: 'short' });
+                        const fullStr = sDate.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+                        const timeStr = sDate.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+                        const isFull = s.maxSeats !== null && s.maxSeats !== undefined && s.maxSeats > 0 && (s.maxSeats - s.registeredCount <= 0);
 
-                      return (
-                        <div
-                          key={s.id}
-                          className={`enrol-date-btn ${enrolData.date === fullStr && enrolData.time === timeStr ? 'selected' : ''} ${isDisabled ? 'disabled' : ''}`}
-                          onClick={() => !isDisabled && setEnrolData(prev => ({ ...prev, date: fullStr, time: timeStr, sessionId: s.id, scheduledStart: s.scheduledStart }))}
-                          style={{ height: 'auto', padding: '12px 8px', cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.5 : 1 }}
-                        >
-                          <div className="enrol-date-day">{day}</div>
-                          <div className="enrol-date-num">{num} {month}</div>
-                          <div style={{ fontSize: '10px', marginTop: '4px', opacity: 0.8 }}>{isPast ? 'Passed' : isFull ? 'Full' : timeStr}</div>
-                        </div>
-                      );
-                    }) : (
-                      <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '20px', color: 'var(--text-3)' }}>
-                        No sessions scheduled yet. Check back soon!
-                      </div>
-                    )}
+                        return (
+                          <div
+                            key={s.id}
+                            className={`enrol-date-btn ${enrolData.date === fullStr && enrolData.time === timeStr ? 'selected' : ''} ${isFull ? 'disabled' : ''}`}
+                            onClick={() => !isFull && setEnrolData(prev => ({ ...prev, date: fullStr, time: timeStr, sessionId: s.id, scheduledStart: s.scheduledStart }))}
+                            style={{ height: 'auto', padding: '12px 8px', cursor: isFull ? 'not-allowed' : 'pointer', opacity: isFull ? 0.5 : 1 }}
+                          >
+                            <div className="enrol-date-day">{day}</div>
+                            <div className="enrol-date-num">{num} {month}</div>
+                            <div style={{ fontSize: '10px', marginTop: '4px', opacity: 0.8 }}>{isFull ? 'Full' : timeStr}</div>
+                          </div>
+                        );
+                      });
+                    })()}
                   </div>
 
                   {enrolData.date && (
@@ -2311,8 +2315,8 @@ function DashboardPageContent() {
                       <button
                         className="enrol-cta"
                         onClick={() => setEnrolStep(3)}
-                        disabled={!enrolData.date || isSelectedExpired}
-                        style={{ marginTop: '24px', opacity: (!enrolData.date || isSelectedExpired) ? 0.5 : 1 }}
+                        disabled={isSelectedExpired}
+                        style={{ marginTop: '24px', opacity: isSelectedExpired ? 0.5 : 1 }}
                       >
                         {isSelectedExpired ? 'Slot Expired' : 'Continue to payment →'}
                       </button>
@@ -2435,7 +2439,7 @@ function DashboardPageContent() {
                   </div>
                   <div className="enrol-confirm-card">
                     <div className="enrol-confirm-row"><span className="enrol-confirm-label">Workshop</span><span className="enrol-confirm-val">{enrolData.name as string}</span></div>
-                    <div className="enrol-confirm-row"><span className="enrol-confirm-label">Date & time</span><span className="enrol-confirm-val">{enrolData.date as string} · {enrolData.time as string}</span></div>
+                    <div className="enrol-confirm-row"><span className="enrol-confirm-label">Date & time</span><span className="enrol-confirm-val">{enrolData.date ? `${enrolData.date as string} · ${enrolData.time as string}` : 'To be scheduled'}</span></div>
                     <div className="enrol-confirm-row">
                       <span className="enrol-confirm-label">Format</span>
                       <span className="enrol-confirm-val">{enrolData.format === "live" ? "Live · Zoom" : enrolData.format === "recorded" ? "Recorded · Watch anytime" : "In-person · Venue confirmed"}</span>
