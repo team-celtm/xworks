@@ -99,35 +99,41 @@ export async function POST(req: NextRequest) {
     `, [courseId, userId]);
 
     if (checkRes.rows.length === 0) {
-      return NextResponse.json({ error: 'Unauthorized or course not found' }, { status: 403 });
+      return NextResponse.json({ error: 'Course not found or unauthorized' }, { status: 403 });
     }
 
-    const course = checkRes.rows[0];
-    if (course.status !== 'published') {
-      return NextResponse.json({ error: 'Cannot schedule a session for a course that is not published' }, { status: 400 });
-    }
-    if (!course.live) {
-      return NextResponse.json({ error: 'Cannot schedule a live session for a non-live course format' }, { status: 400 });
+    if (checkRes.rows[0].status === 'deleted') {
+      return NextResponse.json({ error: 'Cannot schedule sessions for deleted courses' }, { status: 400 });
     }
 
-    // Check for overlapping sessions for this instructor
+    // Check for overlapping sessions by this instructor
     const overlapRes = await pool.query(`
       SELECT ls.id 
       FROM live_sessions ls
       JOIN courses c ON ls.course_id = c.id
       JOIN instructors i ON c.instructor_id = i.id
       WHERE i.user_id = $1 
-      AND ls.status != 'cancelled'
-      AND (
-        (ls.scheduled_start <= $2 AND ls.scheduled_end > $2) OR
-        (ls.scheduled_start < $3 AND ls.scheduled_end >= $3) OR
-        (ls.scheduled_start >= $2 AND ls.scheduled_end <= $3)
-      )
-    `, [userId, scheduledStart, scheduledEnd]);
+        AND ls.status != 'cancelled'
+        AND (
+          (ls.scheduled_start <= $2 AND ls.scheduled_end > $2) OR
+          (ls.scheduled_start < $3 AND ls.scheduled_end >= $3) OR
+          (ls.scheduled_start >= $2 AND ls.scheduled_end <= $3)
+        )
+    `, [userId, startDate.toISOString(), endDate.toISOString()]);
 
     if (overlapRes.rows.length > 0) {
-      return NextResponse.json({ error: 'You already have another session scheduled during this time period.' }, { status: 409 });
+      return NextResponse.json({ error: 'You already have another session scheduled during this time.' }, { status: 400 });
     }
+
+    const course = checkRes.rows[0];
+    if (course.status === 'draft') {
+      return NextResponse.json({ error: 'Cannot schedule sessions for draft courses' }, { status: 400 });
+    }
+    if (!course.live) {
+      return NextResponse.json({ error: 'Cannot schedule a live session for a non-live course format' }, { status: 400 });
+    }
+
+
 
     const insertSql = `
       INSERT INTO live_sessions (
