@@ -188,8 +188,10 @@ export default function CourseDetailPage() {
           body: JSON.stringify({ courseId: course.id, sessionId: selectedSessionId })
         });
 
-        if (!orderRes.ok) throw new Error('Could not create payment order');
         const orderData = await orderRes.json();
+        if (!orderRes.ok) {
+          throw new Error(orderData.message || orderData.error || 'Could not create payment order');
+        }
 
         const options = {
           key: orderData.keyId,
@@ -240,7 +242,7 @@ export default function CourseDetailPage() {
           router.push(`/dashboard?view=upcoming`);
         }, 1500);
       } else {
-        throw new Error(data.error || 'Failed to enrol');
+        throw new Error(data.message || data.error || 'Failed to enrol');
       }
     } catch (err: any) {
       setError(err.message);

@@ -251,6 +251,7 @@ function DashboardPageContent() {
   const [bookingSession, setBookingSession] = useState<{ courseId: string, courseName: string, regId?: string } | null>(null);
   const [availableSessions, setAvailableSessions] = useState<any[]>([]);
   const [isBooking, setIsBooking] = useState(false);
+  const [bookingError, setBookingError] = useState<string | null>(null);
   const [todayDate, setTodayDate] = useState("");
   const [currentTime, setCurrentTime] = useState(Date.now());
 
@@ -635,6 +636,7 @@ function DashboardPageContent() {
 
   const handleOpenBooking = async (courseId: string, courseName: string, regId?: string) => {
     setBookingSession({ courseId, courseName, regId });
+    setBookingError(null);
     try {
       const res = await fetchApi(`/api/courses/${courseId}/sessions`);
       if (res.ok) {
@@ -669,10 +671,10 @@ function DashboardPageContent() {
         setActiveView("upcoming"); 
       } else {
         const data = await res.json();
-        alert(data.error || "Action failed");
+        setBookingError(data.message || data.error || "Action failed. Please try again.");
       }
     } catch (err) {
-      alert("Something went wrong");
+      setBookingError("Something went wrong. Please check your connection and try again.");
     } finally {
       setIsBooking(false);
     }
@@ -2486,31 +2488,53 @@ function DashboardPageContent() {
 
               <div className="enrol-section-label">Available dates</div>
               <div className="enrol-date-grid" style={{ gridTemplateColumns: '1fr', gap: '10px' }}>
-                {availableSessions.length === 0 ? (
-                   <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-3)' }}>No upcoming sessions found for this course.</div>
-                ) : (
-                  availableSessions.map(s => (
-                    <div 
-                      key={s.id} 
-                      className={`enrol-date-btn ${isBooking ? 'disabled' : ''}`}
-                      style={{ textAlign: 'left', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '15px', border: '1.5px solid var(--border)' }}
-                      onClick={() => !isBooking && handleConfirmBooking(s.id)}
-                    >
-                      <div className="upcoming-date-block" style={{ width: '40px', height: '40px', background: 'var(--indigo-light)', borderRadius: '8px', margin: 0 }}>
-                        <div className="upcoming-day" style={{ fontSize: '14px', color: 'var(--indigo)', fontWeight: 800 }}>{new Date(s.scheduled_start).getDate()}</div>
-                        <div className="upcoming-month" style={{ fontSize: '8px', color: 'var(--indigo)', fontWeight: 700 }}>{new Date(s.scheduled_start).toLocaleDateString('en-IN', { month: 'short' }).toUpperCase()}</div>
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>{s.title || 'Live Workshop'}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>
-                          {new Date(s.scheduled_start).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} · {s.registered_count}{s.max_seats ? `/${s.max_seats} filled` : ' learners registered'}
+                {(() => {
+                  const hasAvailableSession = availableSessions.some(s => {
+                    const isPast = new Date(s.scheduled_start).getTime() < Date.now();
+                    const isCancelled = s.status === 'cancelled';
+                    const full = !isCancelled && !isPast && s.max_seats !== null && s.max_seats !== undefined && s.max_seats > 0 && (s.max_seats - s.registered_count <= 0);
+                    return !isPast && !isCancelled && !full;
+                  });
+
+                  return !hasAvailableSession ? (
+                    <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-3)' }}>No upcoming live sessions found for this course. Please check back later.</div>
+                  ) : (
+                    availableSessions.map(s => {
+                      const isPast = new Date(s.scheduled_start).getTime() < Date.now();
+                      const isCancelled = s.status === 'cancelled';
+                      const full = !isCancelled && !isPast && s.max_seats !== null && s.max_seats !== undefined && s.max_seats > 0 && (s.max_seats - s.registered_count <= 0);
+                      const disabled = isBooking || isPast || isCancelled || full;
+
+                      return (
+                        <div 
+                          key={s.id} 
+                          className={`enrol-date-btn ${disabled ? 'disabled' : ''}`}
+                          style={{ textAlign: 'left', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: '15px', border: '1.5px solid var(--border)', opacity: disabled ? 0.6 : 1, cursor: disabled ? 'not-allowed' : 'pointer' }}
+                          onClick={() => !disabled && handleConfirmBooking(s.id)}
+                        >
+                          <div className="upcoming-date-block" style={{ width: '40px', height: '40px', background: 'var(--indigo-light)', borderRadius: '8px', margin: 0 }}>
+                            <div className="upcoming-day" style={{ fontSize: '14px', color: 'var(--indigo)', fontWeight: 800 }}>{new Date(s.scheduled_start).getDate()}</div>
+                            <div className="upcoming-month" style={{ fontSize: '8px', color: 'var(--indigo)', fontWeight: 700 }}>{new Date(s.scheduled_start).toLocaleDateString('en-IN', { month: 'short' }).toUpperCase()}</div>
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', textDecoration: isCancelled ? 'line-through' : 'none' }}>{s.title || 'Live Workshop'}</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-3)' }}>
+                              {new Date(s.scheduled_start).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} · {isCancelled ? 'Cancelled' : isPast ? 'Session Ended' : full ? 'Sold out' : `${s.registered_count}${s.max_seats ? `/${s.max_seats} filled` : ' learners registered'}`}
+                            </div>
+                          </div>
+                          <div style={{ color: 'var(--indigo)', fontWeight: 800 }}>→</div>
                         </div>
-                      </div>
-                      <div style={{ color: 'var(--indigo)', fontWeight: 800 }}>→</div>
-                    </div>
-                  ))
-                )}
+                      );
+                    })
+                  );
+                })()}
               </div>
+              {bookingError && (
+                <div style={{ marginTop: '16px', padding: '12px 16px', background: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '8px', color: '#B91C1C', fontSize: '13px', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '16px' }}>⚠️</span>
+                  {bookingError}
+                </div>
+              )}
               {isBooking && <div className="btn-loading" style={{ margin: '20px auto' }}></div>}
             </div>
           </div>
