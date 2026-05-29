@@ -855,10 +855,14 @@ function InstructorDashboardContent() {
                               <span style={{ display: 'inline-block', width: '6px', height: '6px', background: 'var(--alert-red)', borderRadius: '50%', animation: 'pulse 2s infinite' }}></span>
                               {(() => {
                                 const diffMs = currentTime - new Date(s.scheduledStart).getTime();
-                                const hrs = Math.floor(diffMs / 3600000);
-                                const mins = Math.floor((diffMs % 3600000) / 60000);
-                                const secs = Math.floor((diffMs % 60000) / 1000);
-                                return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                                if (isNaN(diffMs)) return '00:00:00';
+                                const isNegative = diffMs < 0;
+                                const absDiff = Math.abs(diffMs);
+                                const hrs = Math.floor(absDiff / 3600000);
+                                const mins = Math.floor((absDiff % 3600000) / 60000);
+                                const secs = Math.floor((absDiff % 60000) / 1000);
+                                const sign = isNegative ? '-' : '';
+                                return `${sign}${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
                               })()}
                             </div>
                             <button 
@@ -879,14 +883,18 @@ function InstructorDashboardContent() {
                                   inputPlaceholder: 'https://...',
                                   onConfirm: async (url) => {
                                     if (url) {
+                                      let finalUrl = url.trim();
+                                      if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+                                        finalUrl = 'https://' + finalUrl;
+                                      }
                                       try {
                                         const res = await fetchApi(`/api/instructor/sessions/${s.sessionId}/host`, {
                                           method: 'PUT',
                                           headers: { 'Content-Type': 'application/json' },
-                                          body: JSON.stringify({ hostUrl: url })
+                                          body: JSON.stringify({ hostUrl: finalUrl })
                                         });
                                         if (res.ok) {
-                                          setSessions(prev => prev.map(sess => sess.sessionId === s.sessionId ? { ...sess, hostUrl: url } : sess));
+                                          setSessions(prev => prev.map(sess => sess.sessionId === s.sessionId ? { ...sess, hostUrl: finalUrl } : sess));
                                           showModal({ type: 'alert', title: 'Success', message: 'Session link updated dynamically!' });
                                         } else {
                                           const errData = await res.json();
