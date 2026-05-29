@@ -151,7 +151,15 @@ export default function CourseDetailPage() {
       setAlertOpen(true);
       return;
     }
-    if (course.live && !selectedSessionId && sessions.length > 0) {
+
+    const hasAvailableSession = sessions.some(s => {
+      const isPast = new Date(s.scheduledStart).getTime() < currentTime;
+      const isCancelled = s.status === 'cancelled';
+      const full = !isCancelled && !isPast && s.maxSeats !== null && s.maxSeats !== undefined && s.maxSeats > 0 && (s.maxSeats - s.registeredCount <= 0);
+      return !isPast && !isCancelled && !full;
+    });
+
+    if (course.live && !selectedSessionId && hasAvailableSession) {
       setError('Please select a live session first.');
       return;
     }
@@ -389,11 +397,27 @@ export default function CourseDetailPage() {
                 </div>
               )}
 
-              {sessions.length > 0 && (
+              {course.live && (
                 <div className="detail-section" style={{ marginBottom: '40px' }}>
                   <h2>Live Sessions</h2>
-                  <div className="sessions-list">
-                    {sessions.map(s => {
+                  {(() => {
+                    const hasAvailableSession = sessions.some(s => {
+                      const isPast = new Date(s.scheduledStart).getTime() < currentTime;
+                      const isCancelled = s.status === 'cancelled';
+                      const full = !isCancelled && !isPast && s.maxSeats !== null && s.maxSeats !== undefined && s.maxSeats > 0 && (s.maxSeats - s.registeredCount <= 0);
+                      return !isPast && !isCancelled && !full;
+                    });
+                    
+                    return (
+                      <>
+                        {(!hasAvailableSession || sessions.length === 0) && (
+                          <div className="sessions-notice" style={{ padding: '16px', background: '#F3F4F6', borderRadius: '12px', color: '#4B5563', fontSize: '14px', marginBottom: '16px', border: '1px solid #E5E7EB' }}>
+                            No upcoming live sessions found. You can still enrol to access recordings or pick a date later.
+                          </div>
+                        )}
+                        {sessions.length > 0 && (
+                          <div className="sessions-list">
+                            {sessions.map(s => {
                       const isPast = new Date(s.scheduledStart).getTime() < currentTime;
                       const isCancelled = s.status === 'cancelled';
                       const full = !isCancelled && !isPast && s.maxSeats !== null && s.maxSeats !== undefined && s.maxSeats > 0 && (s.maxSeats - s.registeredCount <= 0);
@@ -421,8 +445,12 @@ export default function CourseDetailPage() {
                           </div>
                         </div>
                       );
-                    })}
-                  </div>
+                            })}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               )}
 
@@ -484,7 +512,13 @@ export default function CourseDetailPage() {
                     {(() => {
                       const sel = sessions.find(s => s.id === selectedSessionId);
                       const isExpired = sel && new Date(sel.scheduledStart).getTime() < currentTime;
-                      const noSessionSelected = course.live && sessions.length > 0 && !selectedSessionId;
+                      const hasAvailableSession = sessions.some(sess => {
+                        const isPast = new Date(sess.scheduledStart).getTime() < currentTime;
+                        const isCancelled = sess.status === 'cancelled';
+                        const full = !isCancelled && !isPast && sess.maxSeats !== null && sess.maxSeats !== undefined && sess.maxSeats > 0 && (sess.maxSeats - sess.registeredCount <= 0);
+                        return !isPast && !isCancelled && !full;
+                      });
+                      const noSessionSelected = course.live && hasAvailableSession && !selectedSessionId;
                       const disableEnrol = enrolling || success || isExpired || noSessionSelected;
 
                       return (
