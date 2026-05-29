@@ -676,13 +676,15 @@ function InstructorDashboardContent() {
                     pastSessions.push({ ...s, derivedState: s.sessionStatus });
                     return;
                   }
-                  
+                  if (s.sessionStatus === 'live') {
+                    liveAndUpcoming.push({ ...s, derivedState: 'live' });
+                    return;
+                  }
+
                   if (currentTime > scheduledEnd) {
-                    pastSessions.push({ ...s, derivedState: s.hostUrl ? 'completed' : 'expired' });
+                    pastSessions.push({ ...s, derivedState: 'expired' });
                   } else {
-                    // It's live if it's currently in the time window OR if it was explicitly started (status === 'live')
-                    const isLive = s.sessionStatus === 'live' || (currentTime >= scheduledStart && currentTime <= scheduledEnd);
-                    liveAndUpcoming.push({ ...s, derivedState: isLive ? 'live' : 'upcoming' });
+                    liveAndUpcoming.push({ ...s, derivedState: 'upcoming' });
                   }
                 });
 
