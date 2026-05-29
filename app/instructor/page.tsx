@@ -665,47 +665,68 @@ function InstructorDashboardContent() {
                 const completed: any[] = [];
                 const expired: any[] = [];
                 const cancelled: any[] = [];
+                const seenSessions = new Set<string>();
 
                 sessions.forEach(s => {
+                  // Prevent duplicate rendering
+                  if (seenSessions.has(s.sessionId)) return;
+                  seenSessions.add(s.sessionId);
+
                   const scheduledStart = new Date(s.scheduledStart).getTime();
-                  const scheduledEnd = s.scheduledEnd ? new Date(s.scheduledEnd).getTime() : scheduledStart + (60 * 60 * 1000);
+                  // Corrupted dates
+                  if (isNaN(scheduledStart)) {
+                    console.error('Invalid scheduledStart date for session:', s.sessionId);
+                    return;
+                  }
+
+                  let scheduledEnd = s.scheduledEnd ? new Date(s.scheduledEnd).getTime() : NaN;
+                  let missingDuration = false;
+                  // Missing duration fallback
+                  if (isNaN(scheduledEnd)) {
+                    missingDuration = true;
+                    scheduledEnd = scheduledStart + (60 * 60 * 1000);
+                  }
+
+                  const sessionData = { ...s, _missingDuration: missingDuration };
                   
                   if (s.sessionStatus === 'cancelled') {
-                    cancelled.push({ ...s, derivedState: 'cancelled' });
+                    cancelled.push({ ...sessionData, derivedState: 'cancelled' });
                     return;
                   }
                   
                   if (s.sessionStatus === 'completed') {
-                    completed.push({ ...s, derivedState: 'completed' });
+                    completed.push({ ...sessionData, derivedState: 'completed' });
                     return;
                   }
                   
                   if (s.sessionStatus === 'expired') {
-                    expired.push({ ...s, derivedState: 'expired' });
+                    expired.push({ ...sessionData, derivedState: 'expired' });
                     return;
                   }
 
                   if (s.sessionStatus === 'live') {
                     if (currentTime > scheduledEnd) {
-                       completed.push({ ...s, derivedState: 'completed' });
+                       completed.push({ ...sessionData, derivedState: 'completed' });
                     } else {
-                       liveNow.push({ ...s, derivedState: 'live' });
+                       liveNow.push({ ...sessionData, derivedState: 'live' });
                     }
                     return;
                   }
 
                   if (currentTime > scheduledEnd) {
-                    expired.push({ ...s, derivedState: 'expired' });
+                    expired.push({ ...sessionData, derivedState: 'expired' });
                   } else {
-                    upcoming.push({ ...s, derivedState: 'upcoming' });
+                    upcoming.push({ ...sessionData, derivedState: 'upcoming' });
                   }
                 });
 
-                upcoming.sort((a, b) => new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime() || a.sessionId.localeCompare(b.sessionId));
-                liveNow.sort((a, b) => new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime() || a.sessionId.localeCompare(b.sessionId));
-                completed.sort((a, b) => new Date(b.scheduledStart).getTime() - new Date(a.scheduledStart).getTime() || b.sessionId.localeCompare(a.sessionId));
-                cancelled.sort((a, b) => new Date(b.scheduledStart).getTime() - new Date(a.scheduledStart).getTime() || b.sessionId.localeCompare(a.sessionId));
-                expired.sort((a, b) => new Date(b.scheduledStart).getTime() - new Date(a.scheduledStart).getTime() || b.sessionId.localeCompare(a.sessionId));
+                const getCreatedAt = (s: any) => s.createdAt ? new Date(s.createdAt).getTime() : 0;
+
+                upcoming.sort((a, b) => new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime() || getCreatedAt(a) - getCreatedAt(b) || a.sessionId.localeCompare(b.sessionId));
+                liveNow.sort((a, b) => new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime() || getCreatedAt(a) - getCreatedAt(b) || a.sessionId.localeCompare(b.sessionId));
+                completed.sort((a, b) => new Date(b.scheduledStart).getTime() - new Date(a.scheduledStart).getTime() || getCreatedAt(b) - getCreatedAt(a) || b.sessionId.localeCompare(a.sessionId));
+                cancelled.sort((a, b) => new Date(b.scheduledStart).getTime() - new Date(a.scheduledStart).getTime() || getCreatedAt(b) - getCreatedAt(a) || b.sessionId.localeCompare(a.sessionId));
+                expired.sort((a, b) => new Date(b.scheduledStart).getTime() - new Date(a.scheduledStart).getTime() || getCreatedAt(b) - getCreatedAt(a) || b.sessionId.localeCompare(a.sessionId));
 
                 const renderSessionCard = (s: any) => {
                   let badge = { text: 'Upcoming', bg: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' };
@@ -724,8 +745,13 @@ function InstructorDashboardContent() {
                             {badge.text}
                           </span>
                         </div>
-                        <div style={{ color: 'var(--text-3)', fontSize: '14px' }}>
-                          {s.courseName} • {new Date(s.scheduledStart).toLocaleString()} • {s.registrantCount} learners registered
+                        <div style={{ color: 'var(--text-3)', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <span>{s.courseName} • {new Date(s.scheduledStart).toLocaleString()} • {s.registrantCount} learners registered</span>
+                          {s._missingDuration && (
+                            <span style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '2px 8px', borderRadius: '100px', fontSize: '11px', fontWeight: 600 }}>
+                              ⚠️ Flagged: Missing Duration
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="session-actions" style={{ marginTop: '0' }}>
