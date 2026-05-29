@@ -734,15 +734,16 @@ function DashboardPageContent() {
         const data = await res.json();
         setModalSessions(data);
         if (data.length > 0) {
-          const available = data.find((s: any) => s.status !== 'cancelled' && new Date(s.scheduledStart).getTime() >= Date.now());
-          const first = available || data[0];
-          setEnrolData(prev => ({
-            ...prev,
-            sessionId: first.id,
-            date: new Date(first.scheduledStart).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }),
-            time: new Date(first.scheduledStart).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
-            scheduledStart: first.scheduledStart
-          }));
+          const available = data.find((s: any) => s.status !== 'cancelled' && new Date(s.scheduledStart).getTime() >= Date.now() && (!s.maxSeats || (s.maxSeats - s.registeredCount > 0)));
+          if (available) {
+            setEnrolData(prev => ({
+              ...prev,
+              sessionId: available.id,
+              date: new Date(available.scheduledStart).toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" }),
+              time: new Date(available.scheduledStart).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
+              scheduledStart: available.scheduledStart
+            }));
+          }
         }
       }
     } catch (err) {

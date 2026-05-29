@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 1.5. Validate session expiry (if applicable)
-    if (format === 'live' && sessionId) {
+    if (sessionId) {
       const sessionCheckRes = await pool.query(
         'SELECT scheduled_start, status, max_seats, registered_count FROM live_sessions WHERE id = $1::uuid',
         [sessionId]
