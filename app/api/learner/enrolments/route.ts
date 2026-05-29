@@ -47,8 +47,8 @@ export async function GET(req: NextRequest) {
         c.rating,
         c.price as "basePrice",
         c.status as course_status,
-        cat.name as "catLabel",
-        (u.first_name || ' ' || u.last_name) as instructor,
+        COALESCE(cat.name, 'Uncategorized') as "catLabel",
+        COALESCE(u.first_name || ' ' || u.last_name, 'XWORKS Instructor') as instructor,
         ls.scheduled_start as "scheduledStart",
         ls.scheduled_end as "scheduledEnd",
         ls.status as "sessionStatus",
@@ -56,9 +56,9 @@ export async function GET(req: NextRequest) {
         (SELECT id FROM session_registrations WHERE enrolment_id = e.id AND session_id = ls.id LIMIT 1) as "userSessionRegId"
       FROM enrolments e
       JOIN courses c ON e.course_id = c.id
-      JOIN categories cat ON c.category_id = cat.id
-      JOIN instructors i ON c.instructor_id = i.id
-      JOIN users u ON i.user_id = u.id
+      LEFT JOIN categories cat ON c.category_id = cat.id
+      LEFT JOIN instructors i ON c.instructor_id = i.id
+      LEFT JOIN users u ON i.user_id = u.id
       LEFT JOIN payments p ON e.id = p.enrolment_id::uuid
       LEFT JOIN LATERAL (
         SELECT id, scheduled_start, scheduled_end, status

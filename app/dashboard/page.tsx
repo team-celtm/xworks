@@ -1428,6 +1428,7 @@ function DashboardPageContent() {
                               <div className="upcoming-day">{new Date(sessions[0].scheduledStart).getDate()}</div>
                               <div className="upcoming-month">{new Date(sessions[0].scheduledStart).toLocaleDateString('en-IN', { month: 'short' }).toUpperCase()}</div>
                             </div>
+
                             <div className="summary-card-info">
                               <div className="summary-card-title">{sessions[0].sessionTitle}</div>
                               <div className="summary-card-meta">

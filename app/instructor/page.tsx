@@ -780,11 +780,15 @@ function InstructorDashboardContent() {
                                   inputPlaceholder: 'https://...',
                                   onConfirm: (url) => {
                                     if (!url) return;
+                                    let finalUrl = url.trim();
+                                    if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+                                      finalUrl = 'https://' + finalUrl;
+                                    }
                                     setStartingSessionId(s.sessionId);
                                     fetchApi(`/api/instructor/sessions/${s.sessionId}/host`, {
                                       method: 'PUT',
                                       headers: { 'Content-Type': 'application/json' },
-                                      body: JSON.stringify({ hostUrl: url, forceStart })
+                                      body: JSON.stringify({ hostUrl: finalUrl, forceStart })
                                     }).then(async (res) => {
                                       if (res.status === 409) {
                                         setStartingSessionId(null);
@@ -798,11 +802,11 @@ function InstructorDashboardContent() {
                                             fetchApi(`/api/instructor/sessions/${s.sessionId}/host`, {
                                               method: 'PUT',
                                               headers: { 'Content-Type': 'application/json' },
-                                              body: JSON.stringify({ hostUrl: url, forceStart: true })
+                                              body: JSON.stringify({ hostUrl: finalUrl, forceStart: true })
                                             }).then(async r => {
                                               if (r.ok) {
-                                                setSessions(prev => prev.map(sess => sess.sessionId === s.sessionId ? { ...sess, hostUrl: url } : sess));
-                                                window.open(url, '_blank');
+                                                setSessions(prev => prev.map(sess => sess.sessionId === s.sessionId ? { ...sess, hostUrl: finalUrl } : sess));
+                                                window.open(finalUrl, '_blank');
                                               } else {
                                                 const e = await r.json();
                                                 showModal({ type: 'alert', title: 'Error', message: e.message || e.error || 'Failed to start session' });
@@ -813,8 +817,8 @@ function InstructorDashboardContent() {
                                         return;
                                       }
                                       if (res.ok) {
-                                        setSessions(prev => prev.map(sess => sess.sessionId === s.sessionId ? { ...sess, hostUrl: url } : sess));
-                                        window.open(url, '_blank');
+                                        setSessions(prev => prev.map(sess => sess.sessionId === s.sessionId ? { ...sess, hostUrl: finalUrl } : sess));
+                                        window.open(finalUrl, '_blank');
                                       } else {
                                         const errData = await res.json();
                                         showModal({ type: 'alert', title: 'Error', message: errData.message || errData.error || 'Failed to save Host URL' });
@@ -835,7 +839,7 @@ function InstructorDashboardContent() {
                                   title: 'No Learners Registered',
                                   message: 'This session currently has no registered learners.\n\nStarting the session now may result in an empty workshop.\n\nWould you like to continue anyway?',
                                   confirmText: 'Start Anyway',
-                                  onConfirm: () => askForUrlAndStart(true)
+                                  onConfirm: () => setTimeout(() => askForUrlAndStart(true), 10)
                                 });
                               } else {
                                 askForUrlAndStart(false);
