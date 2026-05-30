@@ -50,7 +50,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const updateSql = `
       UPDATE live_sessions 
       SET 
-        recording_url = COALESCE($1, recording_url),
+        recording_url = $1,
         recording_available = $2,
         status = CASE WHEN $2 = true THEN 'completed' ELSE status END
       WHERE id = $3

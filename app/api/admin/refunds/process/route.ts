@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import pool from '@/lib/db';
+import { createNotification } from '@/lib/notifications';
 
 const SESSION_SECRET = new TextEncoder().encode(
   process.env.SESSION_SECRET || 'your-default-secret-change-me'
@@ -83,6 +84,46 @@ export async function POST(req: Request) {
       // Only revoke enrolment if it's a FULL refund
       if (!isPartial && payment.enrolment_id) {
         await client.query('UPDATE enrolments SET status = $1 WHERE id = $2', ['refunded', payment.enrolment_id]);
+      }
+
+      // Notify Student and Admin
+      try {
+        if (payment.enrolment_id) {
+          const studentRes = await client.query(
+            'SELECT u.id as user_id, u.email, u.first_name FROM enrolments e JOIN users u ON e.user_id = u.id WHERE e.id = $1',
+            [payment.enrolment_id]
+          );
+          if (studentRes.rows.length > 0) {
+            const student = studentRes.rows[0];
+            await createNotification({
+              userId: student.user_id,
+              title: isPartial ? 'Partial Refund Processed 💸' : 'Refund Processed 💸',
+              message: `A refund of ₹${parsedAmount} has been processed. ${isPartial ? '' : 'Your course enrollment has been cancelled.'}`,
+              type: 'info',
+              sendEmail: true,
+              emailTo: student.email,
+              emailSubject: `Refund Processed`,
+              emailHtml: `
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                  <h2 style="color: #4F46E5;">Refund Processed</h2>
+                  <p>Hi ${student.first_name},</p>
+                  <p>A refund of <strong>₹${parsedAmount}</strong> has been processed for your course payment.</p>
+                  <p>${isPartial ? 'Your enrollment remains active.' : 'Your enrollment has been cancelled because of a full refund.'}</p>
+                </div>
+              `
+            });
+          }
+        }
+
+        // Notify Admin
+        await createNotification({
+          role: 'admin',
+          title: 'Refund Processed 💸',
+          message: `Admin processed a ${isPartial ? 'partial' : 'full'} refund of ₹${parsedAmount} for payment ID ${payment_id}.`,
+          type: 'info'
+        });
+      } catch (notifErr) {
+        console.error('Error dispatching notifications on refund process:', notifErr);
       }
     }
 

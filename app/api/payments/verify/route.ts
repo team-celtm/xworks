@@ -3,6 +3,7 @@ import pool from '@/lib/db';
 import crypto from 'crypto';
 import { jwtVerify } from 'jose';
 import Razorpay from 'razorpay';
+import { createNotification } from '@/lib/notifications';
 
 const SESSION_SECRET = process.env.SESSION_SECRET || 'your-default-secret-change-me';
 const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
@@ -122,12 +123,61 @@ export async function POST(req: NextRequest) {
     }
 
     // 4. Update Payment record
-    await pool.query(
+    const updateRes = await pool.query(
       `UPDATE payments 
        SET status = 'captured', razorpay_payment_id = $1, enrolment_id = $2, razorpay_signature = $3
-       WHERE razorpay_order_id = $4`,
+       WHERE razorpay_order_id = $4 AND status != 'captured'
+       RETURNING id`,
       [razorpay_payment_id, enrolmentId, razorpay_signature, razorpay_order_id]
     );
+
+    const isNewlyCaptured = updateRes.rows.length > 0;
+
+    if (isNewlyCaptured) {
+      try {
+        // Dispatch enrollment notification to student
+        if (userId && courseId) {
+          const userRes = await pool.query('SELECT email, first_name FROM users WHERE id = $1', [userId]);
+          const courseRes = await pool.query('SELECT name, instructor_id FROM courses WHERE id = $1', [courseId]);
+          if (userRes.rows.length > 0 && courseRes.rows.length > 0) {
+            const student = userRes.rows[0];
+            const courseName = courseRes.rows[0].name;
+            const reqOrigin = req.nextUrl?.origin || `https://${req.headers.get('host') || 'www.xworks.com'}`;
+
+            await createNotification({
+              userId,
+              title: 'Enrollment Successful! 🎓',
+              message: `Welcome to "${courseName}"! Your enrollment was processed successfully.`,
+              type: 'success',
+              sendEmail: true,
+              emailTo: student.email,
+              emailSubject: `Welcome to ${courseName}!`,
+              emailHtml: `
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                  <h2 style="color: #4F46E5;">Enrollment Successful! 🎓</h2>
+                  <p>Hi ${student.first_name},</p>
+                  <p>You have successfully enrolled in <strong>${courseName}</strong>.</p>
+                  <a href="${reqOrigin}/dashboard" style="display: inline-block; background: #C74A4A; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 10px;">Go to Dashboard</a>
+                </div>
+              `
+            });
+
+            // Notify Instructor
+            const instructorRes = await pool.query('SELECT user_id FROM instructors WHERE id = $1', [courseRes.rows[0].instructor_id]);
+            if (instructorRes.rows.length > 0) {
+              await createNotification({
+                userId: instructorRes.rows[0].user_id,
+                title: 'New Student Enrolled 📈',
+                message: `A new learner (${student.first_name}) has enrolled in your course "${courseName}".`,
+                type: 'info'
+              });
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error dispatching notifications in payment verify:', err);
+      }
+    }
 
     // 5. AUTO REGISTER FOR SESSION IF PROVIDED
     if (sessionId) {

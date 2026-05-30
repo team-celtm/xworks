@@ -59,14 +59,21 @@ export async function POST(
 
     const enrolmentId = enrolRes.rows[0].id;
 
-    // 3. Check for existing registration
-    const regCheck = await pool.query(
-      'SELECT id FROM session_registrations WHERE enrolment_id = $1::uuid AND session_id = $2::uuid',
-      [enrolmentId, sessionId]
-    );
+    // 3. Check for existing active registration for any scheduled/live session of the same course
+    const activeRegCheck = await pool.query(`
+      SELECT sr.id 
+      FROM session_registrations sr
+      JOIN live_sessions ls ON sr.session_id = ls.id
+      WHERE sr.enrolment_id = $1::uuid 
+        AND ls.course_id = $2::uuid 
+        AND ls.status IN ('scheduled', 'live')
+        AND sr.status = 'registered'
+    `, [enrolmentId, session.course_id]);
 
-    if (regCheck.rows.length > 0) {
-      return NextResponse.json({ error: 'Already registered for this session' }, { status: 400 });
+    if (activeRegCheck.rows.length > 0) {
+      return NextResponse.json({ 
+        error: 'Already registered for an active session of this course' 
+      }, { status: 400 });
     }
 
     // 4. Check seat availability

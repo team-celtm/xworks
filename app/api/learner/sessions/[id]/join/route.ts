@@ -73,14 +73,37 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     // Parse Device Info
     const deviceInfo = req.headers.get('user-agent') || 'Unknown';
 
-    // Insert attendance tracking
+    // Reconnect / refresh merging logic:
+    // If there is an active join, check how long it has been since join_time.
+    // If it's been >= 2 minutes, we close that active join and start a new one.
+    // Otherwise (reconnect/refresh within 2 mins), we keep the current one active.
     const activeJoin = await pool.query(`
-      SELECT id FROM session_attendance 
+      SELECT id, join_time FROM session_attendance 
       WHERE session_id = $1 AND user_id = $2 AND leave_time IS NULL
       ORDER BY join_time DESC LIMIT 1
     `, [sessionId, userId]);
 
-    if (activeJoin.rows.length === 0) {
+    if (activeJoin.rows.length > 0) {
+      const lastJoinTime = new Date(activeJoin.rows[0].join_time).getTime();
+      const elapsedSeconds = (Date.now() - lastJoinTime) / 1000;
+      if (elapsedSeconds >= 120) {
+        // Close the previous session join
+        await pool.query(`
+          UPDATE session_attendance
+          SET leave_time = NOW(),
+              duration_seconds = EXTRACT(EPOCH FROM (NOW() - join_time))
+          WHERE id = $1
+        `, [activeJoin.rows[0].id]);
+
+        // Insert new active join
+        await pool.query(`
+          INSERT INTO session_attendance (session_id, user_id, device_info, browser_info, status)
+          VALUES ($1, $2, $3, 'ServerRedirect', 'joined')
+        `, [sessionId, userId, deviceInfo]);
+      }
+      // If elapsedSeconds < 120, we merge (do nothing, keep activeJoin running)
+    } else {
+      // No active join, insert a new one
       await pool.query(`
         INSERT INTO session_attendance (session_id, user_id, device_info, browser_info, status)
         VALUES ($1, $2, $3, 'ServerRedirect', 'joined')

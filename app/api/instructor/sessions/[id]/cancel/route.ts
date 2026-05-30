@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { jwtVerify } from 'jose';
 import { sendMail } from '@/lib/mail';
+import { createNotification } from '@/lib/notifications';
+
 
 const SESSION_SECRET = process.env.SESSION_SECRET || 'your-default-secret-change-me';
 
@@ -51,12 +53,13 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // 3. Find Registrants
     const registrantsRes = await pool.query(`
-      SELECT u.email, u.first_name, e.id as enrolment_id
+      SELECT u.id as user_id, u.email, u.first_name, e.id as enrolment_id
       FROM session_registrations sr
       JOIN enrolments e ON sr.enrolment_id = e.id
       JOIN users u ON e.user_id = u.id
       WHERE sr.session_id = $1
     `, [sessionId]);
+
 
     const registrants = registrantsRes.rows;
 
@@ -100,6 +103,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         www.xworks.com
       `;
 
+      // Dispatch In-App Notification
+      await createNotification({
+        userId: reg.user_id,
+        title: 'Session Cancelled 🚫',
+        message: `The live session "${sessionInfo.session_title}" for course "${sessionInfo.course_name}" has been cancelled by the instructor.`,
+        type: 'error'
+      });
+
       emailPromises.push(
         sendMail({
           from: '"XWORKS Support" <noreply@celtm.com>',
@@ -112,6 +123,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         }).catch(err => console.error('Failed sending cancellation email:', err))
       );
     }
+
+    // Notify Instructor
+    await createNotification({
+      userId: userId,
+      title: 'Session Cancelled 🚫',
+      message: `Your session "${sessionInfo.session_title}" for course "${sessionInfo.course_name}" was successfully cancelled.`,
+      type: 'info'
+    });
 
     // Await all notifications silently without blocking heavily
     await Promise.all(emailPromises);

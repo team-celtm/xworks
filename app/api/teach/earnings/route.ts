@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
         COALESCE(SUM(p.amount), 0) as revenue
       FROM courses c
       LEFT JOIN enrolments e ON e.course_id = c.id
-      LEFT JOIN payments p ON p.enrolment_id::uuid = e.id AND p.status = 'captured'
+      LEFT JOIN payments p ON p.enrolment_id = e.id::text AND p.status = 'captured'
       WHERE c.instructor_id = $1
       GROUP BY c.id, c.name
       ORDER BY revenue DESC

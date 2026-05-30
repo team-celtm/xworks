@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { jwtVerify } from 'jose';
+import { createNotification } from '@/lib/notifications';
+
 
 const SESSION_SECRET = process.env.SESSION_SECRET || 'your-default-secret-change-me';
 
@@ -15,7 +17,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // Verify ownership, status, expiry, and registrant count
     const ownershipRes = await pool.query(`
-      SELECT ls.id, ls.status, ls.scheduled_start, ls.scheduled_end, ls.max_seats,
+      SELECT ls.id, ls.status, ls.scheduled_start, ls.scheduled_end, ls.max_seats, ls.title,
+             c.status as course_status, c.name as course_name,
              (SELECT COUNT(*) FROM session_registrations sr WHERE sr.session_id = ls.id) as registrant_count
       FROM live_sessions ls
       JOIN courses c ON ls.course_id = c.id
@@ -28,6 +31,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     const session = ownershipRes.rows[0];
+
+    // Unpublished Course Validation
+    if (session.course_status !== 'published') {
+      return NextResponse.json({ error: 'Cannot start a session for an unpublished course.' }, { status: 400 });
+    }
 
     // Capacity = 0 check
     if (session.max_seats === 0) {
@@ -42,6 +50,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (session.status === 'completed' || session.status === 'expired') {
       return NextResponse.json({ error: 'Cannot start or update a session that has already ended' }, { status: 400 });
     }
+
 
     const scheduledStart = new Date(session.scheduled_start).getTime();
     const scheduledEnd = session.scheduled_end ? new Date(session.scheduled_end).getTime() : scheduledStart + (60 * 60 * 1000);
@@ -85,7 +94,37 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       WHERE id = $2
     `, [hostUrl, sessionId]);
 
+    // Dispatch LIVE notifications to students
+    const registrantsRes = await pool.query(`
+      SELECT u.id as user_id, u.email, u.first_name
+      FROM session_registrations sr
+      JOIN enrolments e ON sr.enrolment_id = e.id
+      JOIN users u ON e.user_id = u.id
+      WHERE sr.session_id = $1
+    `, [sessionId]);
+
+    for (const reg of registrantsRes.rows) {
+      await createNotification({
+        userId: reg.user_id,
+        title: 'Session LIVE! 🔴',
+        message: `The live session "${session.title}" for your course "${session.course_name}" is now LIVE! Click here to join.`,
+        type: 'warning',
+        sendEmail: true,
+        emailTo: reg.email,
+        emailSubject: `LIVE NOW: ${session.title}`,
+        emailHtml: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h2 style="color: #EF4444;">Session is LIVE! 🔴</h2>
+            <p>Hi ${reg.first_name},</p>
+            <p>The live class <strong>${session.title}</strong> for the course <strong>${session.course_name}</strong> has started!</p>
+            <a href="${req.nextUrl.origin}/dashboard" style="display: inline-block; background: #C74A4A; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 10px;">Join Class Now</a>
+          </div>
+        `
+      });
+    }
+
     return NextResponse.json({ success: true, hostUrl }, { status: 200 });
+
 
   } catch (error) {
     console.error('Update Host URL API Error:', error);

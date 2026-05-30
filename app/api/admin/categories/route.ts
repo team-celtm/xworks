@@ -200,27 +200,26 @@ export async function DELETE(req: Request) {
     }
 
     // 1. Check for child sub-categories
-    const childCheck = await pool.query('SELECT COUNT(*) FROM categories WHERE parent_id = $1', [id]);
-    if (parseInt(childCheck.rows[0].count) > 0) {
+    const childCheck = await pool.query('SELECT name FROM categories WHERE parent_id = $1', [id]);
+    if (childCheck.rows.length > 0) {
+      const childNames = childCheck.rows.map(r => `- ${r.name}`).join('\n');
       console.log(`[AUDIT LOG] Category deletion blocked for ID ${id}. Reason: contains subcategories.`);
       return NextResponse.json({ 
-        error: 'Cannot delete category because it contains subcategories.' 
+        error: `Cannot delete category because it has subcategories:\n${childNames}` 
       }, { status: 400 });
     }
 
-    // 2. Check for assigned courses
-    const blockOnDraft = process.env.BLOCK_CATEGORY_DELETE_ON_DRAFT === 'true';
-    const courseStatusCondition = blockOnDraft 
-      ? "status IN ('published', 'draft')" 
-      : "status = 'published'";
+    // 2. Check for assigned courses (active, draft, review, published, archived - i.e. status != 'deleted')
+    const courseCheck = await pool.query(
+      `SELECT name, status FROM courses WHERE category_id = $1 AND status != 'deleted'`,
+      [id]
+    );
 
-    const courseCheck = await pool.query(`SELECT COUNT(*) FROM courses WHERE category_id = $1 AND ${courseStatusCondition}`, [id]);
-    const activeCount = parseInt(courseCheck.rows[0].count);
-
-    if (activeCount > 0) {
-      console.log(`[AUDIT LOG] Category deletion blocked for ID ${id}. Reason: has ${activeCount} active courses.`);
+    if (courseCheck.rows.length > 0) {
+      const courseNames = courseCheck.rows.map(r => `- ${r.name}`).join('\n');
+      console.log(`[AUDIT LOG] Category deletion blocked for ID ${id}. Reason: has active courses.`);
       return NextResponse.json({ 
-        error: `This category is currently used by ${activeCount} active courses. Please reassign or delete those courses first.` 
+        error: `Cannot delete category. Used by:\n${courseNames}` 
       }, { status: 400 });
     }
 

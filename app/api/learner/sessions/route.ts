@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
       JOIN live_sessions ls ON sr.session_id = ls.id
       JOIN enrolments e ON sr.enrolment_id = e.id
       JOIN courses c ON ls.course_id = c.id
-      LEFT JOIN payments p ON e.id = p.enrolment_id::uuid
+      LEFT JOIN payments p ON e.id::text = p.enrolment_id
       WHERE e.user_id = $1::uuid 
         AND c.status != 'deleted'
         AND (ls.scheduled_start >= NOW() - INTERVAL '24 hours' OR ls.recording_available = true OR ls.status IN ('live', 'completed', 'cancelled', 'expired'))

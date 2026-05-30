@@ -161,6 +161,50 @@ function DashboardPageContent() {
   const [user, setUser] = useState<any>(null);
   const [alertOpen, setAlertOpen] = useState(false);
 
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await fetchApi("/api/notifications");
+      if (res.ok) {
+        const data = await res.json();
+        setNotifications(data || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch notifications:", err);
+    }
+  };
+
+  const markNotificationRead = async (id: string) => {
+    try {
+      const res = await fetchApi("/api/notifications", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id })
+      });
+      if (res.ok) {
+        setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+      }
+    } catch (err) {
+      console.error("Failed to mark notification as read:", err);
+    }
+  };
+
+  const markAllNotificationsRead = async () => {
+    try {
+      const res = await fetchApi("/api/notifications", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ markAll: true })
+      });
+      if (res.ok) {
+        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+      }
+    } catch (err) {
+      console.error("Failed to mark all notifications as read:", err);
+    }
+  };
+
   // Enrol modal state
   const [enrolModalOpen, setEnrolModalOpen] = useState(false);
   const [enrolStep, setEnrolStep] = useState(1);
@@ -539,7 +583,8 @@ function DashboardPageContent() {
         fetchSessions(),
         fetchCerts(),
         fetchNotes(),
-        fetchProfile()
+        fetchProfile(),
+        fetchNotifications()
       ]);
       const isRedirecting = results[2]; // results from fetchUser()
       if (isRedirecting) return; // Keep loading visible during redirect
@@ -550,11 +595,15 @@ function DashboardPageContent() {
     };
     loadData();
 
+    const notifInterval = setInterval(fetchNotifications, 10000);
+
     const urlParams = new URLSearchParams(window.location.search);
     const view = urlParams.get("view");
     if (view) {
       setActiveView(view);
     }
+
+    return () => clearInterval(notifInterval);
   }, []);
 
 
@@ -1159,17 +1208,21 @@ function DashboardPageContent() {
             <span className="sb-item-label">Home</span>
           </button>
 
-          <button className={`sb-item ${activeView === "completed" ? "active" : ""}`} onClick={() => { setActiveView("completed"); setIsMobileMenuOpen(false); }}>
-            <span className="sb-item-icon">✅</span>
-            <span className="sb-item-label">Courses Completed</span>
-            <span className="sb-badge">{completedCount}</span>
-          </button>
+          {completedCount > 0 && (
+            <button className={`sb-item ${activeView === "completed" ? "active" : ""}`} onClick={() => { setActiveView("completed"); setIsMobileMenuOpen(false); }}>
+              <span className="sb-item-icon">✅</span>
+              <span className="sb-item-label">Courses Completed</span>
+              <span className="sb-badge">{completedCount}</span>
+            </button>
+          )}
 
-          <button className={`sb-item ${activeView === "certificates" ? "active" : ""}`} onClick={() => { setActiveView("certificates"); setIsMobileMenuOpen(false); }}>
-            <span className="sb-item-icon">📜</span>
-            <span className="sb-item-label">My Certificates</span>
-            <span className="sb-badge">{certs.length}</span>
-          </button>
+          {certs.length > 0 && (
+            <button className={`sb-item ${activeView === "certificates" ? "active" : ""}`} onClick={() => { setActiveView("certificates"); setIsMobileMenuOpen(false); }}>
+              <span className="sb-item-icon">📜</span>
+              <span className="sb-item-label">My Certificates</span>
+              <span className="sb-badge">{certs.length}</span>
+            </button>
+          )}
 
           <button className={`sb-item ${activeView === "upcoming" ? "active" : ""}`} onClick={() => { setActiveView("upcoming"); setIsMobileMenuOpen(false); }}>
             <span className="sb-item-icon">📅</span>
@@ -1230,7 +1283,7 @@ function DashboardPageContent() {
           </div>
           <div className="topbar-right" style={{ position: 'relative' }}>
             <div className="topbar-notif" onClick={() => setIsNotifOpen(!isNotifOpen)}>
-              🔔<div className="notif-dot"></div>
+              🔔{notifications.some(n => !n.isRead) && <div className="notif-dot"></div>}
             </div>
             
             {isNotifOpen && (
@@ -1239,31 +1292,59 @@ function DashboardPageContent() {
                 background: '#fff', borderRadius: '16px', boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
                 border: '1px solid var(--border-md)', zIndex: 300, overflow: 'hidden'
               }}>
-                <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', fontWeight: 700, display: 'flex', justifyContent: 'space-between' }}>
+                <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', fontWeight: 700, display: 'flex', justifyContent: 'space-between', color: 'var(--ink)' }}>
                   Notifications
                   <span style={{ fontSize: '12px', color: 'var(--indigo)', cursor: 'pointer', fontWeight: 600 }} onClick={() => setIsNotifOpen(false)}>Close</span>
                 </div>
                 <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                  <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', gap: '12px', cursor: 'pointer' }}>
-                    <div style={{ fontSize: '20px' }}>🎉</div>
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>Welcome to XWORKS!</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: '2px' }}>We're excited to have you on board. Start learning today.</div>
-                      <div style={{ fontSize: '10px', color: 'var(--text-3)', marginTop: '6px' }}>Just now</div>
+                  {notifications.length === 0 ? (
+                    <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-3)' }}>
+                      No notifications yet
                     </div>
-                  </div>
-                  <div style={{ padding: '16px 20px', display: 'flex', gap: '12px', cursor: 'pointer', background: 'var(--surface-2)' }}>
-                    <div style={{ fontSize: '20px' }}>📅</div>
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>Upcoming session reminder</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: '2px' }}>Your next live session starts in 2 hours.</div>
-                      <div style={{ fontSize: '10px', color: 'var(--text-3)', marginTop: '6px' }}>2 hrs ago</div>
-                    </div>
-                  </div>
+                  ) : (
+                    notifications.map((n) => {
+                      let emoji = '🔔';
+                      if (n.type === 'success' || n.title.toLowerCase().includes('success') || n.title.toLowerCase().includes('complete') || n.title.toLowerCase().includes('cert')) {
+                        emoji = '🎉';
+                      } else if (n.type === 'warning' || n.title.toLowerCase().includes('cancel') || n.title.toLowerCase().includes('failed') || n.title.toLowerCase().includes('refund')) {
+                        emoji = '⚠️';
+                      } else if (n.title.toLowerCase().includes('session') || n.title.toLowerCase().includes('schedule') || n.title.toLowerCase().includes('live')) {
+                        emoji = '📅';
+                      }
+                      
+                      return (
+                        <div 
+                          key={n.id} 
+                          onClick={() => !n.isRead && markNotificationRead(n.id)}
+                          style={{ 
+                            padding: '16px 20px', 
+                            borderBottom: '1px solid var(--border)', 
+                            display: 'flex', 
+                            gap: '12px', 
+                            cursor: 'pointer', 
+                            background: n.isRead ? 'transparent' : 'var(--surface-2)',
+                            textAlign: 'left'
+                          }}
+                        >
+                          <div style={{ fontSize: '20px' }}>{emoji}</div>
+                          <div>
+                            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>{n.title}</div>
+                            <div style={{ fontSize: '12px', color: 'var(--text-3)', marginTop: '2px' }}>{n.message}</div>
+                            <div style={{ fontSize: '10px', color: 'var(--text-3)', marginTop: '6px' }}>{new Date(n.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
-                <div style={{ padding: '12px', textAlign: 'center', borderTop: '1px solid var(--border)', fontSize: '12px', color: 'var(--text-3)', cursor: 'pointer', background: 'var(--surface)' }} onClick={() => setIsNotifOpen(false)}>
-                  Mark all as read
-                </div>
+                {notifications.some(n => !n.isRead) && (
+                  <div 
+                    style={{ padding: '12px', textAlign: 'center', borderTop: '1px solid var(--border)', fontSize: '12px', color: 'var(--indigo)', cursor: 'pointer', background: 'var(--surface)', fontWeight: 600 }} 
+                    onClick={markAllNotificationsRead}
+                  >
+                    Mark all as read
+                  </div>
+                )}
               </div>
             )}
 
@@ -1466,13 +1547,13 @@ function DashboardPageContent() {
                               className="enrol-cta coral summary-card-btn" 
                               onClick={() => {
                                 const joinable = new Date(nextSession.scheduledStart).getTime() <= Date.now() + (15 * 60 * 1000);
-                                const isPast = new Date(nextSession.scheduledStart).getTime() < Date.now();
-                                if (nextSession.recordingAvailable && isPast) window.open(`/api/sessions/${nextSession.sessionId}/recording`, '_blank');
+                                const hasRecording = nextSession.recordingAvailable && (nextSession.sessionStatus || nextSession.status) === 'completed';
+                                if (hasRecording) window.open(`/api/sessions/${nextSession.sessionId}/recording`, '_blank');
                                 else if (joinable) window.open(`/api/learner/sessions/${nextSession.sessionId}/join`, '_blank');
                                 else setActiveView("upcoming");
                               }}
                             >
-                              {nextSession.recordingAvailable && new Date(nextSession.scheduledStart).getTime() < Date.now() ? "Watch Recording ↗" : (new Date(nextSession.scheduledStart).getTime() <= Date.now() + (15 * 60 * 1000) ? "Join Class →" : "View Details →")}
+                              {nextSession.recordingAvailable && (nextSession.sessionStatus || nextSession.status) === 'completed' ? "Watch Recording ↗" : (new Date(nextSession.scheduledStart).getTime() <= Date.now() + (15 * 60 * 1000) ? "Join Class →" : "View Details →")}
                             </button>
                           </div>
                         </div>
@@ -1696,16 +1777,16 @@ function DashboardPageContent() {
                         ) : (
                           <div style={{ display: 'flex', gap: '8px' }}>
                             <button 
-                              className={`join-btn ${isJoinable ? "" : (s.recordingAvailable && startDate.getTime() < currentTime ? "" : "disabled")}`}
+                              className={`join-btn ${isJoinable ? "" : (s.recordingAvailable && (s.sessionStatus || s.status) === 'completed' ? "" : "disabled")}`}
                               onClick={() => {
-                                if (s.recordingAvailable && startDate.getTime() < currentTime) {
+                                if (s.recordingAvailable && (s.sessionStatus || s.status) === 'completed') {
                                   window.open(`/api/sessions/${s.sessionId}/recording`, '_blank');
                                 } else if (isJoinable) {
                                   window.open(`/api/learner/sessions/${s.sessionId}/join`, '_blank');
                                 }
                               }}
                             >
-                              {s.recordingAvailable && startDate.getTime() < currentTime ? "Watch Recording ↗" : (isJoinable ? "Join now →" : "Not yet")}
+                              {s.recordingAvailable && (s.sessionStatus || s.status) === 'completed' ? "Watch Recording ↗" : (isJoinable ? "Join now →" : "Not yet")}
                             </button>
                             {startDate.getTime() > currentTime + (2 * 60 * 60 * 1000) && (
                               <button 
@@ -1760,14 +1841,14 @@ function DashboardPageContent() {
                             <button className="join-btn disabled" disabled>Cancelled</button>
                           ) : (
                             <button 
-                              className={`join-btn ${s.recordingAvailable ? "" : "disabled"}`}
+                              className={`join-btn ${s.recordingAvailable && (s.sessionStatus || s.status) === 'completed' ? "" : "disabled"}`}
                               onClick={() => {
-                                if (s.recordingAvailable) {
+                                if (s.recordingAvailable && (s.sessionStatus || s.status) === 'completed') {
                                   window.open(`/api/sessions/${s.sessionId}/recording`, '_blank');
                                 }
                               }}
                             >
-                              {s.recordingAvailable ? "Watch Recording ↗" : "No Recording"}
+                              {s.recordingAvailable && (s.sessionStatus || s.status) === 'completed' ? "Watch Recording ↗" : "No Recording"}
                             </button>
                           )}
                         </div>

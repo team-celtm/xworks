@@ -1,33 +1,23 @@
 const { Pool } = require('pg');
-const fs = require('fs');
 
-const env = fs.readFileSync('.env', 'utf8').split('\n').reduce((acc, line) => {
-  const [k, v] = line.split('=');
-  if (k && v) acc[k.trim()] = v.trim();
-  return acc;
-}, {});
+const connectionString = process.env.DATABASE_URL || "postgresql://postgres:VbaXdYSYcFkLumAFFWbtRFKPbEyLYIdC@switchyard.proxy.rlwy.net:50984/railway";
+const pool = new Pool({ connectionString });
 
-const pool = new Pool({ connectionString: env.DATABASE_URL });
-
-async function run() {
-  try {
-    const res = await pool.query(`
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_name = 'payments'
-    `);
-    console.log("PAYMENTS COLUMNS:", JSON.stringify(res.rows, null, 2));
-
-    const res2 = await pool.query(`
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_name = 'enrolments'
-    `);
-    console.log("ENROLMENTS COLUMNS:", JSON.stringify(res2.rows, null, 2));
-  } catch (err) {
-    console.error(err);
-  } finally {
-    await pool.end();
+async function dump() {
+  const tables = ['live_sessions', 'session_registrations', 'enrolments', 'courses', 'instructors', 'users'];
+  for (const table of tables) {
+    try {
+      const res = await pool.query(`
+        SELECT column_name, data_type 
+        FROM information_schema.columns 
+        WHERE table_name = $1;
+      `, [table]);
+      console.log(`\nTable: ${table}`);
+      res.rows.forEach(r => console.log(`  ${r.column_name}: ${r.data_type}`));
+    } catch (e) {
+      console.error(`Error fetching table ${table}:`, e.message);
+    }
   }
+  await pool.end();
 }
-run();
+dump();

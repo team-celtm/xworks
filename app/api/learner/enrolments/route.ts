@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
       LEFT JOIN categories cat ON c.category_id = cat.id
       LEFT JOIN instructors i ON c.instructor_id = i.id
       LEFT JOIN users u ON i.user_id = u.id
-      LEFT JOIN payments p ON e.id = p.enrolment_id::uuid
+      LEFT JOIN payments p ON e.id::text = p.enrolment_id
       LEFT JOIN LATERAL (
         SELECT id, scheduled_start, scheduled_end, status
         FROM live_sessions
