@@ -146,8 +146,13 @@ export async function POST(req: NextRequest) {
       ) RETURNING id
     `;
     const newSession = await pool.query(insertSql, [courseId, title, scheduledStart, scheduledEnd]);
+    const sessionId = newSession.rows[0].id;
 
-    return NextResponse.json({ success: true, sessionId: newSession.rows[0].id }, { status: 201 });
+    // Log the event
+    const { logAdminAction } = await import('@/lib/audit');
+    await logAdminAction(userId, 'session_create', 'live_session', sessionId, null, { course_id: courseId, title, scheduled_start: scheduledStart });
+
+    return NextResponse.json({ success: true, sessionId }, { status: 201 });
   } catch (error) {
     console.error('Instructor Sessions POST API Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

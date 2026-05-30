@@ -79,11 +79,41 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       size: 10,
     });
     
-    page.drawText(`Issued: ${new Date(certData.issued_at).toLocaleDateString()}`, {
-      x: 450,
+    page.drawText(`Issued: ${new Date(certData.issued_at).toLocaleDateString('en-IN')}`, {
+      x: 350,
       y: 50,
       size: 10,
     });
+
+    const verificationUrl = `${req.nextUrl.origin}/verify/${credentialId}`;
+    page.drawText(`Verification URL: ${verificationUrl}`, {
+      x: 50,
+      y: 30,
+      size: 8,
+      color: rgb(0.4, 0.4, 0.4)
+    });
+
+    try {
+      const qrRes = await fetch(`https://api.qrserver.com/v1/create-qr-code/?size=100x100&format=png&data=${encodeURIComponent(verificationUrl)}`);
+      if (qrRes.ok) {
+        const qrBytes = await qrRes.arrayBuffer();
+        const qrImage = await pdfDoc.embedPng(new Uint8Array(qrBytes));
+        page.drawImage(qrImage, {
+          x: 480,
+          y: 35,
+          width: 60,
+          height: 60
+        });
+        page.drawText('Scan to verify', {
+          x: 482,
+          y: 25,
+          size: 7,
+          color: rgb(0.4, 0.4, 0.4)
+        });
+      }
+    } catch (qrErr) {
+      console.error('Failed to embed QR code in certificate PDF:', qrErr);
+    }
 
     const pdfBytes = await pdfDoc.save();
     const buffer = Buffer.from(pdfBytes);

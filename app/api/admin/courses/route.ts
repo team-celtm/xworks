@@ -52,15 +52,27 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Invalid parameters' }, { status: 400 });
     }
 
+    const courseRes = await pool.query('SELECT status, name, instructor_id FROM courses WHERE id = $1', [id]);
+    if (courseRes.rows.length === 0) {
+      return NextResponse.json({ error: 'Course not found' }, { status: 404 });
+    }
+    const course = courseRes.rows[0];
+
+    // Block self-approval
+    const instRes = await pool.query('SELECT user_id FROM instructors WHERE id = $1', [course.instructor_id]);
+    if (instRes.rows.length > 0 && admin.id === instRes.rows[0].user_id) {
+      return NextResponse.json({ error: 'Self-approval of courses is not permitted' }, { status: 400 });
+    }
+
     const status = action === 'approve' ? 'published' : 'rejected';
-    const updateRes = await pool.query(
-      `UPDATE courses SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING id`,
+    await pool.query(
+      `UPDATE courses SET status = $1, updated_at = NOW() WHERE id = $2`,
       [status, id]
     );
 
-    if (updateRes.rows.length === 0) {
-      return NextResponse.json({ error: 'Course not found' }, { status: 404 });
-    }
+    // Log audit event
+    const { logAdminAction } = await import('@/lib/audit');
+    await logAdminAction(admin.id, `course_${action}`, 'course', id, { status: course.status }, { status });
 
     return NextResponse.json({ success: true, message: `Course ${status}` });
   } catch (err) {
@@ -99,10 +111,15 @@ export async function POST(req: Request) {
       ]
     );
 
+    const newCourseId = result.rows[0].id;
+    // Log audit event
+    const { logAdminAction } = await import('@/lib/audit');
+    await logAdminAction(admin.id, 'course_create', 'course', newCourseId, null, { name, slug, status: 'published' });
+
     return NextResponse.json({
       success: true,
       message: 'Course created successfully',
-      courseId: result.rows[0].id
+      courseId: newCourseId
     });
   } catch (err: any) {
     console.error(err);

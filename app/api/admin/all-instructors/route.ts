@@ -26,7 +26,7 @@ export async function GET() {
 
   try {
     const result = await pool.query(
-      `SELECT i.id, u.first_name, u.last_name, u.email 
+      `SELECT i.id, u.id as user_id, u.first_name, u.last_name, u.email, u.status 
        FROM instructors i
        JOIN users u ON u.id = i.user_id
        WHERE u.role = 'instructor'

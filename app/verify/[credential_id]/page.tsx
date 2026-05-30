@@ -117,6 +117,14 @@ export default function VerifyPage({ params }: { params: Promise<{ credential_id
             <div className="v-cert-id-badge">
               Credential ID: {cert.credentialId}
             </div>
+            <div className="v-qr-box" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+              <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`} 
+                alt="Scan to Verify" 
+                style={{ width: '70px', height: '70px', border: '1px solid #ddd', padding: '3px', borderRadius: '4px', background: '#fff' }}
+              />
+              <span style={{ fontSize: '9px', color: 'var(--cert-indigo)', fontWeight: 'bold' }}>Scan to Verify</span>
+            </div>
             <div className="v-signature-box">
               <div className="v-sig-name">Nitesh Shetty</div>
               <div className="v-sig-title">Founder, XWORKS</div>

@@ -27,7 +27,9 @@ export async function GET(req: NextRequest) {
         c.emoji,
         c.logo,
         c.g as "thumbBg",
-        p.status as "paymentStatus"
+        p.status as "paymentStatus",
+        e.status as "enrolmentStatus",
+        e.progress_pct as "progressPct"
       FROM session_registrations sr
       JOIN live_sessions ls ON sr.session_id = ls.id
       JOIN enrolments e ON sr.enrolment_id = e.id
@@ -35,7 +37,11 @@ export async function GET(req: NextRequest) {
       LEFT JOIN payments p ON e.id::text = p.enrolment_id
       WHERE e.user_id = $1::uuid 
         AND c.status != 'deleted'
-        AND (ls.scheduled_start >= NOW() - INTERVAL '24 hours' OR ls.recording_available = true OR ls.status IN ('live', 'completed', 'cancelled', 'expired'))
+        AND (
+          ((ls.status IN ('completed', 'expired', 'cancelled') OR ls.recording_available = true) AND e.status IN ('active', 'completed'))
+          OR
+          (ls.status IN ('scheduled', 'live') AND e.status = 'active' AND e.progress_pct < 100)
+        )
       ORDER BY ls.scheduled_start DESC
     `;
     const { rows } = await pool.query(sql, [userId]);

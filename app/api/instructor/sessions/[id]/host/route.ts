@@ -15,6 +15,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     const userId = (payload as any).id;
     const { id: sessionId } = await params;
 
+    const userCheck = await pool.query('SELECT status FROM users WHERE id = $1', [userId]);
+    if (userCheck.rows.length === 0 || userCheck.rows[0].status === 'suspended') {
+      return NextResponse.json({ error: 'Your account is suspended. Please contact support.' }, { status: 403 });
+    }
+
     // Verify ownership, status, expiry, and registrant count
     const ownershipRes = await pool.query(`
       SELECT ls.id, ls.status, ls.scheduled_start, ls.scheduled_end, ls.max_seats, ls.title,

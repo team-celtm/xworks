@@ -223,8 +223,15 @@ export async function DELETE(req: Request) {
       }, { status: 400 });
     }
 
+    const catRes = await pool.query('SELECT name FROM categories WHERE id = $1', [id]);
+    const catName = catRes.rows[0]?.name || 'Unknown';
+
     await pool.query('DELETE FROM categories WHERE id = $1', [id]);
-    console.log(`[AUDIT LOG] Category ID ${id} deleted successfully.`);
+    
+    // Log audit event
+    const { logAdminAction } = await import('@/lib/audit');
+    await logAdminAction(admin.id, 'category_delete', 'category', id, { name: catName }, null);
+
     return NextResponse.json({ success: true, message: 'Category deleted successfully' });
   } catch (err) {
     console.error(err);

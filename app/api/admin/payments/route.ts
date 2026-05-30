@@ -45,12 +45,15 @@ export async function GET(req: Request) {
     
     const offset = (page - 1) * limit;
 
-    let where = [];
+    let where = ["p.rn = 1"];
     let params: any[] = [];
 
     // Base relationships for WHERE clause
     let fromClause = `
-      FROM payments p
+      FROM (
+        SELECT *, ROW_NUMBER() OVER (PARTITION BY COALESCE(NULLIF(razorpay_payment_id, ''), id::text) ORDER BY created_at DESC) as rn
+        FROM payments
+      ) p
       LEFT JOIN enrolments e ON e.id::text = p.enrolment_id
       LEFT JOIN users u ON u.id::text = p.user_id OR u.id = e.user_id
       LEFT JOIN courses c ON c.id = e.course_id
@@ -114,12 +117,10 @@ export async function GET(req: Request) {
     // Compute Analytics Globally (applying same filters)
     const analyticsQuery = `
       SELECT 
-        SUM(CASE WHEN COALESCE(p.payment_status, p.status) IN ('paid', 'success', 'captured', 'refunded', 'partially_refunded') THEN p.amount ELSE 0 END) as total_revenue,
-        SUM(CASE WHEN COALESCE(p.payment_status, p.status) IN ('paid', 'success', 'captured', 'refunded', 'partially_refunded') THEN COALESCE(p.net_amount, p.amount) ELSE 0 END) as net_revenue,
-        SUM(CASE WHEN COALESCE(p.payment_status, p.status) IN ('refunded', 'partially_refunded') THEN p.amount ELSE 0 END) as refund_amount,
+        COALESCE(SUM(CASE WHEN COALESCE(p.payment_status, p.status) IN ('paid', 'success', 'captured', 'refunded', 'partially_refunded', 'disputed') THEN p.amount ELSE 0 END), 0) as total_revenue,
+        COALESCE((SELECT SUM(amount) FROM refund_events WHERE status IN ('approved', 'refunded')), 0) as refund_amount,
         COUNT(CASE WHEN COALESCE(p.payment_status, p.status) = 'failed' THEN 1 END) as failed_payments,
-        COUNT(CASE WHEN COALESCE(p.payment_status, p.status) IN ('refunded', 'partially_refunded') THEN 1 END) * 100.0 / NULLIF(COUNT(CASE WHEN COALESCE(p.payment_status, p.status) IN ('paid', 'success', 'captured', 'refunded', 'partially_refunded') THEN 1 END), 0) as refund_rate,
-        AVG(CASE WHEN COALESCE(p.payment_status, p.status) IN ('paid', 'success', 'captured') THEN p.amount ELSE NULL END) as avg_order_value
+        COALESCE(AVG(CASE WHEN COALESCE(p.payment_status, p.status) IN ('paid', 'success', 'captured') THEN p.amount ELSE NULL END), 0) as avg_order_value
       ${fromClause}
       ${whereClause}
     `;
@@ -132,7 +133,7 @@ export async function GET(req: Request) {
         TO_CHAR(DATE(p.created_at), 'Mon DD') as date,
         SUM(p.amount) as revenue
       ${fromClause}
-      ${whereClause ? whereClause + ' AND' : 'WHERE'} COALESCE(p.payment_status, p.status) IN ('paid', 'success', 'captured', 'refunded', 'partially_refunded')
+      ${whereClause ? whereClause + ' AND' : 'WHERE'} COALESCE(p.payment_status, p.status) IN ('paid', 'success', 'captured', 'refunded', 'partially_refunded', 'disputed')
       GROUP BY DATE(p.created_at)
       ORDER BY DATE(p.created_at) ASC
     `;
@@ -142,15 +143,20 @@ export async function GET(req: Request) {
       revenue: parseFloat(row.revenue || '0')
     }));
 
+    const gross = parseFloat(analytics.total_revenue || '0');
+    const refunds = parseFloat(analytics.refund_amount || '0');
+    const net = Math.max(0, gross - refunds);
+    const rate = gross > 0 ? (refunds / gross) * 100 : 0;
+
     return NextResponse.json({ 
       payments: result.rows,
       chartData,
       analytics: {
-        totalRevenue: parseFloat(analytics.total_revenue || '0'),
-        netRevenue: parseFloat(analytics.net_revenue || '0'),
-        refundAmount: parseFloat(analytics.refund_amount || '0'),
+        totalRevenue: gross,
+        netRevenue: net,
+        refundAmount: refunds,
         failedPayments: parseInt(analytics.failed_payments || '0'),
-        refundRate: parseFloat(analytics.refund_rate || '0'),
+        refundRate: rate,
         avgOrderValue: parseFloat(analytics.avg_order_value || '0')
       },
       pagination: {

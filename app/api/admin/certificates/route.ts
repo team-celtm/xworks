@@ -32,16 +32,22 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Missing credential_id or reason' }, { status: 400 });
     }
 
-    const updateRes = await pool.query(
+    const certCheck = await pool.query('SELECT id, status FROM certificates WHERE credential_id = $1', [credential_id]);
+    if (certCheck.rows.length === 0) {
+      return NextResponse.json({ error: 'Certificate not found' }, { status: 404 });
+    }
+    const cert = certCheck.rows[0];
+
+    await pool.query(
       `UPDATE certificates 
        SET status = 'revoked', revoked_at = NOW(), revoked_by = $1, revoke_reason = $2 
-       WHERE credential_id = $3 RETURNING id`,
+       WHERE credential_id = $3`,
       [admin.id, reason, credential_id]
     );
 
-    if (updateRes.rows.length === 0) {
-      return NextResponse.json({ error: 'Certificate not found' }, { status: 404 });
-    }
+    // Log audit event
+    const { logAdminAction } = await import('@/lib/audit');
+    await logAdminAction(admin.id, 'certificate_revoke', 'certificate', cert.id, { status: cert.status }, { status: 'revoked', reason });
 
     return NextResponse.json({ success: true, message: 'Certificate revoked successfully.' });
   } catch (err) {

@@ -128,10 +128,8 @@ export async function POST(req: Request) {
     }
 
     // Log the audit event
-    await client.query(`
-      INSERT INTO audit_logs (admin_id, action, entity_type, entity_id, changes)
-      VALUES ($1, $2, $3, $4, $5)
-    `, [admin.userId, `refund_${action}`, 'payment', payment_id, JSON.stringify({ newStatus, amount })]);
+    const { logAdminAction } = await import('@/lib/audit');
+    await logAdminAction(admin.id, `refund_${action}`, 'payment', payment_id.toString(), { status: payment.status }, { status: newStatus, amount });
 
     await client.query('COMMIT');
     return NextResponse.json({ success: true, refund: refundRes.rows[0] });

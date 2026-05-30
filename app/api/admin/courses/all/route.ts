@@ -105,12 +105,18 @@ export async function DELETE(req: Request) {
 
     if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
 
-    // SOFT DELETE: Change status to 'deleted' to preserve enrolment records
-    const res = await pool.query("UPDATE courses SET status = 'deleted' WHERE id = $1 RETURNING id", [id]);
-    
-    if (res.rows.length === 0) {
+    const courseRes = await pool.query('SELECT status, name FROM courses WHERE id = $1', [id]);
+    if (courseRes.rows.length === 0) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
+    const course = courseRes.rows[0];
+
+    // SOFT DELETE: Change status to 'deleted' to preserve enrolment records
+    await pool.query("UPDATE courses SET status = 'deleted' WHERE id = $1", [id]);
+    
+    // Log audit event
+    const { logAdminAction } = await import('@/lib/audit');
+    await logAdminAction(admin.id, 'course_delete', 'course', id, { status: course.status }, { status: 'deleted' });
 
     return NextResponse.json({ success: true, message: 'Course soft-deleted successfully' });
   } catch (err) {
@@ -137,6 +143,12 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    const courseRes = await pool.query('SELECT name, slug, price, level, dur, emoji, g, tag, tag_label, certificate_type, logo, details, what_you_will_learn FROM courses WHERE id = $1', [id]);
+    if (courseRes.rows.length === 0) {
+      return NextResponse.json({ error: 'Course not found' }, { status: 404 });
+    }
+    const oldCourse = courseRes.rows[0];
+
     const updateRes = await pool.query(
       `UPDATE courses SET 
         name = $1, slug = $2, category_id = $3, instructor_id = $4, price = $5, 
@@ -152,6 +164,10 @@ export async function PUT(req: Request) {
     if (updateRes.rows.length === 0) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
+
+    // Log audit event
+    const { logAdminAction } = await import('@/lib/audit');
+    await logAdminAction(admin.id, 'course_update', 'course', id, oldCourse, { name, slug, category_id, instructor_id, price });
 
     return NextResponse.json({ success: true, message: 'Course updated successfully' });
   } catch (err: any) {

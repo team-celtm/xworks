@@ -42,22 +42,25 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
     // If it's been >= 2 minutes, we close that active join and start a new one.
     // Otherwise (reconnect/refresh within 2 mins), we keep the current one active.
     const activeJoin = await pool.query(`
-      SELECT id, join_time FROM session_attendance 
+      SELECT id, join_time, device_info FROM session_attendance 
       WHERE session_id = $1 AND user_id = $2 AND leave_time IS NULL
       ORDER BY join_time DESC LIMIT 1
     `, [sessionId, userId]);
 
     if (activeJoin.rows.length > 0) {
-      const lastJoinTime = new Date(activeJoin.rows[0].join_time).getTime();
+      const lastJoin = activeJoin.rows[0];
+      const lastJoinTime = new Date(lastJoin.join_time).getTime();
       const elapsedSeconds = (Date.now() - lastJoinTime) / 1000;
-      if (elapsedSeconds >= 120) {
+      const isDifferentDevice = lastJoin.device_info !== deviceInfo;
+
+      if (elapsedSeconds >= 120 || isDifferentDevice) {
         // Close the previous session join
         await pool.query(`
           UPDATE session_attendance
           SET leave_time = NOW(),
               duration_seconds = EXTRACT(EPOCH FROM (NOW() - join_time))
           WHERE id = $1
-        `, [activeJoin.rows[0].id]);
+        `, [lastJoin.id]);
 
         // Insert new active join
         await pool.query(`
@@ -65,7 +68,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
           VALUES ($1, $2, $3, $4, 'joined')
         `, [sessionId, userId, deviceInfo, browserInfo]);
       }
-      // If elapsedSeconds < 120, we merge (do nothing, keep activeJoin running)
+      // If elapsedSeconds < 120 and same device, we merge (do nothing, keep activeJoin running)
     } else {
       // No active join, insert a new one
       await pool.query(`
