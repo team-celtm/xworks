@@ -891,12 +891,11 @@ function InstructorDashboardContent() {
                                   title: 'Start Session',
                                   message: 'Enter the meeting link (e.g., Zoom, Google Meet) to start the session:',
                                   inputPlaceholder: 'https://...',
+                                  validationType: 'meeting_link',
+                                  initialValue: s.hostUrl || '',
                                   onConfirm: (url) => {
                                     if (!url) return;
-                                    let finalUrl = url.trim();
-                                    if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
-                                      finalUrl = 'https://' + finalUrl;
-                                    }
+                                    const finalUrl = url.trim();
                                     setStartingSessionId(s.sessionId);
                                     fetchApi(`/api/instructor/sessions/${s.sessionId}/host`, {
                                       method: 'PUT',
@@ -994,12 +993,11 @@ function InstructorDashboardContent() {
                                   title: 'Update Session Link',
                                   message: 'Enter the new meeting link (e.g., Zoom, Google Meet):',
                                   inputPlaceholder: 'https://...',
+                                  validationType: 'meeting_link',
+                                  initialValue: s.hostUrl || '',
                                   onConfirm: async (url) => {
                                     if (url) {
-                                      let finalUrl = url.trim();
-                                      if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
-                                        finalUrl = 'https://' + finalUrl;
-                                      }
+                                      const finalUrl = url.trim();
                                       try {
                                         const res = await fetchApi(`/api/instructor/sessions/${s.sessionId}/host`, {
                                           method: 'PUT',

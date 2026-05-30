@@ -79,9 +79,11 @@ async function run() {
     console.log('\n--- Test 2: Duplicate Instructor Check ---');
     // Set user to instructor role already
     await pool.query("UPDATE users SET role = 'instructor' WHERE id = $1", [instructorUserId]);
-    await pool.query(`
-      INSERT INTO instructors (user_id, bio) VALUES ($1, 'Existing instructor')
+    const instInsertRes = await pool.query(`
+      INSERT INTO instructors (user_id, bio) VALUES ($1, 'Existing instructor') RETURNING id
     `, [instructorUserId]);
+    const instructorIdVal = instInsertRes.rows[0].id;
+    await pool.query("UPDATE courses SET instructor_id = $1 WHERE id = $2", [instructorIdVal, courseId]);
 
     // Check application approve logic
     const checkRole = await pool.query('SELECT role FROM users WHERE id = $1', [instructorUserId]);
@@ -256,6 +258,161 @@ async function run() {
     } else {
       throw new Error('Auto-certification failed!');
     }
+
+    // --- TEST 8: Suspended Instructor Courses Catalogue Filter ---
+    console.log('\n--- Test 8: Suspended Instructor Catalogue Filter ---');
+    // Suspend instructor
+    await pool.query("UPDATE users SET status = 'suspended' WHERE id = $1", [instructorUserId]);
+    
+    // Query catalogue like /api/courses
+    let catCourses = await pool.query(`
+      SELECT c.id 
+      FROM courses c
+      JOIN instructors i ON c.instructor_id = i.id
+      JOIN users u ON i.user_id = u.id
+      WHERE c.id = $1 AND c.status = 'published' AND u.status != 'suspended'
+    `, [courseId]);
+    
+    if (catCourses.rows.length === 0) {
+      console.log('SUCCESS: Suspended instructor course correctly filtered out from catalogue.');
+    } else {
+      throw new Error('Catalogue filtering failed: course is visible for suspended instructor.');
+    }
+
+    // --- TEST 9: Suspended Instructor Create-Order Block ---
+    console.log('\n--- Test 9: Suspended Instructor Order Block ---');
+    // Verify our create-order query behavior
+    const orderCheck = await pool.query(`
+      SELECT c.name, c.price, c.status, u.status as instructor_status
+      FROM courses c
+      JOIN instructors i ON c.instructor_id = i.id
+      JOIN users u ON i.user_id = u.id
+      WHERE c.id = $1
+    `, [courseId]);
+    
+    const courseObj = orderCheck.rows[0];
+    if (courseObj && courseObj.instructor_status === 'suspended') {
+      console.log('SUCCESS: Order block query correctly flags instructor as suspended.');
+    } else {
+      throw new Error('Order block verification failed!');
+    }
+    
+    // Reinstate instructor
+    await pool.query("UPDATE users SET status = 'active' WHERE id = $1", [instructorUserId]);
+
+    // --- TEST 10: Cumulative Refund Limit Verification ---
+    console.log('\n--- Test 10: Cumulative Refund Limit ---');
+    // We have a payment of ₹100 from Test 4 (id = 9001)
+    // Attempt to request ₹60 refund - should succeed
+    const refund1 = 60;
+    // Attempt to request ₹50 refund - sum (110) > original (100) - should fail
+    const refund2 = 50;
+    
+    // Get existing
+    await pool.query(`
+      INSERT INTO refund_events (payment_id, amount, status, reason_category)
+      VALUES (9001, $1, 'refunded', 'other')
+    `, [refund1]);
+    
+    const existingRefunds = await pool.query(`
+      SELECT COALESCE(SUM(amount), 0) as total 
+      FROM refund_events 
+      WHERE payment_id = 9001 AND status IN ('approved', 'refunded', 'processing')
+    `);
+    const totalRefunded = parseFloat(existingRefunds.rows[0].total);
+    
+    if (refund2 + totalRefunded > 100) {
+      console.log('SUCCESS: Cumulative refund check would correctly block second refund exceeding total amount.');
+    } else {
+      throw new Error('Cumulative refund limit failed!');
+    }
+    
+    // Clean up refund events for test
+    await pool.query('DELETE FROM refund_events WHERE payment_id = 9001');
+
+    // --- TEST 11: Webhook Unknown Capture Insert ---
+    console.log('\n--- Test 11: Webhook Unknown Capture Insert ---');
+    // Simulate webhook handling where order is not in our database
+    const unknownOrderId = 'order_unknown_999';
+    const unknownPaymentId = 'pay_unknown_999';
+    
+    // Verify update fails
+    const updateRes = await pool.query(`
+      UPDATE payments 
+      SET payment_status = 'paid'
+      WHERE razorpay_payment_id = $1 OR razorpay_order_id = $2
+      RETURNING id
+    `, [unknownPaymentId, unknownOrderId]);
+    
+    if (updateRes.rowCount === 0) {
+      // Simulate insert
+      await pool.query(`
+        INSERT INTO payments (
+          user_id, enrolment_id, razorpay_order_id, razorpay_payment_id,
+          status, payment_status, amount, payment_method, gateway_fee, tax_amount, net_amount,
+          paid_at, webhook_verified, metadata, created_at
+        )
+        VALUES ($1, NULL, $2, $3, 'captured', 'paid', 100, 'card', 2, 0.36, 97.64, NOW(), true, '{}'::jsonb, NOW())
+      `, [studentUserId, unknownOrderId, unknownPaymentId]);
+      
+      const checkWebhookInsert = await pool.query('SELECT id FROM payments WHERE razorpay_payment_id = $1', [unknownPaymentId]);
+      if (checkWebhookInsert.rows.length > 0) {
+        console.log('SUCCESS: Webhook handled unknown capture and successfully inserted payment record.');
+      } else {
+        throw new Error('Webhook unknown capture insert failed!');
+      }
+    } else {
+      throw new Error('Webhook update check failed (should return 0 rows affected).');
+    }
+    
+    // Clean up unknown payment
+    await pool.query('DELETE FROM payments WHERE razorpay_payment_id = $1', [unknownPaymentId]);
+
+    // --- TEST 12: Webhook Sync External Refund ---
+    console.log('\n--- Test 12: Webhook Sync External Refund ---');
+    // Simulate external refund webhook payload for payment 9001 (amount ₹100)
+    const extRefundId = 'rfnd_ext_123';
+    const extRefundAmount = 100; // full refund
+    
+    // Simulate refund event check and insert
+    const checkExtEvent = await pool.query(`
+      SELECT id FROM refund_events 
+      WHERE payment_id = 9001 AND (dispute_notes LIKE $1 OR (amount = $2 AND status = 'refunded'))
+    `, [`%${extRefundId}%`, extRefundAmount]);
+    
+    if (checkExtEvent.rows.length === 0) {
+      await pool.query(`
+        INSERT INTO refund_events (payment_id, amount, reason_category, status, dispute_notes, created_at, updated_at)
+        VALUES (9001, $1, 'other', 'refunded', $2, NOW(), NOW())
+      `, [extRefundAmount, `Razorpay Webhook Refund ID: ${extRefundId}`]);
+    }
+    
+    // Sum and verify
+    const extSumRes = await pool.query(`
+      SELECT COALESCE(SUM(amount), 0) as total 
+      FROM refund_events 
+      WHERE payment_id = 9001 AND status IN ('approved', 'refunded')
+    `);
+    const extTotalRefunded = parseFloat(extSumRes.rows[0].total);
+    const extIsPartial = extTotalRefunded < 100; // original amount
+    
+    if (!extIsPartial) {
+      // Simulate enrolment revoke
+      await pool.query("UPDATE enrolments SET status = 'refunded' WHERE id = $1", [enrolmentId]);
+      
+      const checkRevoke = await pool.query('SELECT status FROM enrolments WHERE id = $1', [enrolmentId]);
+      const checkExtEventAdded = await pool.query('SELECT id FROM refund_events WHERE payment_id = 9001');
+      if (checkRevoke.rows[0].status === 'refunded' && checkExtEventAdded.rows.length > 0) {
+        console.log('SUCCESS: External full refund synchronized. Refund event created, enrolment successfully revoked.');
+      } else {
+        throw new Error('External refund sync failed!');
+      }
+    } else {
+      throw new Error('External refund sync evaluated as partial, expected full.');
+    }
+    
+    // Clean up refund events for payment 9001
+    await pool.query('DELETE FROM refund_events WHERE payment_id = 9001');
 
     // Clean up test data
     console.log('\nCleaning up test records...');

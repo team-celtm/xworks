@@ -54,7 +54,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // Edge Case: Session ended
     const gracePeriodMs = parseInt(process.env.SESSION_GRACE_PERIOD_MINUTES || '10') * 60 * 1000;
-    if (currentTime > scheduledEnd + gracePeriodMs) {
+    if (session.status !== 'live' && currentTime > scheduledEnd + gracePeriodMs) {
       return new NextResponse('This session has already ended.', { status: 403 });
     }
 

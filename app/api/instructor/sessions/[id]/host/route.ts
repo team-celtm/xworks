@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { jwtVerify } from 'jose';
 import { createNotification } from '@/lib/notifications';
+import { validateMeetingLink } from '@/lib/meetingLink';
 
 
 const SESSION_SECRET = process.env.SESSION_SECRET || 'your-default-secret-change-me';
@@ -22,8 +23,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // Verify ownership, status, expiry, and registrant count
     const ownershipRes = await pool.query(`
-      SELECT ls.id, ls.status, ls.scheduled_start, ls.scheduled_end, ls.max_seats, ls.title,
-             c.status as course_status, c.name as course_name,
+      SELECT ls.id, ls.status, ls.scheduled_start, ls.scheduled_end, ls.max_seats, ls.title, ls.host_url, ls.course_id,
+             c.status as course_status, c.name as course_name, c.instructor_id,
              (SELECT COUNT(*) FROM session_registrations sr WHERE sr.session_id = ls.id) as registrant_count
       FROM live_sessions ls
       JOIN courses c ON ls.course_id = c.id
@@ -32,10 +33,43 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     `, [sessionId, userId]);
 
     if (ownershipRes.rows.length === 0) {
-      return NextResponse.json({ error: 'Session unavailable or not authorized' }, { status: 404 });
+      return NextResponse.json({ error: 'Session not found.' }, { status: 404 });
     }
 
     const session = ownershipRes.rows[0];
+
+    const { hostUrl, forceStart } = await req.json();
+
+    // Link Validation Engine
+    const valResult = validateMeetingLink(hostUrl);
+    if (!valResult.isValid) {
+      return NextResponse.json({ error: valResult.error }, { status: 400 });
+    }
+    const sanitizedUrl = valResult.sanitizedUrl || hostUrl;
+
+    // Distinguish starting vs updating session
+    const isUpdate = session.status === 'live' || (session.host_url !== null);
+
+    // State machine checks
+    if (session.status === 'cancelled') {
+      const errMsg = isUpdate ? 'Cancelled sessions cannot be modified.' : 'Cancelled sessions cannot be started.';
+      return NextResponse.json({ error: errMsg }, { status: 400 });
+    }
+    
+    if (session.status === 'completed') {
+      const errMsg = isUpdate ? 'Completed sessions cannot be modified.' : 'Completed sessions cannot be restarted.';
+      return NextResponse.json({ error: errMsg }, { status: 400 });
+    }
+
+    if (session.status === 'expired') {
+      const errMsg = isUpdate ? 'Archived sessions cannot be modified.' : 'This session has already expired.';
+      return NextResponse.json({ error: errMsg }, { status: 400 });
+    }
+
+    // Duplicate link guard
+    if (session.host_url === sanitizedUrl) {
+      return NextResponse.json({ error: 'This meeting link is already being used.' }, { status: 400 });
+    }
 
     // Unpublished Course Validation
     if (session.course_status !== 'published') {
@@ -48,25 +82,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Session capacity is 0. Cannot start session.' }, { status: 400 });
     }
 
-    if (session.status === 'cancelled') {
-      return NextResponse.json({ error: 'Cannot update a cancelled session' }, { status: 400 });
-    }
-    
-    if (session.status === 'completed' || session.status === 'expired') {
-      return NextResponse.json({ error: 'Cannot start or update a session that has already ended' }, { status: 400 });
-    }
-
-
     const scheduledStart = new Date(session.scheduled_start).getTime();
     const scheduledEnd = session.scheduled_end ? new Date(session.scheduled_end).getTime() : scheduledStart + (60 * 60 * 1000);
     const gracePeriodMs = parseInt(process.env.SESSION_GRACE_PERIOD_MINUTES || '10') * 60 * 1000;
 
     // Only prevent starting if it's not already live and the time has expired
     if (session.status !== 'live' && Date.now() > scheduledEnd + gracePeriodMs) {
-      return NextResponse.json({ success: false, message: 'This session has already ended.' }, { status: 400 });
+      return NextResponse.json({ error: 'This session has already expired.' }, { status: 400 });
     }
-
-    const { hostUrl, forceStart } = await req.json();
 
     // Zero Registration Protection Logic
     if (session.status !== 'live' && parseInt(session.registrant_count) === 0) {
@@ -81,25 +104,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       console.log(`[AUDIT LOG] Instructor (User ID: ${userId}) forced start of session ${sessionId} with 0 registrations.`);
     }
 
-    if (!hostUrl || typeof hostUrl !== 'string') {
-        return NextResponse.json({ error: 'Valid hostUrl is required' }, { status: 400 });
-    }
-    
-    // Add simple URL validation
-    try {
-      new URL(hostUrl);
-    } catch {
-      return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
-    }
-
     // Update the host_url, join_url, and set status to live
     await pool.query(`
       UPDATE live_sessions 
       SET host_url = $1, join_url = $1, status = 'live', updated_at = NOW() 
       WHERE id = $2
-    `, [hostUrl, sessionId]);
+    `, [sanitizedUrl, sessionId]);
 
-    // Dispatch LIVE notifications to students
+    // Dispatch LIVE / Link Update notifications to students
     const registrantsRes = await pool.query(`
       SELECT u.id as user_id, u.email, u.first_name
       FROM session_registrations sr
@@ -108,27 +120,57 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       WHERE sr.session_id = $1
     `, [sessionId]);
 
+    const isLiveUpdate = session.status === 'live';
+    const notificationTitle = isLiveUpdate ? 'Session Link Updated 🔄' : 'Session LIVE! 🔴';
+    const notificationMsg = isLiveUpdate
+      ? `Session meeting link has been updated by the instructor.`
+      : `The live session "${session.title}" for your course "${session.course_name}" is now LIVE! Click here to join.`;
+
     for (const reg of registrantsRes.rows) {
       await createNotification({
         userId: reg.user_id,
-        title: 'Session LIVE! 🔴',
-        message: `The live session "${session.title}" for your course "${session.course_name}" is now LIVE! Click here to join.`,
-        type: 'warning',
+        title: notificationTitle,
+        message: notificationMsg,
+        type: isLiveUpdate ? 'info' : 'warning',
         sendEmail: true,
         emailTo: reg.email,
-        emailSubject: `LIVE NOW: ${session.title}`,
+        emailSubject: isLiveUpdate ? `Link Updated: ${session.title}` : `LIVE NOW: ${session.title}`,
         emailHtml: `
           <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-            <h2 style="color: #EF4444;">Session is LIVE! 🔴</h2>
+            <h2 style="color: ${isLiveUpdate ? '#3B82F6' : '#EF4444'};">${notificationTitle}</h2>
             <p>Hi ${reg.first_name},</p>
-            <p>The live class <strong>${session.title}</strong> for the course <strong>${session.course_name}</strong> has started!</p>
-            <a href="${req.nextUrl.origin}/dashboard" style="display: inline-block; background: #C74A4A; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 10px;">Join Class Now</a>
+            <p>${notificationMsg}</p>
+            <a href="${req.nextUrl.origin}/dashboard" style="display: inline-block; background: #C74A4A; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; margin-top: 10px;">Go to Dashboard</a>
           </div>
         `
       });
     }
 
-    return NextResponse.json({ success: true, hostUrl }, { status: 200 });
+    // IP & Audit Logging
+    const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'Unknown';
+    const actionType = isLiveUpdate ? 'LINK_UPDATED' : 'SESSION_STARTED';
+    const { logAdminAction } = await import('@/lib/audit');
+
+    await logAdminAction(
+      userId,
+      actionType,
+      'live_session',
+      sessionId,
+      { host_url: session.host_url },
+      {
+        session_id: sessionId,
+        course_id: session.course_id,
+        instructor_id: session.instructor_id,
+        old_link: session.host_url,
+        new_link: sanitizedUrl,
+        action_type: actionType,
+        timestamp: new Date().toISOString(),
+        ip_address: ipAddress
+      },
+      ipAddress
+    );
+
+    return NextResponse.json({ success: true, hostUrl: sanitizedUrl }, { status: 200 });
 
 
   } catch (error) {

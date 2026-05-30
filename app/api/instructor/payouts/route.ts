@@ -13,6 +13,9 @@ async function getInstructorId(req: NextRequest) {
     const { payload } = await jwtVerify(accessToken, new TextEncoder().encode(SESSION_SECRET));
     const userId = (payload as any).id;
 
+    const userRes = await pool.query('SELECT status FROM users WHERE id = $1', [userId]);
+    if (userRes.rows.length === 0 || userRes.rows[0].status === 'suspended') return null;
+
     const res = await pool.query('SELECT id FROM instructors WHERE user_id = $1', [userId]);
     if (res.rows.length === 0) return null;
     return res.rows[0].id;

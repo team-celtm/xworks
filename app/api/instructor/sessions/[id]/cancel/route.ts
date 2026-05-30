@@ -47,7 +47,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     // 2. Mark Session as Cancelled
     await pool.query(`
       UPDATE live_sessions
-      SET status = 'cancelled'
+      SET status = 'cancelled', updated_at = NOW()
       WHERE id = $1
     `, [sessionId]);
 

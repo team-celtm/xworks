@@ -12,6 +12,11 @@ export async function GET(req: NextRequest) {
     const { payload } = await jwtVerify(accessToken, new TextEncoder().encode(SESSION_SECRET));
     const userId = (payload as any).id;
 
+    const userCheck = await pool.query('SELECT status FROM users WHERE id = $1', [userId]);
+    if (userCheck.rows.length === 0 || userCheck.rows[0].status === 'suspended') {
+      return NextResponse.json({ error: 'Your account is suspended. Please contact support.' }, { status: 403 });
+    }
+
     const sql = `
       SELECT 
         ls.id as "sessionId",
@@ -48,6 +53,11 @@ export async function POST(req: NextRequest) {
 
     const { payload } = await jwtVerify(accessToken, new TextEncoder().encode(SESSION_SECRET));
     const userId = (payload as any).id;
+
+    const userCheck = await pool.query('SELECT status FROM users WHERE id = $1', [userId]);
+    if (userCheck.rows.length === 0 || userCheck.rows[0].status === 'suspended') {
+      return NextResponse.json({ error: 'Your account is suspended. Please contact support.' }, { status: 403 });
+    }
 
     const body = await req.json();
     const { courseId, title, scheduledStart, scheduledEnd } = body;

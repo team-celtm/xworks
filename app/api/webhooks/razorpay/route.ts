@@ -159,7 +159,7 @@ export async function POST(req: NextRequest) {
             }
 
             // Update payment record (incorporating the enrolmentId)
-            await pool.query(`
+            const updateRes = await pool.query(`
                 UPDATE payments 
                 SET payment_status = 'paid',
                     status = 'captured',
@@ -172,7 +172,30 @@ export async function POST(req: NextRequest) {
                     enrolment_id = $5,
                     metadata = $6
                 WHERE razorpay_payment_id = $7 OR razorpay_order_id = $8
+                RETURNING id
             `, [method, fee, tax, net, enrolmentId ? enrolmentId.toString() : null, paymentEntity, paymentId, orderId]);
+
+            if (updateRes.rowCount === 0) {
+              await pool.query(`
+                INSERT INTO payments (
+                  user_id, enrolment_id, razorpay_order_id, razorpay_payment_id,
+                  status, payment_status, amount, payment_method, gateway_fee, tax_amount, net_amount,
+                  paid_at, webhook_verified, metadata, created_at
+                )
+                VALUES ($1, $2, $3, $4, 'captured', 'paid', $5, $6, $7, $8, $9, NOW(), true, $10, NOW())
+              `, [
+                userId,
+                enrolmentId ? enrolmentId.toString() : null,
+                orderId,
+                paymentId,
+                amount,
+                method,
+                fee,
+                tax,
+                net,
+                paymentEntity
+              ]);
+            }
 
             // Dispatch enrollment notification to student
             if (userId && courseId) {
@@ -224,13 +247,67 @@ export async function POST(req: NextRequest) {
             `, [errorReason, paymentEntity, paymentId, paymentEntity.order_id]);
         } else if (eventType === 'refund.processed') {
             const refundEntity = body.payload?.refund?.entity;
-            await pool.query(`
-                UPDATE payments 
-                SET payment_status = 'refunded',
-                    refunded_at = NOW(),
-                    metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{refund_info}', $1::jsonb)
-                WHERE razorpay_payment_id = $2 OR razorpay_order_id = $3
-            `, [JSON.stringify(refundEntity || {}), paymentId, paymentEntity.order_id]);
+            if (refundEntity) {
+              const refundAmount = (refundEntity.amount || 0) / 100;
+              const refundId = refundEntity.id;
+
+              // Find local payment record
+              const localPayRes = await pool.query(`
+                SELECT id, amount, enrolment_id 
+                FROM payments 
+                WHERE razorpay_payment_id = $1 OR razorpay_order_id = $2
+              `, [paymentId, paymentEntity.order_id]);
+
+              if (localPayRes.rows.length > 0) {
+                const localPay = localPayRes.rows[0];
+                const paymentDbId = localPay.id;
+                const originalAmount = parseFloat(localPay.amount);
+
+                // Check if this refund event is already stored
+                const checkRes = await pool.query(`
+                  SELECT id FROM refund_events 
+                  WHERE payment_id = $1 AND (dispute_notes LIKE $2 OR (amount = $3 AND status = 'refunded'))
+                `, [paymentDbId, `%${refundId}%`, refundAmount]);
+
+                if (checkRes.rows.length === 0) {
+                  // Insert refund event
+                  await pool.query(`
+                    INSERT INTO refund_events (payment_id, amount, reason_category, status, dispute_notes, created_at, updated_at)
+                    VALUES ($1, $2, 'other', 'refunded', $3, NOW(), NOW())
+                  `, [paymentDbId, refundAmount, `Razorpay Webhook Refund ID: ${refundId}`]);
+                }
+
+                // Sum all refund events for this payment to determine if it is a partial refund
+                const sumRes = await pool.query(`
+                  SELECT COALESCE(SUM(amount), 0) as total 
+                  FROM refund_events 
+                  WHERE payment_id = $1 AND status IN ('approved', 'refunded')
+                `, [paymentDbId]);
+                const totalRefunded = parseFloat(sumRes.rows[0].total);
+
+                const isPartial = totalRefunded < originalAmount;
+                const finalStatus = isPartial ? 'partially_refunded' : 'refunded';
+
+                // Update payment status
+                await pool.query(`
+                  UPDATE payments 
+                  SET payment_status = $1,
+                      status = $1,
+                      refunded_at = NOW(),
+                      metadata = jsonb_set(COALESCE(metadata, '{}'::jsonb), '{refund_info}', $2::jsonb)
+                  WHERE id = $3
+                `, [finalStatus, JSON.stringify(refundEntity), paymentDbId]);
+
+                // Revoke enrolment if fully refunded
+                if (!isPartial && localPay.enrolment_id) {
+                  await pool.query(`
+                    UPDATE enrolments 
+                    SET status = 'refunded' 
+                    WHERE id = $1
+                  `, [localPay.enrolment_id]);
+                }
+              }
+            }
         }
     }
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { validateMeetingLink } from '@/lib/meetingLink';
 
 export interface ActionModalState {
   isOpen: boolean;
@@ -9,6 +10,8 @@ export interface ActionModalState {
   onConfirm?: (value?: string) => void;
   onCancel?: () => void;
   confirmText?: string;
+  validationType?: 'meeting_link';
+  initialValue?: string;
 }
 
 export default function ActionModal({
@@ -23,14 +26,20 @@ export default function ActionModal({
 
   useEffect(() => {
     if (config.isOpen) {
+      setInputValue(config.initialValue || '');
       setIsVisible(true);
     } else {
       const timer = setTimeout(() => setIsVisible(false), 200);
       return () => clearTimeout(timer);
     }
-  }, [config.isOpen]);
+  }, [config.isOpen, config.initialValue]);
 
   if (!config.isOpen && !isVisible) return null;
+
+  const isMeetingLink = config.validationType === 'meeting_link';
+  const valResult = isMeetingLink ? validateMeetingLink(inputValue) : { isValid: true };
+  const isInputValid = valResult.isValid;
+  const validationError = valResult.error || '';
 
   const handleConfirm = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -93,21 +102,39 @@ export default function ActionModal({
         <p style={{ color: 'var(--text-2)', marginBottom: '24px', fontSize: '15px', lineHeight: '1.6', margin: '0 0 24px 0' }}>{config.message}</p>
         
         {config.type === 'prompt' && (
-          <input 
-            type="text" 
-            placeholder={config.inputPlaceholder || 'Enter value...'}
-            value={inputValue}
-            onChange={e => setInputValue(e.target.value)}
-            style={{ 
-              width: '100%', marginBottom: '24px', backgroundColor: '#f8fafc', 
-              border: '2px solid #e2e8f0', color: '#0f172a', padding: '14px 16px',
-              borderRadius: '12px', fontSize: '15px', outline: 'none',
-              transition: 'border-color 0.2s', boxSizing: 'border-box'
-            }}
-            onFocus={e => e.target.style.borderColor = '#3b82f6'}
-            onBlur={e => e.target.style.borderColor = '#e2e8f0'}
-            autoFocus
-          />
+          <div style={{ width: '100%', marginBottom: '24px', display: 'flex', flexDirection: 'column' }}>
+            <input 
+              type="text" 
+              placeholder={config.inputPlaceholder || 'Enter value...'}
+              value={inputValue}
+              onChange={e => setInputValue(e.target.value)}
+              style={{ 
+                width: '100%', marginBottom: '8px', backgroundColor: '#f8fafc', 
+                border: isMeetingLink ? (isInputValid ? '2px solid #10b981' : '2px solid #ef4444') : '2px solid #e2e8f0', 
+                color: '#0f172a', padding: '14px 16px',
+                borderRadius: '12px', fontSize: '15px', outline: 'none',
+                transition: 'border-color 0.2s', boxSizing: 'border-box'
+              }}
+              onFocus={e => {
+                if (!isMeetingLink) e.target.style.borderColor = '#3b82f6';
+              }}
+              onBlur={e => {
+                if (!isMeetingLink) e.target.style.borderColor = '#e2e8f0';
+              }}
+              autoFocus
+            />
+            {isMeetingLink && (
+              <span style={{ 
+                fontSize: '13px', 
+                fontWeight: 'bold', 
+                color: isInputValid ? '#10b981' : '#ef4444',
+                marginTop: '4px',
+                display: 'block'
+              }}>
+                {isInputValid ? '✅ Valid meeting link' : `❌ ${validationError}`}
+              </span>
+            )}
+          </div>
         )}
         
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: config.type !== 'prompt' ? '8px' : '0' }}>
@@ -129,7 +156,17 @@ export default function ActionModal({
           <button 
             type="submit"
             className="enrol-cta coral"
-            style={{ margin: 0, padding: '10px 28px', borderRadius: '12px', boxShadow: '0 4px 14px 0 rgba(251, 146, 60, 0.39)' }}
+            disabled={isMeetingLink && !isInputValid}
+            style={{ 
+              margin: 0, 
+              padding: '10px 28px', 
+              borderRadius: '12px', 
+              boxShadow: (isMeetingLink && !isInputValid) ? 'none' : '0 4px 14px 0 rgba(251, 146, 60, 0.39)',
+              opacity: (isMeetingLink && !isInputValid) ? 0.5 : 1,
+              cursor: (isMeetingLink && !isInputValid) ? 'not-allowed' : 'pointer',
+              border: 'none',
+              color: '#ffffff'
+            }}
           >
             {config.type === 'alert' ? 'Got it' : (config.confirmText || 'Confirm')}
           </button>

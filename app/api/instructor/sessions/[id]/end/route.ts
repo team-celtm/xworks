@@ -16,7 +16,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     // Verify ownership and check status
     const checkSql = `
-      SELECT ls.id, ls.status, ls.scheduled_start, ls.scheduled_end, ls.host_url, ls.title as "session_title", c.name as "course_name"
+      SELECT ls.id, ls.status, ls.scheduled_start, ls.scheduled_end, ls.host_url, ls.title as "session_title", ls.course_id,
+             c.name as "course_name", c.instructor_id
       FROM live_sessions ls
       JOIN courses c ON ls.course_id = c.id
       JOIN instructors i ON c.instructor_id = i.id
@@ -51,6 +52,28 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     `;
     const endRes = await pool.query(updateSql, [sessionId]);
     const courseId = endRes.rows[0].course_id;
+
+    // Log the end session action in audit log
+    const ipAddress = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'Unknown';
+    const { logAdminAction } = await import('@/lib/audit');
+    await logAdminAction(
+      userId,
+      'SESSION_ENDED',
+      'live_session',
+      sessionId,
+      { host_url: sessionInfo.host_url },
+      {
+        session_id: sessionId,
+        course_id: sessionInfo.course_id,
+        instructor_id: sessionInfo.instructor_id,
+        old_link: sessionInfo.host_url,
+        new_link: null,
+        action_type: 'SESSION_ENDED',
+        timestamp: new Date().toISOString(),
+        ip_address: ipAddress
+      },
+      ipAddress
+    );
 
     // Auto-calculate student attendance and close active tracking
     await pool.query(`

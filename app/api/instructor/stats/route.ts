@@ -12,6 +12,11 @@ export async function GET(req: NextRequest) {
     const { payload } = await jwtVerify(accessToken, new TextEncoder().encode(SESSION_SECRET));
     const userId = (payload as any).id;
 
+    const userCheck = await pool.query('SELECT status FROM users WHERE id = $1', [userId]);
+    if (userCheck.rows.length === 0 || userCheck.rows[0].status === 'suspended') {
+      return NextResponse.json({ error: 'Your account is suspended. Please contact support.' }, { status: 403 });
+    }
+
     const instructorRes = await pool.query('SELECT id FROM instructors WHERE user_id = $1', [userId]);
     if (instructorRes.rows.length === 0) {
       return NextResponse.json({ error: 'Not an instructor' }, { status: 403 });

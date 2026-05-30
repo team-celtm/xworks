@@ -105,7 +105,7 @@ export async function GET(req: NextRequest) {
       JOIN categories cat ON c.category_id = cat.id
       JOIN instructors i ON c.instructor_id = i.id
       JOIN users u ON i.user_id = u.id
-      ${where.length > 0 ? 'WHERE ' + where.join(' AND ') + " AND c.status = 'published' AND u.status = 'active'" : "WHERE c.status = 'published' AND u.status = 'active'"}
+      ${where.length > 0 ? 'WHERE ' + where.join(' AND ') + " AND c.status = 'published' AND u.status != 'suspended'" : "WHERE c.status = 'published' AND u.status != 'suspended'"}
       ORDER BY ${orderBy}
       LIMIT ${limit}
     `;

@@ -28,16 +28,33 @@ export async function POST(req: NextRequest) {
     const { courseId, promoCode, format, sessionId } = await req.json();
     console.log('Payment Order Request:', { courseId, promoCode, format, sessionId, userId });
 
-    // 1. Get course price
-    const courseRes = await pool.query('SELECT name, price FROM courses WHERE id = $1::uuid', [courseId]);
+    // 1. Get course price, publication status, and instructor status
+    const courseRes = await pool.query(`
+      SELECT c.name, c.price, c.status, u.status as instructor_status
+      FROM courses c
+      JOIN instructors i ON c.instructor_id = i.id
+      JOIN users u ON i.user_id = u.id
+      WHERE c.id = $1::uuid
+    `, [courseId]);
+
     if (courseRes.rows.length === 0) {
       console.warn('Course not found:', courseId);
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
     }
     
+    const course = courseRes.rows[0];
+
+    if (course.status !== 'published') {
+      return NextResponse.json({ error: 'This course is not available for purchase.' }, { status: 400 });
+    }
+
+    if (course.instructor_status === 'suspended') {
+      return NextResponse.json({ error: 'The instructor of this course is currently suspended.' }, { status: 400 });
+    }
+
     // Convert decimal/numeric from DB to float safely
-    let price = Number(courseRes.rows[0].price);
-    const courseName = courseRes.rows[0].name;
+    let price = Number(course.price);
+    const courseName = course.name;
 
     // Adjust price based on format
     if (format === 'recorded' || format === 'inperson') {

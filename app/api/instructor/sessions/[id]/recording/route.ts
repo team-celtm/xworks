@@ -52,7 +52,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       SET 
         recording_url = $1,
         recording_available = $2,
-        status = CASE WHEN $2 = true THEN 'completed' ELSE status END
+        status = CASE WHEN $2 = true THEN 'completed' ELSE status END,
+        updated_at = NOW()
       WHERE id = $3
       RETURNING id, recording_available as "recordingAvailable", status
     `;

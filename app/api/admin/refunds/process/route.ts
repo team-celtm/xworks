@@ -56,8 +56,17 @@ export async function POST(req: Request) {
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       throw new Error('Invalid refund amount');
     }
-    if (parsedAmount > originalAmount) {
-      throw new Error(`Refund amount (₹${parsedAmount}) cannot exceed original payment amount (₹${originalAmount})`);
+
+    // Fetch existing approved/processing/refunded refund events for this payment
+    const existingRefundsRes = await client.query(`
+      SELECT COALESCE(SUM(amount), 0) as total_refunded 
+      FROM refund_events 
+      WHERE payment_id = $1 AND status IN ('approved', 'refunded', 'processing')
+    `, [payment_id]);
+    const totalRefundedAlready = parseFloat(existingRefundsRes.rows[0].total_refunded || '0');
+
+    if (parsedAmount + totalRefundedAlready > originalAmount) {
+      throw new Error(`Total refunded (₹${totalRefundedAlready + parsedAmount}) cannot exceed original payment amount (₹${originalAmount})`);
     }
 
     // Simple State Machine Logic

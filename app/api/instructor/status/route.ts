@@ -46,6 +46,11 @@ export async function POST(req: Request) {
   const user = await getUser(req);
   if (!user || user.role !== 'instructor') return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  const userCheck = await pool.query('SELECT status FROM users WHERE id = $1', [user.id]);
+  if (userCheck.rows.length === 0 || userCheck.rows[0].status === 'suspended') {
+    return NextResponse.json({ error: 'Your account is suspended. Please contact support.' }, { status: 403 });
+  }
+
   try {
     const body = await req.json();
     const { bio, linkedin_url } = body;
