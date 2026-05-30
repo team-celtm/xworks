@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
 import "./dashboard.css";
 import "./notes.css";
 import Link from "next/link";
@@ -172,6 +172,22 @@ function DashboardPageContent() {
   const [initialSessions, setInitialSessions] = useState<any[]>([]);
   const [sessions, setSessions] = useRealtimeSessions(initialSessions);
   const [loadingSessions, setLoadingSessions] = useState(true);
+  
+  const prevSessionsRef = useRef<any[]>([]);
+  useEffect(() => {
+    if (prevSessionsRef.current.length > 0 && sessions.length > 0) {
+      const hasCompletedTransition = sessions.some(s => {
+        const prev = prevSessionsRef.current.find(ps => (ps.sessionId || ps.id) === (s.sessionId || s.id));
+        return prev && (prev.sessionStatus || prev.status) !== 'completed' && (s.sessionStatus || s.status) === 'completed';
+      });
+      if (hasCompletedTransition) {
+        // Refetch enrolments and certificates since progress might have reached 100%
+        fetchEnrolments();
+        fetchCerts();
+      }
+    }
+    prevSessionsRef.current = sessions;
+  }, [sessions]);
   const [certs, setCerts] = useState<any[]>([]);
   const [loadingCerts, setLoadingCerts] = useState(true);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -1410,55 +1426,60 @@ function DashboardPageContent() {
                     </div>
                   )}
 
-                  {sessions.length > 0 && (
-                    <div className="fade-up" style={{ animationDelay: '0.14s' }}>
-                      <div className="section-hd">
-                        <div className="section-hd-left">
-                          <div className="section-label">Your schedule</div>
-                          <div className="section-title">Next live session</div>
+                  {(() => {
+                    const upcomingSessions = sessions.filter(s => ['scheduled', 'live'].includes(s.sessionStatus || s.status));
+                    // Since it's sorted DESC, the closest one is the last one in the array
+                    const nextSession = upcomingSessions.length > 0 ? upcomingSessions[upcomingSessions.length - 1] : null;
+                    return nextSession && (
+                      <div className="fade-up" style={{ animationDelay: '0.14s' }}>
+                        <div className="section-hd">
+                          <div className="section-hd-left">
+                            <div className="section-label">Your schedule</div>
+                            <div className="section-title">Next live session</div>
+                          </div>
+                          <button className="section-pill" onClick={() => setActiveView("upcoming")}>View all sessions →</button>
                         </div>
-                        <button className="section-pill" onClick={() => setActiveView("upcoming")}>View all sessions →</button>
-                      </div>
-                      {loadingSessions ? (
-                        <div className="skeleton" style={{ width: '100%', height: '100px' }}></div>
-                      ) : (
-                        <div className="summary-card">
-                          <div className="summary-card-top">
-                            <div className="upcoming-date-block" style={{ margin: 0 }}>
-                              <div className="upcoming-day">{new Date(sessions[0].scheduledStart).getDate()}</div>
-                              <div className="upcoming-month">{new Date(sessions[0].scheduledStart).toLocaleDateString('en-IN', { month: 'short' }).toUpperCase()}</div>
-                            </div>
+                        {loadingSessions ? (
+                          <div className="skeleton" style={{ width: '100%', height: '100px' }}></div>
+                        ) : (
+                          <div className="summary-card">
+                            <div className="summary-card-top">
+                              <div className="upcoming-date-block" style={{ margin: 0 }}>
+                                <div className="upcoming-day">{new Date(nextSession.scheduledStart).getDate()}</div>
+                                <div className="upcoming-month">{new Date(nextSession.scheduledStart).toLocaleDateString('en-IN', { month: 'short' }).toUpperCase()}</div>
+                              </div>
 
-                            <div className="summary-card-info">
-                              <div className="summary-card-title">{sessions[0].sessionTitle}</div>
-                              <div className="summary-card-meta">
-                                {sessions[0].courseName} · {new Date(sessions[0].scheduledStart).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                              <div className="summary-card-info">
+                                <div className="summary-card-title">{nextSession.sessionTitle}</div>
+                                <div className="summary-card-meta">
+                                  {nextSession.courseName} · {new Date(nextSession.scheduledStart).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                          
-                          <div className="summary-card-bottom">
+                            
+                            <div className="summary-card-bottom">
                             <div className="summary-card-time">
-                              Starts at {new Date(sessions[0].scheduledStart).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                              Starts at {new Date(nextSession.scheduledStart).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                               {timeLeft && timeLeft !== 'Started' && <span className="starting-pill">Starting in {timeLeft}</span>}
                             </div>
                             <button 
                               className="enrol-cta coral summary-card-btn" 
                               onClick={() => {
-                                const joinable = new Date(sessions[0].scheduledStart).getTime() <= Date.now() + (15 * 60 * 1000);
-                                const isPast = new Date(sessions[0].scheduledStart).getTime() < Date.now();
-                                if (sessions[0].recordingAvailable && isPast) window.open(`/api/sessions/${sessions[0].sessionId}/recording`, '_blank');
-                                else if (joinable) window.open(`/api/learner/sessions/${sessions[0].sessionId}/join`, '_blank');
+                                const joinable = new Date(nextSession.scheduledStart).getTime() <= Date.now() + (15 * 60 * 1000);
+                                const isPast = new Date(nextSession.scheduledStart).getTime() < Date.now();
+                                if (nextSession.recordingAvailable && isPast) window.open(`/api/sessions/${nextSession.sessionId}/recording`, '_blank');
+                                else if (joinable) window.open(`/api/learner/sessions/${nextSession.sessionId}/join`, '_blank');
                                 else setActiveView("upcoming");
                               }}
                             >
-                              {sessions[0].recordingAvailable && new Date(sessions[0].scheduledStart).getTime() < Date.now() ? "Watch Recording ↗" : (new Date(sessions[0].scheduledStart).getTime() <= Date.now() + (15 * 60 * 1000) ? "Join Class →" : "View Details →")}
+                              {nextSession.recordingAvailable && new Date(nextSession.scheduledStart).getTime() < Date.now() ? "Watch Recording ↗" : (new Date(nextSession.scheduledStart).getTime() <= Date.now() + (15 * 60 * 1000) ? "Join Class →" : "View Details →")}
                             </button>
                           </div>
                         </div>
                       )}
                     </div>
-                  )}
+                  );
+                })()}
 
                   <div className="fade-up" style={{ animationDelay: '0.18s' }}>
                     <div className="section-hd">

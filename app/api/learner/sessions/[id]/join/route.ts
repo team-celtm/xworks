@@ -34,9 +34,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const session = rows[0];
 
-    // Edge Case: Cancelled session
+    // Edge Case: Cancelled or Ended session
     if (session.status === 'cancelled') {
       return new NextResponse('This session has been cancelled.', { status: 403 });
+    }
+    if (session.status === 'completed' || session.status === 'expired') {
+      return new NextResponse('This session has already ended.', { status: 403 });
     }
 
     const currentTime = Date.now();
@@ -58,12 +61,34 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const registrationId = session.sr_id;
     const joinUrl = session.join_url || session.host_url;
 
-    // Mark joined_at if not set
+    // Mark joined_at and attendance_status
     await pool.query(`
       UPDATE session_registrations 
-      SET joined_at = COALESCE(joined_at, NOW())
+      SET joined_at = COALESCE(joined_at, NOW()),
+          attendance_status = CASE WHEN attendance_status = 'enrolled' THEN 'joined_session' ELSE attendance_status END,
+          updated_at = NOW()
       WHERE id = $1
     `, [registrationId]);
+
+    // Parse Device Info
+    const deviceInfo = req.headers.get('user-agent') || 'Unknown';
+
+    // Insert attendance tracking
+    const activeJoin = await pool.query(`
+      SELECT id FROM session_attendance 
+      WHERE session_id = $1 AND user_id = $2 AND leave_time IS NULL
+      ORDER BY join_time DESC LIMIT 1
+    `, [sessionId, userId]);
+
+    if (activeJoin.rows.length === 0) {
+      await pool.query(`
+        INSERT INTO session_attendance (session_id, user_id, device_info, browser_info, status)
+        VALUES ($1, $2, $3, 'ServerRedirect', 'joined')
+      `, [sessionId, userId, deviceInfo]);
+    }
+
+    // Trigger realtime sync
+    await pool.query(`UPDATE live_sessions SET updated_at = NOW() WHERE id = $1`, [sessionId]);
 
     if (!joinUrl) {
       return new NextResponse('Join URL not configured for this session', { status: 400 });

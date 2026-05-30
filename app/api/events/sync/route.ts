@@ -32,6 +32,10 @@ export async function GET(req: NextRequest) {
       )
     `, [gracePeriodMs]);
 
+    // Lazily trigger auto-complete for orphaned live sessions
+    // Fire and forget without blocking
+    fetch(`${req.nextUrl.origin}/api/cron/auto-complete`, { method: 'POST' }).catch(() => {});
+
     // FETCH DELTA UPDATES
     // We fetch any session that has been updated since last_sync and belongs to the user 
     // (either they are the instructor OR they are registered as a learner)

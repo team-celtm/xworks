@@ -747,7 +747,7 @@ function InstructorDashboardContent() {
                           </span>
                         </div>
                         <div style={{ color: 'var(--text-3)', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                          <span>{s.courseName} • {new Date(s.scheduledStart).toLocaleString()} • {s.registrantCount} learners registered</span>
+                          <span>{s.courseName} • {new Date(s.scheduledStart).toLocaleString()} • {s.derivedState === 'completed' ? `${s.attendedCount || 0}/${s.registrantCount} attended` : `${s.registrantCount} learners registered`}</span>
                           {s._missingDuration && (
                             <span style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', padding: '2px 8px', borderRadius: '100px', fontSize: '11px', fontWeight: 600 }}>
                               ⚠️ Flagged: Missing Duration

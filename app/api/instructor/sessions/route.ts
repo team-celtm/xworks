@@ -22,7 +22,8 @@ export async function GET(req: NextRequest) {
         ls.host_url as "hostUrl",
         ls.recording_available as "recordingAvailable",
         c.name as "courseName",
-        COUNT(sr.id) as "registrantCount"
+        COUNT(sr.id) as "registrantCount",
+        (SELECT COUNT(DISTINCT user_id) FROM session_attendance sa WHERE sa.session_id = ls.id) as "attendedCount"
       FROM live_sessions ls
       JOIN courses c ON ls.course_id = c.id
       JOIN instructors i ON c.instructor_id = i.id
