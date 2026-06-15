@@ -4,7 +4,7 @@ import { jwtVerify } from 'jose';
 import { createNotification } from '@/lib/notifications';
 
 const SESSION_SECRET = new TextEncoder().encode(
-  process.env.SESSION_SECRET || 'your-default-secret-change-me'
+  process.env.SESSION_SECRET!
 );
 
 async function checkLearner(req: NextRequest) {

@@ -5,7 +5,7 @@ import pool from '@/lib/db';
 import { createNotification } from '@/lib/notifications';
 
 const SESSION_SECRET = new TextEncoder().encode(
-  process.env.SESSION_SECRET || 'your-default-secret-change-me'
+  process.env.SESSION_SECRET!
 );
 
 async function checkAdmin() {

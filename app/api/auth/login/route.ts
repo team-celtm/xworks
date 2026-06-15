@@ -2,10 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { SignJWT } from 'jose';
+import { isRateLimited } from '@/lib/rateLimit';
 
-const SESSION_SECRET = process.env.SESSION_SECRET || 'your-default-secret-change-me';
+const SESSION_SECRET = process.env.SESSION_SECRET!;
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
+  if (isRateLimited(ip)) {
+    return NextResponse.json({ error: 'Too many requests. Please try again in 15 minutes.' }, { status: 429 });
+  }
+
   try {
     const { email: rawEmail, password } = await req.json();
     const email = rawEmail ? rawEmail.trim().toLowerCase() : '';
@@ -16,7 +22,12 @@ export async function POST(req: NextRequest) {
 
     // Find user
     const { rows } = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    
+    // Constant-time timing check dummy to prevent timing attacks (BUG-007)
+    const dummyHash = '$2b$10$EpR0S3.9/iH6E/XyJ1f9IepN09Zg3k9J.cOq9S6a/Tq8n6G0lKz0e';
+
     if (rows.length === 0) {
+      await bcrypt.compare(password, dummyHash);
       return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
     }
 
@@ -24,16 +35,19 @@ export async function POST(req: NextRequest) {
 
     // Check if user is deleted
     if (user.deleted_at) {
+       await bcrypt.compare(password, dummyHash);
        return NextResponse.json({ error: 'This account has been deleted' }, { status: 401 });
     }
 
     // Check if user is suspended
     if (user.status === 'suspended') {
+      await bcrypt.compare(password, dummyHash);
       return NextResponse.json({ error: 'Your account is suspended. Please contact support.' }, { status: 403 });
     }
 
-    // Check password
+    // Check password set
     if (!user.password_hash) {
+      await bcrypt.compare(password, dummyHash);
       return NextResponse.json({ 
         error: 'This account does not have a password set. Please log in with Google, or use the Forgot Password link to set a password.' 
       }, { status: 401 });
@@ -88,6 +102,7 @@ export async function POST(req: NextRequest) {
     response.cookies.set('access_token', accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
       maxAge: 60 * 60, // 1 hour
       path: '/',
     });
@@ -96,6 +111,7 @@ export async function POST(req: NextRequest) {
     response.cookies.set('refresh_token', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',
     });

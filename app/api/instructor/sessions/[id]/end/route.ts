@@ -3,7 +3,7 @@ import pool from '@/lib/db';
 import { jwtVerify } from 'jose';
 import { createNotification } from '@/lib/notifications';
 
-const SESSION_SECRET = process.env.SESSION_SECRET || 'your-default-secret-change-me';
+const SESSION_SECRET = process.env.SESSION_SECRET!;
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {

@@ -3,7 +3,7 @@ import pool from '@/lib/db';
 import { jwtVerify } from 'jose';
 import Razorpay from 'razorpay';
 
-const SESSION_SECRET = process.env.SESSION_SECRET || 'your-default-secret-change-me';
+const SESSION_SECRET = process.env.SESSION_SECRET!;
 const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
 const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 

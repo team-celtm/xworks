@@ -4,7 +4,7 @@ import { jwtVerify } from 'jose';
 import { PDFDocument, rgb } from 'pdf-lib';
 
 // Certificate Download Route - Dynamically generated
-const SESSION_SECRET = process.env.SESSION_SECRET || 'your-default-secret-change-me';
+const SESSION_SECRET = process.env.SESSION_SECRET!;
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {

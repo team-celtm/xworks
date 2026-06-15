@@ -3,7 +3,7 @@ import pool from '@/lib/db';
 import { jwtVerify } from 'jose';
 import { sendMail } from '@/lib/mail';
 
-const SESSION_SECRET = process.env.SESSION_SECRET || 'your-default-secret-change-me';
+const SESSION_SECRET = process.env.SESSION_SECRET!;
 
 export async function POST(
   req: NextRequest,

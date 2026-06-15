@@ -5,7 +5,7 @@ import { jwtVerify } from 'jose';
 import Razorpay from 'razorpay';
 import { createNotification } from '@/lib/notifications';
 
-const SESSION_SECRET = process.env.SESSION_SECRET || 'your-default-secret-change-me';
+const SESSION_SECRET = process.env.SESSION_SECRET!;
 const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
 

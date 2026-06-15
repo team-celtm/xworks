@@ -1,15 +1,12 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
+import { SESSION_SECRET_ENCODED } from './lib/secrets';
 
 interface JWTPayload {
   role?: string;
   status?: string;
 }
-
-const SESSION_SECRET = new TextEncoder().encode(
-  process.env.SESSION_SECRET || 'your-default-secret-change-me'
-);
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -33,7 +30,7 @@ export async function middleware(request: NextRequest) {
 
     try {
       // 2. Logged in -> Verify Token and Check Role
-      const { payload } = await jwtVerify(accessToken, SESSION_SECRET);
+      const { payload } = await jwtVerify(accessToken, SESSION_SECRET_ENCODED);
       const jwtPayload = payload as unknown as JWTPayload;
       const role = jwtPayload.role;
       const status = jwtPayload.status;
@@ -83,7 +80,7 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/Login' || pathname === '/Registration') {
     if (accessToken) {
       try {
-        const { payload } = await jwtVerify(accessToken, SESSION_SECRET);
+        const { payload } = await jwtVerify(accessToken, SESSION_SECRET_ENCODED);
         const jwtPayload = payload as unknown as JWTPayload;
         const role = jwtPayload.role;
         const target = role === 'admin' ? '/admin' : (role === 'instructor' ? '/instructor' : '/dashboard');

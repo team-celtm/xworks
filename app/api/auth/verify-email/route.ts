@@ -12,13 +12,22 @@ export async function GET(req: NextRequest) {
     }
 
     // Find user with this token
-    const { rows } = await pool.query('SELECT id, preferences FROM users WHERE verification_token = $1', [token]);
+    const { rows } = await pool.query(
+      'SELECT id, preferences, verification_token_expires_at FROM users WHERE verification_token = $1',
+      [token]
+    );
     if (rows.length === 0) {
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 404 });
     }
 
     const user = rows[0];
     const userId = user.id;
+
+    // Check token expiry (BUG-017)
+    if (user.verification_token_expires_at && new Date(user.verification_token_expires_at).getTime() <= Date.now()) {
+      return NextResponse.json({ error: 'Verification link has expired' }, { status: 400 });
+    }
+
     const pendingPasswordHash = user.preferences?.pending_password_hash;
 
     // Update user to be verified and active, and migrate pending password hash if present
@@ -29,13 +38,14 @@ export async function GET(req: NextRequest) {
              status = 'active', 
              password_hash = $2, 
              preferences = preferences - 'pending_password_hash', 
-             verification_token = NULL 
+             verification_token = NULL,
+             verification_token_expires_at = NULL
          WHERE id = $1`, 
         [userId, pendingPasswordHash]
       );
     } else {
       await pool.query(
-        "UPDATE users SET email_verified = TRUE, status = 'active', verification_token = NULL WHERE id = $1", 
+        "UPDATE users SET email_verified = TRUE, status = 'active', verification_token = NULL, verification_token_expires_at = NULL WHERE id = $1", 
         [userId]
       );
     }

@@ -5,13 +5,28 @@ import crypto from 'crypto';
 import { sendMail } from '@/lib/mail';
 import { getBaseUrl } from '@/lib/utils';
 
+import { isRateLimited } from '@/lib/rateLimit';
+
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
+  if (isRateLimited(ip)) {
+    return NextResponse.json({ error: 'Too many requests. Please try again in 15 minutes.' }, { status: 429 });
+  }
+
   try {
     const { firstName, lastName, email: rawEmail, profile, password, phone, bio, linkedin } = await req.json();
     const email = rawEmail ? rawEmail.trim().toLowerCase() : '';
 
     if (!email || !password || !firstName || !phone) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+    }
+
+    if (password.length < 8) {
+      return NextResponse.json({ error: 'Password must be at least 8 characters long' }, { status: 400 });
+    }
+
+    if (phone.length > 20 || !/^\+?[\d\s\-()]{7,20}$/.test(phone)) {
+      return NextResponse.json({ error: 'Invalid phone number format or length' }, { status: 400 });
     }
 
     if (profile === 'Instructor') {
@@ -64,6 +79,7 @@ export async function POST(req: NextRequest) {
                  phone = $3, 
                  role = $4, 
                  verification_token = $5, 
+                 verification_token_expires_at = NOW() + INTERVAL '48 hours',
                  preferences = jsonb_set(COALESCE(preferences, '{}'::jsonb), '{pending_password_hash}', to_jsonb($6::text)) 
              WHERE id = $7`,
             [firstName, lastName, phone, mappedRole, verificationToken, hashedPassword, userId]
@@ -83,7 +99,14 @@ export async function POST(req: NextRequest) {
       } else {
         // If pending_verification, we will update the existing record and resend the email
         await pool.query(
-          'UPDATE users SET first_name = $1, last_name = $2, phone = $3, password_hash = $4, verification_token = $5 WHERE id = $6',
+          `UPDATE users 
+           SET first_name = $1, 
+               last_name = $2, 
+               phone = $3, 
+               password_hash = $4, 
+               verification_token = $5, 
+               verification_token_expires_at = NOW() + INTERVAL '48 hours'
+           WHERE id = $6`,
           [firstName, lastName, phone, hashedPassword, verificationToken, userId]
         );
       }
@@ -99,9 +122,10 @@ export async function POST(req: NextRequest) {
           password_hash, 
           email_verified, 
           status,
-          verification_token
+          verification_token,
+          verification_token_expires_at
         ) 
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW() + INTERVAL '48 hours') 
         RETURNING id, email
       `;
 

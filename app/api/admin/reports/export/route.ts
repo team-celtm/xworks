@@ -5,7 +5,7 @@ import { jwtVerify } from 'jose';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 
 const SESSION_SECRET = new TextEncoder().encode(
-  process.env.SESSION_SECRET || 'your-default-secret-change-me'
+  process.env.SESSION_SECRET!
 );
 
 async function checkAdmin() {

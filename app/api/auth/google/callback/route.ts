@@ -3,11 +3,18 @@ import pool from '@/lib/db';
 import { SignJWT } from 'jose';
 import { getBaseUrl } from '@/lib/utils';
 
-const SESSION_SECRET = process.env.SESSION_SECRET || 'your-default-secret-change-me';
+const SESSION_SECRET = process.env.SESSION_SECRET!;
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const code = searchParams.get('code');
+  const state = searchParams.get('state');
+
+  // Verify CSRF state parameter
+  const cookieState = req.cookies.get('oauth_state')?.value;
+  if (!state || !cookieState || state !== cookieState) {
+    return NextResponse.json({ error: 'Invalid or expired state parameter (CSRF protection)' }, { status: 400 });
+  }
 
   if (!code) {
     return NextResponse.json({ error: 'Auth code not found' }, { status: 400 });
@@ -34,8 +41,8 @@ export async function GET(req: NextRequest) {
 
     const tokenData = await tokenRes.json();
     if (!tokenData.access_token) {
-      console.error('Google token error:', tokenData);
-      return NextResponse.json({ error: 'Failed to exchange token', details: tokenData }, { status: 400 });
+      console.error('Google token error: Failed to exchange access token');
+      return NextResponse.json({ error: 'Failed to exchange token' }, { status: 400 });
     }
 
     // 2. Fetch user info from Google
@@ -125,12 +132,22 @@ export async function GET(req: NextRequest) {
       .setExpirationTime('7d') 
       .sign(new TextEncoder().encode(SESSION_SECRET));
 
-    // Redirect back to Login page with a flag to show the success state
-    const response = NextResponse.redirect(`${BASE_URL}/Login?google_success=true&success_type=${successType}`); 
+    // Redirect directly to the dashboard depending on the user's role (BUG-033)
+    let redirectUrl = `${BASE_URL}/dashboard`;
+    if (user.role === 'admin') {
+      redirectUrl = `${BASE_URL}/admin`;
+    } else if (user.role === 'instructor') {
+      redirectUrl = `${BASE_URL}/instructor`;
+    }
+    const response = NextResponse.redirect(redirectUrl); 
+
+    // Clear the oauth_state cookie
+    response.cookies.delete('oauth_state');
 
     response.cookies.set('access_token', accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax', // BUG-011
       maxAge: 60 * 60, // 1 hour
       path: '/',
     });
@@ -138,6 +155,7 @@ export async function GET(req: NextRequest) {
     response.cookies.set('refresh_token', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax', // BUG-011
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',
     });

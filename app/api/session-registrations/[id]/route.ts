@@ -5,7 +5,7 @@ import { createNotification } from '@/lib/notifications';
 import { sendMail } from '@/lib/mail';
 
 
-const SESSION_SECRET = process.env.SESSION_SECRET || 'your-default-secret-change-me';
+const SESSION_SECRET = process.env.SESSION_SECRET!;
 
 export async function PUT(
   req: NextRequest,

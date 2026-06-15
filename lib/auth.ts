@@ -1,8 +1,7 @@
 import { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
-
-const SESSION_SECRET = process.env.SESSION_SECRET || 'your-default-secret-change-me';
+import { SESSION_SECRET_ENCODED } from './secrets';
 
 export async function getAuthId(req?: NextRequest) {
   let accessToken: string | undefined;
@@ -19,7 +18,7 @@ export async function getAuthId(req?: NextRequest) {
   try {
     const { payload } = await jwtVerify(
       accessToken,
-      new TextEncoder().encode(SESSION_SECRET)
+      SESSION_SECRET_ENCODED
     );
     return payload.id as string;
   } catch (err) {

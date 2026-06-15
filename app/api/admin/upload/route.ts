@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 
 const SESSION_SECRET = new TextEncoder().encode(
-  process.env.SESSION_SECRET || 'your-default-secret-change-me'
+  process.env.SESSION_SECRET!
 );
 
 async function checkAdmin() {

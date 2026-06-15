@@ -1,4 +1,5 @@
 import { Pool, QueryResult, QueryResultRow, QueryConfig } from "pg";
+import './secrets';
 
 const isProduction = process.env.NODE_ENV === "production";
 
