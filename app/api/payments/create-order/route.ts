@@ -7,10 +7,15 @@ const SESSION_SECRET = process.env.SESSION_SECRET!;
 const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
 const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
 
-const razorpay = new Razorpay({
-  key_id: RAZORPAY_KEY_ID!,
-  key_secret: RAZORPAY_KEY_SECRET!,
-});
+function getRazorpay() {
+  if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
+    throw new Error('Razorpay keys (RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET) are required.');
+  }
+  return new Razorpay({
+    key_id: RAZORPAY_KEY_ID,
+    key_secret: RAZORPAY_KEY_SECRET,
+  });
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -141,7 +146,7 @@ export async function POST(req: NextRequest) {
     };
 
     console.log('Creating Razorpay Order:', options);
-    const order = await razorpay.orders.create(options);
+    const order = await getRazorpay().orders.create(options);
 
     // 4. Record pending payment
     await pool.query(

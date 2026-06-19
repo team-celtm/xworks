@@ -1,4 +1,4 @@
-const secret = process.env.SESSION_SECRET;
+const secret = process.env.SESSION_SECRET || (process.env.NEXT_PHASE === 'phase-production-build' ? 'build-phase-placeholder-secret-value' : undefined);
 
 if (!secret) {
   throw new Error('SESSION_SECRET environment variable is required');
