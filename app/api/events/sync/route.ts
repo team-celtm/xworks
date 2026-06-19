@@ -4,6 +4,10 @@ import { jwtVerify } from 'jose';
 
 const SESSION_SECRET = process.env.SESSION_SECRET!;
 
+const globalForSync = global as unknown as {
+  autoCompleteLastTriggered?: number;
+};
+
 export async function GET(req: NextRequest) {
   try {
     const accessToken = req.cookies.get('access_token')?.value;
@@ -18,6 +22,30 @@ export async function GET(req: NextRequest) {
     
     if (req.signal.aborted) {
       return NextResponse.json([], { status: 499 });
+    }
+
+    const gracePeriodMs = parseInt(process.env.SESSION_GRACE_PERIOD_MINUTES || '10') * 60 * 1000;
+
+    // AUTO-EXPIRE ORPHANED SESSIONS
+    // If a session has passed its scheduled_end + grace period and was never started/completed,
+    // we auto-mark it as expired to clean up the system.
+    await pool.query(`
+      UPDATE live_sessions
+      SET status = 'expired', updated_at = NOW()
+      WHERE status = 'scheduled' 
+      AND (
+        (scheduled_end IS NOT NULL AND NOW() > (scheduled_end + interval '1 millisecond' * $1))
+        OR
+        (scheduled_end IS NULL AND NOW() > (scheduled_start + interval '1 hour' + interval '1 millisecond' * $1))
+      )
+    `, [gracePeriodMs]);
+
+    // Lazily trigger auto-complete for orphaned live sessions
+    // Fire and forget without blocking, throttled to at most once every 5 minutes
+    const now = Date.now();
+    if (!globalForSync.autoCompleteLastTriggered || now - globalForSync.autoCompleteLastTriggered > 300000) {
+      globalForSync.autoCompleteLastTriggered = now;
+      fetch(`${req.nextUrl.origin}/api/cron/auto-complete`, { method: 'POST' }).catch(() => {});
     }
 
     // FETCH DELTA UPDATES
