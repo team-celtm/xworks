@@ -6,6 +6,7 @@ import { Suspense } from 'react';
 import '../../catalogue/catalogue.css';
 import Logo from '../../components/Logo';
 import AlertModal from '../../components/AlertModal';
+import EnrolModal from '../../components/EnrolModal';
 import { formatDuration } from '@/lib/utils';
 import { fetchApi } from '@/lib/apiClient';
 
@@ -70,6 +71,8 @@ export default function CourseDetailPage() {
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [avatarFailed, setAvatarFailed] = useState(false);
   const [currentTime, setCurrentTime] = useState(Date.now());
+  const [isEnrolModalOpen, setIsEnrolModalOpen] = useState(false);
+  const [enrolModalData, setEnrolModalData] = useState<any>(null);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(Date.now()), 5000);
@@ -145,13 +148,12 @@ export default function CourseDetailPage() {
     </div>
   );
 
-  const handleEnrol = async () => {
+  const handleEnrolClick = () => {
     if (!course) return;
     if (user && (user.role === 'admin' || user.role === 'instructor')) {
       setAlertOpen(true);
       return;
     }
-
     const hasAvailableSession = sessions.some(s => {
       const isPast = new Date(s.scheduledStart).getTime() < currentTime;
       const isCancelled = s.status === 'cancelled';
@@ -163,91 +165,19 @@ export default function CourseDetailPage() {
       setError('Please select a live session first.');
       return;
     }
-    setEnrolling(true);
     setError(null);
-
-    try {
-      const res = await fetchApi('/api/learner/enrolments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ courseId: course.id, sessionId: selectedSessionId })
-      });
-
-      if (res.status === 401) {
-        router.push(`/Login?returnUrl=/courses/${slug}`);
-        return;
-      }
-
-      const data = await res.json();
-
-      if (res.status === 402) {
-        // Paid course - Intiate Razorpay
-        const orderRes = await fetchApi('/api/payments/create-order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ courseId: course.id, sessionId: selectedSessionId })
-        });
-
-        const orderData = await orderRes.json();
-        if (!orderRes.ok) {
-          throw new Error(orderData.message || orderData.error || 'Could not create payment order');
-        }
-
-        const options = {
-          key: orderData.keyId,
-          amount: orderData.amount,
-          currency: 'INR',
-          name: 'XWORKS',
-          description: `Enrolment for ${orderData.courseName}`,
-          order_id: orderData.orderId,
-          handler: async (response: any) => {
-            setEnrolling(true);
-            const verifyRes = await fetchApi('/api/payments/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                courseId: course.id
-              })
-            });
-            const verifyData = await verifyRes.json();
-            if (verifyRes.ok) {
-              setSuccess(true);
-              setTimeout(() => {
-                router.push(`/dashboard?view=upcoming`);
-              }, 1000);
-            } else {
-              setError(verifyData.error || 'Payment verification failed');
-              setEnrolling(false);
-            }
-          },
-          prefill: {
-            name: '', // Optional: populate if you have user info
-            email: '',
-          },
-          theme: { color: '#4F46E5' }
-        };
-
-        const rzp = new window.Razorpay(options);
-        rzp.open();
-        setEnrolling(false);
-        return;
-      }
-
-      if (res.ok) {
-        setSuccess(true);
-        setTimeout(() => {
-          router.push(`/dashboard?view=upcoming`);
-        }, 1500);
-      } else {
-        throw new Error(data.message || data.error || 'Failed to enrol');
-      }
-    } catch (err: any) {
-      setError(err.message);
-      setEnrolling(false);
-    }
+    setEnrolModalData({
+      id: course.id,
+      name: course.name,
+      meta: `by ${course.instructor} · ★ ${course.rating} · ${formatDuration(course.dur)} · ${course.categoryName}`,
+      basePrice: Number(course.price) || 0,
+      thumbBg: course.g,
+      thumbEmoji: course.logo || course.emoji,
+      isLive: course.live,
+      isNearby: course.nearby,
+      preselectedSessionId: selectedSessionId,
+    });
+    setIsEnrolModalOpen(true);
   };
 
   if (loading) return (
@@ -526,7 +456,7 @@ export default function CourseDetailPage() {
                       return (
                         <button
                           className={`enrol-cta-btn ${success ? 'success-state' : ''}`}
-                          onClick={handleEnrol}
+                          onClick={handleEnrolClick}
                           disabled={disableEnrol}
                           style={{ opacity: disableEnrol && !success ? 0.5 : 1 }}
                         >
@@ -1114,6 +1044,14 @@ export default function CourseDetailPage() {
         onClose={() => setAlertOpen(false)}
         title="Access Restricted"
         message="Administrators and Instructors are not allowed to enrol in or make payments for courses."
+      />
+      <EnrolModal
+        isOpen={isEnrolModalOpen}
+        onClose={() => setIsEnrolModalOpen(false)}
+        initialData={enrolModalData}
+        user={user}
+        preselectedSessionId={selectedSessionId}
+        onSuccess={() => router.push('/dashboard?view=upcoming')}
       />
     </div>
   );
