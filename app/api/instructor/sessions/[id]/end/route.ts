@@ -12,6 +12,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     const { payload } = await jwtVerify(accessToken, new TextEncoder().encode(SESSION_SECRET));
     const userId = (payload as any).id;
+    const role = (payload as any).role;
+
+    if (role !== 'instructor') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
     const { id: sessionId } = await params;
 
     // Verify ownership and check status

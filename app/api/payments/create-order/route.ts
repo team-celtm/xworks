@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
     let discount = 0;
     if (promoCode) {
       const promoRes = await pool.query(
-        'SELECT discount_percentage, discount_amount FROM promo_codes WHERE code = $1 AND expiry_date > NOW()',
+        'SELECT discount_percentage, discount_amount FROM promo_codes WHERE code = $1 AND expiry_date > NOW() AND (max_uses IS NULL OR used_count < max_uses)',
         [promoCode.toUpperCase()]
       );
       if (promoRes.rows.length > 0) {

@@ -53,10 +53,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Cannot provide both discount percentage and amount' }, { status: 400 });
     }
 
+    const normalizedCode = code.toUpperCase();
+    const existing = await pool.query('SELECT id FROM promo_codes WHERE code = $1', [normalizedCode]);
+    if (existing.rows.length > 0) {
+      return NextResponse.json({ error: 'Promo code already exists' }, { status: 409 });
+    }
+
     const insertRes = await pool.query(
       `INSERT INTO promo_codes (code, discount_percentage, discount_amount, max_uses, expiry_date, created_at) 
        VALUES ($1, $2, $3, $4, $5, NOW()) RETURNING *`,
-      [code.toUpperCase(), discount_percentage || null, discount_amount || null, max_uses || null, expiry_date || null]
+      [normalizedCode, discount_percentage || null, discount_amount || null, max_uses || null, expiry_date || null]
     );
 
     return NextResponse.json({ success: true, promo: insertRes.rows[0] });

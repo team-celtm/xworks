@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import pool from '@/lib/db';
+import { isRateLimited } from '@/lib/rateLimit';
 
 export async function POST(req: NextRequest) {
+  const ip = req.headers.get('x-forwarded-for') || '127.0.0.1';
+  if (isRateLimited(ip)) {
+    return NextResponse.json({ error: 'Too many requests. Please try again in 15 minutes.' }, { status: 429 });
+  }
+
   try {
     const { email, otp } = await req.json();
 

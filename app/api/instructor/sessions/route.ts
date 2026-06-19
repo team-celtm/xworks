@@ -11,6 +11,11 @@ export async function GET(req: NextRequest) {
 
     const { payload } = await jwtVerify(accessToken, new TextEncoder().encode(SESSION_SECRET));
     const userId = (payload as any).id;
+    const role = (payload as any).role;
+
+    if (role !== 'instructor') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const userCheck = await pool.query('SELECT status FROM users WHERE id = $1', [userId]);
     if (userCheck.rows.length === 0 || userCheck.rows[0].status === 'suspended') {
@@ -53,6 +58,11 @@ export async function POST(req: NextRequest) {
 
     const { payload } = await jwtVerify(accessToken, new TextEncoder().encode(SESSION_SECRET));
     const userId = (payload as any).id;
+    const role = (payload as any).role;
+
+    if (role !== 'instructor') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
 
     const userCheck = await pool.query('SELECT status FROM users WHERE id = $1', [userId]);
     if (userCheck.rows.length === 0 || userCheck.rows[0].status === 'suspended') {

@@ -8,7 +8,14 @@ export async function GET(req: NextRequest) {
     const category = searchParams.get('category');
 
     const sort = searchParams.get('sort');
-    const limit = parseInt(searchParams.get('limit') || '50', 10);
+    
+    // Parse limit safely, bounded between 1 and 100 (BUG-019)
+    let limit = parseInt(searchParams.get('limit') || '50', 10);
+    if (isNaN(limit) || limit < 1) {
+      limit = 50;
+    } else if (limit > 100) {
+      limit = 100;
+    }
 
     let select = `
       SELECT 
@@ -37,51 +44,33 @@ export async function GET(req: NextRequest) {
     const where: string[] = [];
     
     if (query) {
-      // 1. Process query for FTS tsquery (strip punctuation, keep words > 2 chars, join with | for OR logic)
-      const words = query.replace(/[^\w\s]/g, '').split(/\s+/).filter(w => w.length > 2);
-      const tsquery = words.join(' | ');
-
-      // Keep raw query and wildcard query for trigram/ILIKE fallback
+      // Use websearch_to_tsquery for safe, robust full-text search without syntax errors (BUG-018)
       values.push(query, `%${query}%`);
-      const qIdx = values.length - 1;
-      const likeIdx = values.length;
+      const qIdx = values.length - 1; // 1
+      const likeIdx = values.length;   // 2
 
-      if (tsquery) {
-        values.push(tsquery);
-        const tsIdx = values.length;
-
-        select += `, 
-          (
-            ts_rank(
-              setweight(to_tsvector('english', coalesce(c.name, '')), 'A') || 
-              setweight(to_tsvector('english', coalesce(cat.name, '')), 'B') ||
-              setweight(to_tsvector('english', coalesce(u.first_name, '') || ' ' || coalesce(u.last_name, '')), 'C'),
-              to_tsquery('english', $${tsIdx})
-            ) 
-            + (similarity(c.name, $${qIdx}) * 0.5)
-          ) as rank`;
-        
-        where.push(`(
-          (
+      select += `, 
+        (
+          ts_rank(
             setweight(to_tsvector('english', coalesce(c.name, '')), 'A') || 
-            setweight(to_tsvector('english', coalesce(cat.name, '')), 'B') || 
-            setweight(to_tsvector('english', coalesce(u.first_name, '') || ' ' || coalesce(u.last_name, '')), 'C')
-          ) @@ to_tsquery('english', $${tsIdx})
-          OR c.name % $${qIdx} 
-          OR c.name ILIKE $${likeIdx}
-          OR cat.name ILIKE $${likeIdx}
-          OR (u.first_name || ' ' || u.last_name) ILIKE $${likeIdx}
-        )`);
-      } else {
-        // Fallback if query was too short/no words left after filter
-        select += `, similarity(c.name, $${qIdx}) as rank`;
-        where.push(`(
-          c.name % $${qIdx} 
-          OR c.name ILIKE $${likeIdx} 
-          OR cat.name ILIKE $${likeIdx}
-          OR (u.first_name || ' ' || u.last_name) ILIKE $${likeIdx}
-        )`);
-      }
+            setweight(to_tsvector('english', coalesce(cat.name, '')), 'B') ||
+            setweight(to_tsvector('english', coalesce(u.first_name, '') || ' ' || coalesce(u.last_name, '')), 'C'),
+            websearch_to_tsquery('english', $${qIdx})
+          ) 
+          + (similarity(c.name, $${qIdx}) * 0.5)
+        ) as rank`;
+      
+      where.push(`(
+        (
+          setweight(to_tsvector('english', coalesce(c.name, '')), 'A') || 
+          setweight(to_tsvector('english', coalesce(cat.name, '')), 'B') || 
+          setweight(to_tsvector('english', coalesce(u.first_name, '') || ' ' || coalesce(u.last_name, '')), 'C')
+        ) @@ websearch_to_tsquery('english', $${qIdx})
+        OR c.name % $${qIdx} 
+        OR c.name ILIKE $${likeIdx}
+        OR cat.name ILIKE $${likeIdx}
+        OR (u.first_name || ' ' || u.last_name) ILIKE $${likeIdx}
+      )`);
     }
 
     if (category) {

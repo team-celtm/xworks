@@ -20,21 +20,25 @@ export function getBaseUrl(req?: NextRequest): string {
   // 1. Priority: Manual override (Canonical Production URL)
   // Highly recommended for OAuth to ensure consistent redirect URIs
   const envBaseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-  if (envBaseUrl && !envBaseUrl.includes('localhost')) {
+  if (envBaseUrl) {
     return envBaseUrl.replace(/\/$/, '');
   }
 
   // 2. Fallback: Request headers (Current deployment URL)
   // This is usually correct for both local and production (even with custom domains)
   if (req) {
-    const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
+    const host = req.headers.get('host');
     const protocol = req.headers.get('x-forwarded-proto') || (host?.includes('localhost') ? 'http' : 'https');
     
     if (host) {
-      return `${protocol}://${host}`;
+      // Validate host to prevent host header injection
+      const isAllowedHost = host.includes('localhost') || host.includes('127.0.0.1') || 
+                            (process.env.ALLOWED_HOSTS?.split(',').map(h => h.trim()).includes(host));
+      if (isAllowedHost || process.env.NODE_ENV !== 'production') {
+        return `${protocol}://${host}`;
+      }
     }
   }
-
 
   // 3. Fallback: Vercel System Variables
   if (process.env.NEXT_PUBLIC_VERCEL_URL) {
@@ -42,7 +46,7 @@ export function getBaseUrl(req?: NextRequest): string {
   }
 
   // 4. Local Development Fallback
-  return envBaseUrl || 'http://localhost:3000';
+  return 'http://localhost:3000';
 }
 
 

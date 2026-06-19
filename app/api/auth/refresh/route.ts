@@ -6,19 +6,8 @@ const SESSION_SECRET = process.env.SESSION_SECRET!;
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Get refresh token from cookies (or optionally from body/auth header if provided that way)
-    const refreshTokenCookie = req.cookies.get('refresh_token')?.value;
-    
-    // Also allow passing it in the body just in case the frontend relies on explicit passing
-    let bodyRefreshToken: string | undefined;
-    try {
-      const body = await req.json();
-      bodyRefreshToken = body.refresh_token;
-    } catch {
-      // Ignored if body is empty
-    }
-
-    const refreshToken = refreshTokenCookie || bodyRefreshToken;
+    // 1. Get refresh token from cookies only (BUG-012)
+    const refreshToken = req.cookies.get('refresh_token')?.value;
 
     if (!refreshToken) {
       return NextResponse.json({ error: 'Refresh token is required' }, { status: 401 });

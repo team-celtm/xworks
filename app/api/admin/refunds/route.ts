@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import pool from '@/lib/db';
 import { createNotification } from '@/lib/notifications';
+import Razorpay from 'razorpay';
 
 const SESSION_SECRET = new TextEncoder().encode(
   process.env.SESSION_SECRET!
@@ -37,9 +38,9 @@ export async function POST(req: Request) {
     try {
       await client.query('BEGIN');
 
-      // Fetch existing payment
+      // Fetch existing payment and lock the row to avoid parallel refund races
       const paymentCheck = await client.query(
-        `SELECT * FROM payments WHERE razorpay_order_id = $1 OR razorpay_payment_id = $1`,
+        `SELECT * FROM payments WHERE razorpay_order_id = $1 OR razorpay_payment_id = $1 FOR UPDATE`,
         [orderId]
       );
 
@@ -52,14 +53,57 @@ export async function POST(req: Request) {
       const fee = parseFloat(payment.gateway_fee || '0');
       const tax = parseFloat(payment.tax_amount || '0');
 
-      const refundValue = refundAmount ? parseFloat(refundAmount) : totalAmount;
-      if (refundValue > totalAmount) {
-         throw new Error('Refund exceeds amount');
+      if (payment.payment_status === 'refunded') {
+        throw new Error('Payment is already fully refunded');
       }
 
-      const isPartial = refundValue < totalAmount;
+      const alreadyRefunded = (payment.metadata?.refunds || []).reduce(
+        (acc: number, r: any) => acc + parseFloat(r.amount || '0'),
+        0
+      );
+
+      const refundValue = refundAmount ? parseFloat(refundAmount) : (totalAmount - alreadyRefunded);
+
+      if (refundValue <= 0) {
+        throw new Error('Refund amount must be greater than zero');
+      }
+
+      if (alreadyRefunded + refundValue > totalAmount) {
+        throw new Error('Total refunds would exceed original payment amount');
+      }
+
+      const isPartial = (alreadyRefunded + refundValue) < totalAmount;
       const newStatus = isPartial ? 'partially_refunded' : 'refunded';
-      const newNet = totalAmount - refundValue - fee - tax;
+      
+      // Clamp newNet to 0 to prevent negative values (BUG-020)
+      const newNet = Math.max(0, totalAmount - (alreadyRefunded + refundValue) - fee - tax);
+
+      if (!payment.razorpay_payment_id) {
+        throw new Error('No Razorpay payment ID found on this record to process refund');
+      }
+
+      // Initialize Razorpay client (BUG-009)
+      const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
+      const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
+      if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
+        throw new Error('Razorpay credentials are not configured');
+      }
+      
+      const razorpay = new Razorpay({
+        key_id: RAZORPAY_KEY_ID,
+        key_secret: RAZORPAY_KEY_SECRET,
+      });
+
+      // Call Razorpay API (BUG-009)
+      try {
+        await razorpay.payments.refund(payment.razorpay_payment_id, {
+          amount: Math.round(refundValue * 100), // convert to paise
+          notes: { reason: reason || 'Admin refund', admin_id: admin.id, orderId }
+        });
+      } catch (rzpErr: any) {
+        console.error('Razorpay Refund API Failure:', rzpErr);
+        throw new Error(`Razorpay Refund API error: ${rzpErr.description || rzpErr.message || 'Unknown error'}`);
+      }
 
       const metadataUpdate = {
         ...payment.metadata,
@@ -69,7 +113,7 @@ export async function POST(req: Request) {
         ]
       };
 
-      // Update payment
+      // Update payment status in database
       const paymentRes = await client.query(
         `UPDATE payments 
          SET payment_status = $1, 
@@ -147,6 +191,20 @@ export async function POST(req: Request) {
     }
   } catch (err: any) {
     console.error(err);
-    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
+    // Sanitize error messages to avoid internal details leakage (BUG-027)
+    const knownErrors = [
+      'Payment not found',
+      'Payment is already fully refunded',
+      'Refund amount must be greater than zero',
+      'Refund exceeds amount',
+      'Total refunds would exceed original payment amount',
+      'No Razorpay payment ID found on this record to process refund',
+      'Razorpay credentials are not configured'
+    ];
+    const isKnown = knownErrors.includes(err.message) || err.message?.startsWith('Razorpay Refund API error:');
+    return NextResponse.json(
+      { error: isKnown ? err.message : 'Internal Server Error' },
+      { status: isKnown ? 400 : 500 }
+    );
   }
 }

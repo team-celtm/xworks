@@ -48,14 +48,14 @@ export async function GET(req: Request) {
     let where = ["p.rn = 1"];
     let params: any[] = [];
 
-    // Base relationships for WHERE clause
+    // Base relationships for WHERE clause (BUG-034)
     let fromClause = `
       FROM (
         SELECT *, ROW_NUMBER() OVER (PARTITION BY COALESCE(NULLIF(razorpay_payment_id, ''), id::text) ORDER BY created_at DESC) as rn
         FROM payments
       ) p
       LEFT JOIN enrolments e ON e.id::text = p.enrolment_id
-      LEFT JOIN users u ON u.id::text = p.user_id OR u.id = e.user_id
+      LEFT JOIN users u ON u.id::text = p.user_id
       LEFT JOIN courses c ON c.id = e.course_id
     `;
 

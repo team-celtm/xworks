@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
       } else {
         // Fallback pricing calculation
         const courseRes = await pool.query('SELECT price FROM courses WHERE id = $1', [courseId]);
-        let price = parseFloat(courseRes.rows[0].price);
+        const price = parseFloat(courseRes.rows[0].price);
 
         // Apply promo if any for price_paid_paise calculation
         finalPaise = Math.round(price * 100);
@@ -134,6 +134,16 @@ export async function POST(req: NextRequest) {
     const isNewlyCaptured = updateRes.rows.length > 0;
 
     if (isNewlyCaptured) {
+      if (promoCode) {
+        try {
+          await pool.query(
+            'UPDATE promo_codes SET used_count = used_count + 1 WHERE code = $1',
+            [promoCode.toUpperCase()]
+          );
+        } catch (promoErr) {
+          console.error('Failed to increment promo code used count:', promoErr);
+        }
+      }
       try {
         // Dispatch enrollment notification to student
         if (userId && courseId) {
@@ -181,10 +191,13 @@ export async function POST(req: NextRequest) {
 
     // 5. AUTO REGISTER FOR SESSION IF PROVIDED
     if (sessionId) {
+      const client = await pool.connect();
       try {
-        // Verify session is still valid before auto-registering
-        const sessionCheck = await pool.query(
-          'SELECT scheduled_start, status, max_seats, registered_count FROM live_sessions WHERE id = $1',
+        await client.query('BEGIN');
+
+        // Verify session is still valid and lock the row before auto-registering (BUG-004)
+        const sessionCheck = await client.query(
+          'SELECT scheduled_start, status, max_seats, registered_count FROM live_sessions WHERE id = $1 FOR UPDATE',
           [sessionId]
         );
 
@@ -196,31 +209,33 @@ export async function POST(req: NextRequest) {
           const isFull = sess.max_seats !== null && sess.registered_count >= sess.max_seats;
 
           if (!isExpired && !isCancelled && !isFull) {
-            // Simple check to avoid double registration in this flow
-            const regCheck = await pool.query(
+            // Check to avoid double registration in this flow
+            const regCheck = await client.query(
               'SELECT id FROM session_registrations WHERE enrolment_id = $1 AND session_id = $2',
               [enrolmentId, sessionId]
             );
             if (regCheck.rows.length === 0) {
-              await pool.query('BEGIN');
-              await pool.query(
+              await client.query(
                 "INSERT INTO session_registrations (enrolment_id, session_id, status, registered_at) VALUES ($1, $2, 'registered', NOW())",
                 [enrolmentId, sessionId]
               );
-              await pool.query(
+              await client.query(
                 'UPDATE live_sessions SET registered_count = registered_count + 1 WHERE id = $1',
                 [sessionId]
               );
-              await pool.query('COMMIT');
             }
           } else {
-            console.warn('Skipped auto-registration during verify because session became invalid', { sessionId, isExpired, isCancelled, isFull });
+            console.warn('Skipped auto-registration during verify because session became invalid or full', { sessionId, isExpired, isCancelled, isFull });
           }
         }
+        await client.query('COMMIT');
       } catch (sessError) {
+        await client.query('ROLLBACK');
         console.error('Auto-session registration failed during verification:', sessError);
         // We don't fail the whole payment verification if session registration fails, 
         // but it's logged. The user can attempt manual registration later.
+      } finally {
+        client.release();
       }
     }
 
