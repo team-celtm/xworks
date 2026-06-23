@@ -18,87 +18,101 @@ export async function POST(
     const userId = (payload as any).id;
     const userEmail = (payload as any).email;
 
-    // 1. Get session details & course info
-    const sessionRes = await pool.query(`
-      SELECT s.*, c.name as course_name 
-      FROM live_sessions s
-      JOIN courses c ON s.course_id = c.id
-      WHERE s.id = $1::uuid
-    `, [sessionId]);
+    // 1. Get session details & course info using a client from pool to wrap in transaction with FOR UPDATE locking
+    const client = await pool.connect();
+    let session;
+    let enrolmentId;
 
-    if (sessionRes.rows.length === 0) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
-    }
-
-    const session = sessionRes.rows[0];
-
-    const sessionStart = new Date(session.scheduled_start);
-    if (sessionStart.getTime() <= Date.now()) {
-      return NextResponse.json({ 
-        success: false, 
-        message: 'This session slot has expired.' 
-      }, { status: 400 });
-    }
-
-    if (session.status === 'cancelled') {
-      return NextResponse.json({ 
-        success: false, 
-        message: 'This session slot has been cancelled.' 
-      }, { status: 400 });
-    }
-
-    // 2. Check if user is enrolled
-    const enrolRes = await pool.query(
-      'SELECT id FROM enrolments WHERE user_id = $1::uuid AND course_id = $2::uuid AND status = $3',
-      [userId, session.course_id, 'active']
-    );
-
-    if (enrolRes.rows.length === 0) {
-      return NextResponse.json({ error: 'Must be enrolled to register for a live session' }, { status: 403 });
-    }
-
-    const enrolmentId = enrolRes.rows[0].id;
-
-    // 3. Check for existing active registration for any scheduled/live session of the same course
-    const activeRegCheck = await pool.query(`
-      SELECT sr.id 
-      FROM session_registrations sr
-      JOIN live_sessions ls ON sr.session_id = ls.id
-      WHERE sr.enrolment_id = $1::uuid 
-        AND ls.course_id = $2::uuid 
-        AND ls.status IN ('scheduled', 'live')
-        AND sr.status = 'registered'
-    `, [enrolmentId, session.course_id]);
-
-    if (activeRegCheck.rows.length > 0) {
-      return NextResponse.json({ 
-        error: 'Already registered for an active session of this course' 
-      }, { status: 400 });
-    }
-
-    // 4. Check seat availability
-    if (session.max_seats && session.registered_count >= session.max_seats) {
-      return NextResponse.json({ error: 'Session is full' }, { status: 400 });
-    }
-
-    // 5. Create registration
-    await pool.query('BEGIN');
     try {
-      await pool.query(
+      await client.query('BEGIN');
+
+      const sessionRes = await client.query(`
+        SELECT s.*, c.name as course_name 
+        FROM live_sessions s
+        JOIN courses c ON s.course_id = c.id
+        WHERE s.id = $1::uuid
+        FOR UPDATE
+      `, [sessionId]);
+
+      if (sessionRes.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+      }
+
+      session = sessionRes.rows[0];
+
+      const sessionStart = new Date(session.scheduled_start);
+      if (sessionStart.getTime() <= Date.now()) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ 
+          success: false, 
+          message: 'This session slot has expired.' 
+        }, { status: 400 });
+      }
+
+      if (session.status === 'cancelled') {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ 
+          success: false, 
+          message: 'This session slot has been cancelled.' 
+        }, { status: 400 });
+      }
+
+      // 2. Check if user is enrolled
+      const enrolRes = await client.query(
+        'SELECT id FROM enrolments WHERE user_id = $1::uuid AND course_id = $2::uuid AND status = $3',
+        [userId, session.course_id, 'active']
+      );
+
+      if (enrolRes.rows.length === 0) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ error: 'Must be enrolled to register for a live session' }, { status: 403 });
+      }
+
+      enrolmentId = enrolRes.rows[0].id;
+
+      // 3. Check for existing active registration for any scheduled/live session of the same course
+      const activeRegCheck = await client.query(`
+        SELECT sr.id 
+        FROM session_registrations sr
+        JOIN live_sessions ls ON sr.session_id = ls.id
+        WHERE sr.enrolment_id = $1::uuid 
+          AND ls.course_id = $2::uuid 
+          AND ls.status IN ('scheduled', 'live')
+          AND sr.status = 'registered'
+      `, [enrolmentId, session.course_id]);
+
+      if (activeRegCheck.rows.length > 0) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ 
+          error: 'Already registered for an active session of this course' 
+        }, { status: 400 });
+      }
+
+      // 4. Check seat availability
+      if (session.max_seats && session.registered_count >= session.max_seats) {
+        await client.query('ROLLBACK');
+        return NextResponse.json({ error: 'Session is full' }, { status: 400 });
+      }
+
+      // 5. Create registration
+      await client.query(
         `INSERT INTO session_registrations (enrolment_id, session_id, status, registered_at) 
          VALUES ($1::uuid, $2::uuid, 'registered', NOW())`,
         [enrolmentId, sessionId]
       );
 
-      await pool.query(
+      await client.query(
         'UPDATE live_sessions SET registered_count = registered_count + 1 WHERE id = $1::uuid',
         [sessionId]
       );
 
-      await pool.query('COMMIT');
+      await client.query('COMMIT');
     } catch (e) {
-      await pool.query('ROLLBACK');
+      await client.query('ROLLBACK');
       throw e;
+    } finally {
+      client.release();
     }
 
     // 6. Send confirmation email

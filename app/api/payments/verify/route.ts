@@ -53,97 +53,154 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Order course mismatch detected' }, { status: 400 });
     }
 
-    // 2. Check if already enrolled
-    const checkRes = await pool.query(
-      'SELECT id, status FROM enrolments WHERE user_id = $1 AND course_id = $2',
-      [userId, courseId]
-    );
- 
+    // 2. Process database updates transactionally with FOR UPDATE locks to serialize verify and webhook (BUG-005, BUG-015)
+    const client = await pool.connect();
     let enrolmentId;
+    let isNewlyCaptured = false;
 
-    if (checkRes.rows.length > 0) {
-      const existing = checkRes.rows[0];
-      enrolmentId = existing.id;
-      // If not active (e.g. completed), reset it to active for re-enrolment
-      if (existing.status !== 'active') {
-        await pool.query(
-          "UPDATE enrolments SET status = 'active', progress_pct = 0, enrolled_at = NOW(), completed_at = NULL WHERE id = $1",
-          [enrolmentId]
-        );
-      }
-    } else {
-      // 3. Create Enrolment
-      // Retrieve the database-recorded payment amount if exists
-      const paymentRes = await pool.query(
-        'SELECT amount FROM payments WHERE razorpay_order_id = $1',
+    try {
+      await client.query('BEGIN');
+
+      // Lock the payment row FOR UPDATE immediately to serialize concurrent verify & webhook requests
+      const payCheck = await client.query(
+        'SELECT id, status, enrolment_id, amount FROM payments WHERE razorpay_order_id = $1 FOR UPDATE',
         [razorpay_order_id]
       );
 
-      let finalPaise;
-      if (paymentRes.rows.length > 0) {
-        finalPaise = Math.round(Number(paymentRes.rows[0].amount) * 100);
+      if (payCheck.rows.length > 0 && payCheck.rows[0].status === 'captured') {
+        enrolmentId = payCheck.rows[0].enrolment_id;
+        console.log('Payment already captured (verify flow re-use):', razorpay_order_id);
       } else {
-        // Fallback pricing calculation
-        const courseRes = await pool.query('SELECT price FROM courses WHERE id = $1', [courseId]);
-        const price = parseFloat(courseRes.rows[0].price);
+        // Check if already enrolled
+        const checkRes = await client.query(
+          'SELECT id, status FROM enrolments WHERE user_id = $1 AND course_id = $2',
+          [userId, courseId]
+        );
 
-        // Apply promo if any for price_paid_paise calculation
-        finalPaise = Math.round(price * 100);
-        if (promoCode) {
-          const promoRes = await pool.query(
-            'SELECT discount_percentage, discount_amount FROM promo_codes WHERE code = $1',
-            [promoCode.toUpperCase()]
-          );
-          if (promoRes.rows.length > 0) {
-            const p = promoRes.rows[0];
-            const discountPercentage = p.discount_percentage ? Number(p.discount_percentage) : null;
-            const discountAmount = p.discount_amount ? Number(p.discount_amount) : null;
-            
-            let discount = 0;
-            if (discountAmount !== null) {
-              discount = discountAmount;
-            } else if (discountPercentage !== null) {
-              discount = (price * discountPercentage) / 100;
+        if (checkRes.rows.length > 0) {
+          const existing = checkRes.rows[0];
+          enrolmentId = existing.id;
+          // If not active (e.g. completed), reset it to active for re-enrolment
+          if (existing.status !== 'active') {
+            await client.query(
+              "UPDATE enrolments SET status = 'active', progress_pct = 0, enrolled_at = NOW(), completed_at = NULL WHERE id = $1",
+              [enrolmentId]
+            );
+          }
+        } else {
+          // Create Enrolment
+          let finalPaise;
+          if (payCheck.rows.length > 0) {
+            finalPaise = Math.round(Number(payCheck.rows[0].amount) * 100);
+          } else {
+            // Fallback pricing calculation
+            const courseRes = await client.query('SELECT price FROM courses WHERE id = $1', [courseId]);
+            const price = parseFloat(courseRes.rows[0].price);
+
+            // Apply promo if any for price_paid_paise calculation
+            finalPaise = Math.round(price * 100);
+            if (promoCode) {
+              const promoRes = await client.query(
+                'SELECT discount_percentage, discount_amount FROM promo_codes WHERE code = $1',
+                [promoCode.toUpperCase()]
+              );
+              if (promoRes.rows.length > 0) {
+                const p = promoRes.rows[0];
+                const discountPercentage = p.discount_percentage ? Number(p.discount_percentage) : null;
+                const discountAmount = p.discount_amount ? Number(p.discount_amount) : null;
+                
+                let discount = 0;
+                if (discountAmount !== null) {
+                  discount = discountAmount;
+                } else if (discountPercentage !== null) {
+                  discount = (price * discountPercentage) / 100;
+                }
+                finalPaise = Math.round(Math.max(0, price - discount) * 100);
+              }
             }
-            finalPaise = Math.round(Math.max(0, price - discount) * 100);
+          }
+
+          const insertEnrolSql = `
+            INSERT INTO enrolments (
+              user_id, course_id, status, progress_pct, enrolled_at, 
+              price_paid_paise, currency, source, promo_code_used
+            )
+            VALUES ($1, $2, 'active', 0, NOW(), $3, 'INR', 'razorpay', $4)
+            RETURNING id
+          `;
+          const enrolRes = await client.query(insertEnrolSql, [userId, courseId, finalPaise, promoCode || null]);
+          enrolmentId = enrolRes.rows[0].id;
+        }
+
+        // Update Payment record
+        const updateRes = await client.query(
+          `UPDATE payments 
+           SET status = 'captured', razorpay_payment_id = $1, enrolment_id = $2, razorpay_signature = $3
+           WHERE razorpay_order_id = $4 AND status != 'captured'
+           RETURNING id`,
+          [razorpay_payment_id, enrolmentId, razorpay_signature, razorpay_order_id]
+        );
+
+        isNewlyCaptured = updateRes.rows.length > 0;
+
+        if (isNewlyCaptured && promoCode) {
+          try {
+            await client.query(
+              'UPDATE promo_codes SET used_count = used_count + 1 WHERE code = $1',
+              [promoCode.toUpperCase()]
+            );
+          } catch (promoErr) {
+            console.error('Failed to increment promo code used count:', promoErr);
           }
         }
       }
 
-      const insertEnrolSql = `
-        INSERT INTO enrolments (
-          user_id, course_id, status, progress_pct, enrolled_at, 
-          price_paid_paise, currency, source, promo_code_used
-        )
-        VALUES ($1, $2, 'active', 0, NOW(), $3, 'INR', 'razorpay', $4)
-        RETURNING id
-      `;
-      const enrolRes = await pool.query(insertEnrolSql, [userId, courseId, finalPaise, promoCode || null]);
-      enrolmentId = enrolRes.rows[0].id;
-    }
+      // 5. AUTO REGISTER FOR SESSION IF PROVIDED (inside same transaction)
+      if (sessionId) {
+        // Verify session is still valid and lock the row before auto-registering (BUG-004)
+        const sessionCheck = await client.query(
+          'SELECT scheduled_start, status, max_seats, registered_count FROM live_sessions WHERE id = $1 FOR UPDATE',
+          [sessionId]
+        );
 
-    // 4. Update Payment record
-    const updateRes = await pool.query(
-      `UPDATE payments 
-       SET status = 'captured', razorpay_payment_id = $1, enrolment_id = $2, razorpay_signature = $3
-       WHERE razorpay_order_id = $4 AND status != 'captured'
-       RETURNING id`,
-      [razorpay_payment_id, enrolmentId, razorpay_signature, razorpay_order_id]
-    );
+        if (sessionCheck.rows.length > 0) {
+          const sess = sessionCheck.rows[0];
+          const sessionStart = new Date(sess.scheduled_start);
+          const isExpired = sessionStart.getTime() <= Date.now();
+          const isCancelled = sess.status === 'cancelled';
+          const isFull = sess.max_seats !== null && sess.registered_count >= sess.max_seats;
 
-    const isNewlyCaptured = updateRes.rows.length > 0;
-
-    if (isNewlyCaptured) {
-      if (promoCode) {
-        try {
-          await pool.query(
-            'UPDATE promo_codes SET used_count = used_count + 1 WHERE code = $1',
-            [promoCode.toUpperCase()]
-          );
-        } catch (promoErr) {
-          console.error('Failed to increment promo code used count:', promoErr);
+          if (!isExpired && !isCancelled && !isFull) {
+            // Check to avoid double registration in this flow
+            const regCheck = await client.query(
+              'SELECT id FROM session_registrations WHERE enrolment_id = $1 AND session_id = $2',
+              [enrolmentId, sessionId]
+            );
+            if (regCheck.rows.length === 0) {
+              await client.query(
+                "INSERT INTO session_registrations (enrolment_id, session_id, status, registered_at) VALUES ($1, $2, 'registered', NOW())",
+                [enrolmentId, sessionId]
+              );
+              await client.query(
+                'UPDATE live_sessions SET registered_count = registered_count + 1 WHERE id = $1',
+                [sessionId]
+              );
+            }
+          } else {
+            console.warn('Skipped auto-registration during verify because session became invalid or full', { sessionId, isExpired, isCancelled, isFull });
+          }
         }
       }
+
+      await client.query('COMMIT');
+    } catch (txErr) {
+      await client.query('ROLLBACK');
+      throw txErr;
+    } finally {
+      client.release();
+    }
+
+    if (isNewlyCaptured) {
       try {
         // Dispatch enrollment notification to student
         if (userId && courseId) {
@@ -180,62 +237,12 @@ export async function POST(req: NextRequest) {
                 title: 'New Student Enrolled 📈',
                 message: `A new learner (${student.first_name}) has enrolled in your course "${courseName}".`,
                 type: 'info'
-              });
+               });
             }
           }
         }
       } catch (err) {
         console.error('Error dispatching notifications in payment verify:', err);
-      }
-    }
-
-    // 5. AUTO REGISTER FOR SESSION IF PROVIDED
-    if (sessionId) {
-      const client = await pool.connect();
-      try {
-        await client.query('BEGIN');
-
-        // Verify session is still valid and lock the row before auto-registering (BUG-004)
-        const sessionCheck = await client.query(
-          'SELECT scheduled_start, status, max_seats, registered_count FROM live_sessions WHERE id = $1 FOR UPDATE',
-          [sessionId]
-        );
-
-        if (sessionCheck.rows.length > 0) {
-          const sess = sessionCheck.rows[0];
-          const sessionStart = new Date(sess.scheduled_start);
-          const isExpired = sessionStart.getTime() <= Date.now();
-          const isCancelled = sess.status === 'cancelled';
-          const isFull = sess.max_seats !== null && sess.registered_count >= sess.max_seats;
-
-          if (!isExpired && !isCancelled && !isFull) {
-            // Check to avoid double registration in this flow
-            const regCheck = await client.query(
-              'SELECT id FROM session_registrations WHERE enrolment_id = $1 AND session_id = $2',
-              [enrolmentId, sessionId]
-            );
-            if (regCheck.rows.length === 0) {
-              await client.query(
-                "INSERT INTO session_registrations (enrolment_id, session_id, status, registered_at) VALUES ($1, $2, 'registered', NOW())",
-                [enrolmentId, sessionId]
-              );
-              await client.query(
-                'UPDATE live_sessions SET registered_count = registered_count + 1 WHERE id = $1',
-                [sessionId]
-              );
-            }
-          } else {
-            console.warn('Skipped auto-registration during verify because session became invalid or full', { sessionId, isExpired, isCancelled, isFull });
-          }
-        }
-        await client.query('COMMIT');
-      } catch (sessError) {
-        await client.query('ROLLBACK');
-        console.error('Auto-session registration failed during verification:', sessError);
-        // We don't fail the whole payment verification if session registration fails, 
-        // but it's logged. The user can attempt manual registration later.
-      } finally {
-        client.release();
       }
     }
 
