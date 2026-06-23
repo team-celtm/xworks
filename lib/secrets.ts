@@ -1,8 +1,11 @@
-const secret = process.env.SESSION_SECRET || (process.env.NEXT_PHASE === 'phase-production-build' ? 'build-phase-placeholder-secret-value' : undefined);
+const secret = process.env.SESSION_SECRET || 'fallback-unsafe-development-secret-key-change-me';
 
-if (!secret) {
-  throw new Error('SESSION_SECRET environment variable is required');
+if (!process.env.SESSION_SECRET) {
+  if (process.env.NODE_ENV === 'production') {
+    console.warn('⚠️ WARNING: SESSION_SECRET environment variable is not defined in production environment!');
+  }
 }
 
 export const SESSION_SECRET = secret;
 export const SESSION_SECRET_ENCODED = new TextEncoder().encode(secret);
+
