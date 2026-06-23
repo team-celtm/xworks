@@ -249,10 +249,14 @@ export async function POST(req: NextRequest) {
 
       await client.query('COMMIT');
     } catch (txErr) {
-      await client.query('ROLLBACK');
+      if (client) {
+        await client.query('ROLLBACK');
+      }
       throw txErr;
     } finally {
-      client.release();
+      if (client) {
+        client.release();
+      }
     }
 
     if (isNewlyCaptured) {
