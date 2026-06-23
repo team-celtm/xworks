@@ -11,12 +11,22 @@ export async function POST(
 ) {
   try {
     const sessionId = (await params).id;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!sessionId || !uuidRegex.test(sessionId)) {
+      return NextResponse.json({ error: 'Invalid session ID format' }, { status: 400 });
+    }
+
     const accessToken = req.cookies.get('access_token')?.value;
     if (!accessToken) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { payload } = await jwtVerify(accessToken, new TextEncoder().encode(SESSION_SECRET));
     const userId = (payload as any).id;
     const userEmail = (payload as any).email;
+    const userStatus = (payload as any).status;
+
+    if (userStatus === 'suspended') {
+      return NextResponse.json({ error: 'Suspended users are not allowed to register for live sessions' }, { status: 403 });
+    }
 
     // 1. Get session details & course info using a client from pool to wrap in transaction with FOR UPDATE locking
     const client = await pool.connect();

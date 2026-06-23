@@ -16,8 +16,27 @@ export async function POST(req: NextRequest) {
 
     const { payload: jwtPayload } = await jwtVerify(accessToken, new TextEncoder().encode(SESSION_SECRET));
     const userId = (jwtPayload as any).id;
+    const userStatus = (jwtPayload as any).status;
+
+    if (userStatus === 'suspended') {
+      return NextResponse.json({ error: 'Suspended users are not allowed to verify payments' }, { status: 403 });
+    }
 
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature, courseId, promoCode, sessionId } = await req.json();
+
+    // Validate required parameters
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !courseId) {
+      return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
+    }
+
+    // Validate UUID formats (prevent database syntax errors)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(courseId)) {
+      return NextResponse.json({ error: 'Invalid course ID format' }, { status: 400 });
+    }
+    if (sessionId && !uuidRegex.test(sessionId)) {
+      return NextResponse.json({ error: 'Invalid session ID format' }, { status: 400 });
+    }
 
     // 1. Verify signature
     const text = razorpay_order_id + "|" + razorpay_payment_id;
@@ -54,11 +73,12 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Process database updates transactionally with FOR UPDATE locks to serialize verify and webhook (BUG-005, BUG-015)
-    const client = await pool.connect();
+    let client;
     let enrolmentId;
     let isNewlyCaptured = false;
 
     try {
+      client = await pool.connect();
       await client.query('BEGIN');
 
       // Lock the payment row FOR UPDATE immediately to serialize concurrent verify & webhook requests
@@ -132,16 +152,51 @@ export async function POST(req: NextRequest) {
           enrolmentId = enrolRes.rows[0].id;
         }
 
-        // Update Payment record
-        const updateRes = await client.query(
-          `UPDATE payments 
-           SET status = 'captured', razorpay_payment_id = $1, enrolment_id = $2, razorpay_signature = $3
-           WHERE razorpay_order_id = $4 AND status != 'captured'
-           RETURNING id`,
-          [razorpay_payment_id, enrolmentId, razorpay_signature, razorpay_order_id]
-        );
+        // Update Payment record (or insert if missing - fallback edge case)
+        if (payCheck.rows.length > 0) {
+          const updateRes = await client.query(
+            `UPDATE payments 
+             SET status = 'captured', razorpay_payment_id = $1, enrolment_id = $2, razorpay_signature = $3
+             WHERE razorpay_order_id = $4 AND status != 'captured'
+             RETURNING id`,
+            [razorpay_payment_id, enrolmentId, razorpay_signature, razorpay_order_id]
+          );
+          isNewlyCaptured = updateRes.rows.length > 0;
+        } else {
+          // Fallback calculation for pricing to record payment amount correctly
+          let finalPaise;
+          const courseRes = await client.query('SELECT price FROM courses WHERE id = $1', [courseId]);
+          const price = parseFloat(courseRes.rows[0].price);
 
-        isNewlyCaptured = updateRes.rows.length > 0;
+          finalPaise = Math.round(price * 100);
+          if (promoCode) {
+            const promoRes = await client.query(
+              'SELECT discount_percentage, discount_amount FROM promo_codes WHERE code = $1',
+              [promoCode.toUpperCase()]
+            );
+            if (promoRes.rows.length > 0) {
+              const p = promoRes.rows[0];
+              const discountPercentage = p.discount_percentage ? Number(p.discount_percentage) : null;
+              const discountAmount = p.discount_amount ? Number(p.discount_amount) : null;
+              
+              let discount = 0;
+              if (discountAmount !== null) {
+                discount = discountAmount;
+              } else if (discountPercentage !== null) {
+                discount = (price * discountPercentage) / 100;
+              }
+              finalPaise = Math.round(Math.max(0, price - discount) * 100);
+            }
+          }
+
+          const amount = finalPaise / 100;
+          await client.query(
+            `INSERT INTO payments (user_id, razorpay_order_id, razorpay_payment_id, status, amount, enrolment_id, razorpay_signature, created_at)
+             VALUES ($1, $2, $3, 'captured', $4, $5, $6, NOW())`,
+            [userId, razorpay_order_id, razorpay_payment_id, amount, enrolmentId, razorpay_signature]
+          );
+          isNewlyCaptured = true;
+        }
 
         if (isNewlyCaptured && promoCode) {
           try {
