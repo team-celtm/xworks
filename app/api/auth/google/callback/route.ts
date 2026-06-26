@@ -134,7 +134,9 @@ export async function GET(req: NextRequest) {
 
     // Redirect directly to the dashboard depending on the user's role (BUG-033)
     let redirectUrl = `${BASE_URL}/dashboard`;
-    if (user.role === 'admin') {
+    if (successType === 'signup') {
+      redirectUrl = `${BASE_URL}/Login?google_success=true&success_type=signup`;
+    } else if (user.role === 'admin') {
       redirectUrl = `${BASE_URL}/admin`;
     } else if (user.role === 'instructor') {
       redirectUrl = `${BASE_URL}/instructor`;
@@ -146,7 +148,7 @@ export async function GET(req: NextRequest) {
 
     response.cookies.set('access_token', accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.NODE_ENV === 'production' && BASE_URL.startsWith('https'),
       sameSite: 'lax', // BUG-011
       maxAge: 60 * 60, // 1 hour
       path: '/',
@@ -154,7 +156,7 @@ export async function GET(req: NextRequest) {
 
     response.cookies.set('refresh_token', refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.NODE_ENV === 'production' && BASE_URL.startsWith('https'),
       sameSite: 'lax', // BUG-011
       maxAge: 60 * 60 * 24 * 7, // 7 days
       path: '/',

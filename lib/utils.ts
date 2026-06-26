@@ -28,21 +28,27 @@ export function getBaseUrl(req?: NextRequest): string {
   // This is usually correct for both local and production (even with custom domains)
   if (req) {
     const host = req.headers.get('host');
-    const protocol = req.headers.get('x-forwarded-proto') || (host?.includes('localhost') ? 'http' : 'https');
+    const protocol = req.headers.get('x-forwarded-proto') || (host?.includes('localhost') || host?.includes('127.0.0.1') ? 'http' : 'https');
     
     if (host) {
       // Validate host to prevent host header injection
-      const isAllowedHost = host.includes('localhost') || host.includes('127.0.0.1') || 
-                            (process.env.ALLOWED_HOSTS?.split(',').map(h => h.trim()).includes(host));
+      const isAllowedHost = host.includes('localhost') || host.includes('127.0.0.1') || host.startsWith('xworks.celtm.com') ||
+                            (process.env.ALLOWED_HOSTS?.split(',').map(h => h.trim()).some(h => host.startsWith(h)));
       if (isAllowedHost || process.env.NODE_ENV !== 'production') {
         return `${protocol}://${host}`;
       }
     }
   }
 
-  // 3. Fallback: Vercel System Variables
+  // 3. Fallback: Vercel / Railway / Render System Variables
   if (process.env.NEXT_PUBLIC_VERCEL_URL) {
     return `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
+  }
+  if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+    return `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
+  }
+  if (process.env.RENDER_EXTERNAL_URL) {
+    return process.env.RENDER_EXTERNAL_URL;
   }
 
   // 4. Local Development Fallback

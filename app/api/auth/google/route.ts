@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   
   response.cookies.set('oauth_state', state, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: process.env.NODE_ENV === 'production' && BASE_URL.startsWith('https'),
     sameSite: 'lax',
     maxAge: 300, // 5 minutes
     path: '/'
