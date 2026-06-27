@@ -117,17 +117,18 @@ export async function POST(req: NextRequest) {
                     const sess = sessionCheck.rows[0];
                     const sessionStart = new Date(sess.scheduled_start);
                     if (sessionStart.getTime() > Date.now() && sess.status !== 'cancelled' && (!sess.max_seats || sess.registered_count < sess.max_seats)) {
-                      await pool.query('BEGIN');
+                      const client = await pool.connect();
                       try {
-                        await pool.query(
+                        await client.query('BEGIN');
+                        await client.query(
                           "INSERT INTO session_registrations (enrolment_id, session_id, status, registered_at) VALUES ($1, $2, 'registered', NOW())",
                           [enrolmentId, sessionId]
                         );
-                        await pool.query(
+                        await client.query(
                           'UPDATE live_sessions SET registered_count = registered_count + 1 WHERE id = $1',
                           [sessionId]
                         );
-                        await pool.query('COMMIT');
+                        await client.query('COMMIT');
 
                         // Send confirmation email
                         const userRes = await pool.query('SELECT email, first_name FROM users WHERE id = $1', [userId]);
@@ -149,8 +150,10 @@ export async function POST(req: NextRequest) {
                           });
                         }
                       } catch (err) {
-                        await pool.query('ROLLBACK');
-                        console.error('Session auto-reg failed in webhook:', err);
+                        await client.query('ROLLBACK');
+                        console.error('Error in session registration:', err);
+                      } finally {
+                        client.release();
                       }
                     }
                   }

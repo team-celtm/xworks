@@ -366,14 +366,15 @@ export default function EnrolModal({
                   return (
                     <div
                       key={f.id}
-                      className={`enrol-format-card ${enrolData.format === f.id ? "selected" : ""}`}
+                      className={`enrol-format-btn ${enrolData.format === f.id ? "selected" : ""}`}
                       onClick={() => setEnrolData({ ...enrolData, format: f.id, formatLabel: f.lbl, finalPrice: f.priceCalc(enrolData.courseOriginalPrice), basePrice: f.priceCalc(enrolData.courseOriginalPrice), promoApplied: false, discount: 0 })}
+                      style={{ position: 'relative' }}
                     >
-                      {enrolData.format === f.id && <div className="enrol-format-check">✓</div>}
+                      {enrolData.format === f.id && <div style={{ position: 'absolute', top: '8px', right: '8px', fontSize: '14px', color: '#3730A3', fontWeight: 'bold' }}>✓</div>}
                       <div className="enrol-format-icon">{f.icon}</div>
-                      <div className="enrol-format-lbl">{f.lbl}</div>
+                      <div className="enrol-format-name">{f.lbl}</div>
                       <div className="enrol-format-sub">{f.sub}</div>
-                      <div className="enrol-format-price">₹{f.priceCalc(enrolData.courseOriginalPrice).toLocaleString("en-IN")}</div>
+                      <div style={{ fontSize: '12px', fontWeight: '700', marginTop: '8px', color: '#1E1B4B' }}>₹{f.priceCalc(enrolData.courseOriginalPrice).toLocaleString("en-IN")}</div>
                     </div>
                   );
                 })}
@@ -424,7 +425,7 @@ export default function EnrolModal({
               <div className="enrol-section-label">Available dates</div>
               <div className="enrol-date-grid">
                 {modalSessions.length === 0 ? (
-                   <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-3)' }}>No upcoming live sessions found. You can still enrol to access recordings or pick a date later.</div>
+                   <div style={{ textAlign: 'center', padding: '20px', color: 'var(--text-3)', gridColumn: '1 / -1' }}>No upcoming live sessions found. You can still enrol to access recordings or pick a date later.</div>
                 ) : (
                   modalSessions.map(s => {
                     const isPast = new Date(s.scheduledStart).getTime() < Date.now();
@@ -435,7 +436,7 @@ export default function EnrolModal({
                       <div
                         key={s.id}
                         className={`enrol-date-btn ${enrolData.sessionId === s.id ? "selected" : ""} ${disabled ? "disabled" : ""}`}
-                        style={{ opacity: disabled ? 0.6 : 1 }}
+                        style={{ opacity: disabled ? 0.6 : 1, position: 'relative' }}
                         onClick={() => {
                           if (!disabled) {
                             setEnrolData({
@@ -451,7 +452,7 @@ export default function EnrolModal({
                         <div className="enrol-date-md">{new Date(s.scheduledStart).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}</div>
                         <div className="enrol-date-tm">{new Date(s.scheduledStart).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</div>
                         <div className="enrol-date-sub">{isCancelled ? 'Cancelled' : isPast ? 'Ended' : full ? 'Sold out' : s.title || 'Live Workshop'}</div>
-                        {enrolData.sessionId === s.id && !disabled && <div className="enrol-date-check">✓</div>}
+                        {enrolData.sessionId === s.id && !disabled && <div style={{ position: 'absolute', top: '4px', right: '6px', fontSize: '12px', color: '#fff', fontWeight: 'bold' }}>✓</div>}
                       </div>
                     );
                   })

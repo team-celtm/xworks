@@ -2053,7 +2053,8 @@
   overflow: hidden;
   animation: enrolIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   max-height: 90vh;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 @keyframes enrolIn {
@@ -2248,9 +2249,15 @@
 /* Format options */
 .enrol-format-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr;
   gap: 8px;
   margin-bottom: 18px
+}
+
+@media (min-width: 480px) {
+  .enrol-format-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 .enrol-format-btn {
@@ -2298,9 +2305,15 @@
 /* Date grid */
 .enrol-date-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
   margin-bottom: 16px
+}
+
+@media (min-width: 400px) {
+  .enrol-date-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 .enrol-date-btn {

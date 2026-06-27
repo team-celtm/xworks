@@ -209,20 +209,23 @@ export async function POST(req: NextRequest) {
       );
       
       if (sessionExists.length === 0) {
-        await pool.query('BEGIN');
+        const client = await pool.connect();
         try {
-          await pool.query(
+          await client.query('BEGIN');
+          await client.query(
             "INSERT INTO session_registrations (enrolment_id, session_id, status, registered_at) VALUES ($1, $2, 'registered', NOW())",
             [enrolmentId, sessionId]
           );
-          await pool.query(
+          await client.query(
             'UPDATE live_sessions SET registered_count = registered_count + 1 WHERE id = $1',
             [sessionId]
           );
-          await pool.query('COMMIT');
+          await client.query('COMMIT');
         } catch (e) {
-          await pool.query('ROLLBACK');
+          await client.query('ROLLBACK');
           throw e;
+        } finally {
+          client.release();
         }
       }
     }

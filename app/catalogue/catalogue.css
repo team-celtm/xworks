@@ -401,7 +401,7 @@
   border-bottom:0.5px solid rgba(55,48,163,0.12);
   display:flex;align-items:center;justify-content:space-between;
   position:sticky;top:0;background:#fff;z-index:2;
-}
+;flex-shrink:0}
 .catalogue-wrapper .enrol-modal-title{font-family:var(--font-display,'Syne',sans-serif);font-size:16px;font-weight:700;color:#1E1B4B}
 .catalogue-wrapper .enrol-modal-close{
   width:32px;height:32px;border-radius:50%;border:0.5px solid rgba(55,48,163,0.18);
@@ -434,7 +434,8 @@
 .catalogue-wrapper .enrol-step-line.pending{background:rgba(55,48,163,0.15)}
 
 /* Body */
-.catalogue-wrapper .enrol-body{padding:20px 24px 24px}
+.catalogue-wrapper .enrol-body {padding: 20px 24px 24px;
+  overflow-y: auto;}
 .catalogue-wrapper .enrol-course-mini{
   display:flex;gap:12px;align-items:center;
   background:#F5F6FF;border-radius:12px;padding:12px 14px;margin-bottom:20px;
@@ -450,7 +451,8 @@
 .catalogue-wrapper .enrol-section-label{font-size:9px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#9294B8;margin-bottom:10px}
 
 /* Format options */
-.catalogue-wrapper .enrol-format-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.catalogue-wrapper .enrol-format-grid{display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:18px}
+@media(min-width:480px){.catalogue-wrapper .enrol-format-grid{grid-template-columns:repeat(3,1fr)}}
 .catalogue-wrapper .enrol-format-btn{
   padding:12px 8px;border-radius:10px;border:1.5px solid rgba(55,48,163,0.15);
   background:#fff;cursor:pointer;text-align:center;transition:all 0.15s;
@@ -463,7 +465,8 @@
 .catalogue-wrapper .enrol-format-btn.selected .enrol-format-name{color:#3730A3}
 
 /* Date grid */
-.catalogue-wrapper .enrol-date-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.catalogue-wrapper .enrol-date-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px}
+@media(min-width:400px){.catalogue-wrapper .enrol-date-grid{grid-template-columns:repeat(4,1fr)}}
 .catalogue-wrapper .enrol-date-btn{
   padding:9px 4px;border-radius:8px;border:0.5px solid rgba(55,48,163,0.15);
   background:#fff;cursor:pointer;text-align:center;transition:all 0.15s;
