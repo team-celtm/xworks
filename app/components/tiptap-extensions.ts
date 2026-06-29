@@ -30,10 +30,10 @@ export const FontSize = Extension.create({
   },
   addCommands() {
     return {
-      setFontSize: fontSize => ({ chain }) => {
+      setFontSize: (fontSize: string) => ({ chain }: any) => {
         return chain().setMark('textStyle', { fontSize }).run();
       },
-      unsetFontSize: () => ({ chain }) => {
+      unsetFontSize: () => ({ chain }: any) => {
         return chain().setMark('textStyle', { fontSize: null }).removeEmptyTextStyle().run();
       },
     } as any;
@@ -70,10 +70,10 @@ export const LineHeight = Extension.create({
   },
   addCommands() {
     return {
-      setLineHeight: lineHeight => ({ commands }) => {
+      setLineHeight: (lineHeight: string) => ({ commands }: any) => {
         return this.options.types.every((type: string) => commands.updateAttributes(type, { lineHeight }));
       },
-      unsetLineHeight: () => ({ commands }) => {
+      unsetLineHeight: () => ({ commands }: any) => {
         return this.options.types.every((type: string) => commands.resetAttributes(type, 'lineHeight'));
       },
     } as any;
@@ -118,11 +118,11 @@ export const Indent = Extension.create({
   },
   addCommands() {
     return {
-      indent: () => ({ tr, state, dispatch }) => {
+      indent: () => ({ tr, state, dispatch }: any) => {
         const { selection } = state;
         let trHasChanged = false;
 
-        tr.doc.nodesBetween(selection.from, selection.to, (node, pos) => {
+        tr.doc.nodesBetween(selection.from, selection.to, (node: any, pos: number) => {
           if (this.options.types.includes(node.type.name)) {
             const currentIndent = node.attrs.indent || 0;
             if (currentIndent < this.options.maxIndent) {
@@ -137,11 +137,11 @@ export const Indent = Extension.create({
         }
         return trHasChanged;
       },
-      outdent: () => ({ tr, state, dispatch }) => {
+      outdent: () => ({ tr, state, dispatch }: any) => {
         const { selection } = state;
         let trHasChanged = false;
 
-        tr.doc.nodesBetween(selection.from, selection.to, (node, pos) => {
+        tr.doc.nodesBetween(selection.from, selection.to, (node: any, pos: number) => {
           if (this.options.types.includes(node.type.name)) {
             const currentIndent = node.attrs.indent || 0;
             if (currentIndent > this.options.minIndent) {
@@ -160,8 +160,8 @@ export const Indent = Extension.create({
   },
   addKeyboardShortcuts() {
     return {
-      Tab: () => this.editor.commands.indent(),
-      'Shift-Tab': () => this.editor.commands.outdent(),
+      Tab: () => (this.editor.commands as any).indent(),
+      'Shift-Tab': () => (this.editor.commands as any).outdent(),
     };
   },
 });

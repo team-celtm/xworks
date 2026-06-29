@@ -89,7 +89,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ co
       if (target_audience.length > 20) {
         return NextResponse.json({ error: 'Too many target audience items (maximum 20)' }, { status: 422 });
       }
-      target_audience = target_audience.map(t => t.toString().trim().substring(0, 200));
+      target_audience = target_audience.map((t: any) => t.toString().trim().substring(0, 200));
     }
 
     if (tags_array !== undefined && Array.isArray(tags_array)) {

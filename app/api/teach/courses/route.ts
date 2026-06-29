@@ -89,14 +89,14 @@ export async function POST(req: NextRequest) {
     if (requirements.length > 20) {
       return NextResponse.json({ error: 'Too many requirements (maximum 20)' }, { status: 422 });
     }
-    requirements = requirements.map(req => req.toString().trim().substring(0, 200));
+    requirements = requirements.map((req: any) => req.toString().trim().substring(0, 200));
 
     if (target_audience) {
       if (!Array.isArray(target_audience)) target_audience = [];
       if (target_audience.length > 20) {
         return NextResponse.json({ error: 'Too many target audience items (maximum 20)' }, { status: 422 });
       }
-      target_audience = target_audience.map(t => t.toString().trim().substring(0, 200));
+      target_audience = target_audience.map((t: any) => t.toString().trim().substring(0, 200));
     }
 
     if (tags_array && Array.isArray(tags_array)) {

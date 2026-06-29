@@ -4,7 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import '../../catalogue/catalogue.css';
-import { Skeleton } from '@/components/ui/skeleton';
+
 import DOMPurify from 'isomorphic-dompurify';
 import Logo from '../../components/Logo';
 import AlertModal from '../../components/AlertModal';
