@@ -57,6 +57,8 @@ export default function EnrolModal({
 }: any) {
   const router = useRouter();
   const [enrolStep, setEnrolStep] = useState(1);
+  const [alertInfo, setAlertInfo] = useState({ isOpen: false, title: '', message: '' });
+  const closeAlert = () => setAlertInfo(prev => ({ ...prev, isOpen: false }));
   const [enrolData, setEnrolData] = useState<any>(null);
   const [promoCode, setPromoCode] = useState("");
   const [promoOk, setPromoOk] = useState({ text: "", color: "", show: false });
@@ -180,12 +182,12 @@ export default function EnrolModal({
   const initiateEnrolPayment = async () => {
     try {
       if (!user) {
-        alert("Please login first");
+        setAlertInfo({ isOpen: true, title: "Login Required", message: "Please login first to enrol in this course." });
         router.push(`/Login?returnUrl=${window.location.pathname}`);
         return;
       }
       if (user.role === 'admin' || user.role === 'instructor') {
-        alert("Instructors and Admins cannot enrol in courses.");
+        setAlertInfo({ isOpen: true, title: "Action Not Allowed", message: "Instructors and Admins cannot enrol in courses." });
         return;
       }
 

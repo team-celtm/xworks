@@ -17,6 +17,8 @@ export function useRealtimeSessions(initialSessions: any[]) {
   useEffect(() => {
     let isMounted = true;
     
+    let timeoutId: NodeJS.Timeout;
+
     const syncDeltas = async () => {
       try {
         const lastSync = new Date(lastSyncRef.current).toISOString();
@@ -59,15 +61,19 @@ export function useRealtimeSessions(initialSessions: any[]) {
         }
       } catch (err) {
         console.error('Realtime sync failed:', err);
+      } finally {
+        if (isMounted) {
+          timeoutId = setTimeout(syncDeltas, 3000);
+        }
       }
     };
 
-    // Poll every 3 seconds for delta updates
-    const interval = setInterval(syncDeltas, 3000);
+    // Start polling for delta updates
+    syncDeltas();
     
     return () => {
       isMounted = false;
-      clearInterval(interval);
+      clearTimeout(timeoutId);
     };
   }, []);
 

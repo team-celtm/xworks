@@ -1827,10 +1827,13 @@ function DashboardPageContent() {
                       <button 
                         className="section-pill" 
                         style={{ background: 'var(--surface-2)', border: '1px solid var(--border-md)', cursor: 'pointer' }}
-                        onClick={() => {
+                        onClick={(e) => {
                           const url = window.location.origin + `/verify/${c.credentialId}`;
                           navigator.clipboard.writeText(url);
-                          alert("Verification link copied to clipboard!");
+                          const btn = e.currentTarget;
+                          const originalText = btn.innerHTML;
+                          btn.innerHTML = 'Copied! ✅';
+                          setTimeout(() => btn.innerHTML = originalText, 2000);
                         }}
                       >
                          Share →

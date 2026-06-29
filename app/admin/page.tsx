@@ -18,6 +18,7 @@ const PaymentDetails = dynamic(() => import('../components/admin/payments/Paymen
 const AuditLogs = dynamic(() => import('../components/admin/payments/AuditLogs'), { ssr: false });
 const FailedPayments = dynamic(() => import('../components/admin/payments/FailedPayments'), { ssr: false });
 const RefundsHistory = dynamic(() => import('../components/admin/payments/RefundsHistory'), { ssr: false });
+const CourseForm = dynamic(() => import('../components/CourseForm'), { ssr: false });
 
 function useUrlSync(key: string, value: any, setValue: any, defaultValue: any, searchParams: any, router: any) {
   useEffect(() => {
@@ -155,72 +156,7 @@ function AdminDashboardContent() {
   const [editingCourse, setEditingCourse] = useState<any>(null);
   const [updatingCourse, setUpdatingCourse] = useState(false);
 
-  const [createLogoUrl, setCreateLogoUrl] = useState('');
-  const [uploadingCreateLogo, setUploadingCreateLogo] = useState(false);
-  const [editLogoUrl, setEditLogoUrl] = useState('');
-  const [uploadingEditLogo, setUploadingEditLogo] = useState(false);
 
-  const [createDetails, setCreateDetails] = useState<string[]>(['']);
-  const [editDetails, setEditDetails] = useState<string[]>([]);
-
-  useEffect(() => {
-    if (editingCourse) {
-      setEditLogoUrl(editingCourse.logo || '');
-      setEditDetails(editingCourse.details || []);
-    }
-  }, [editingCourse]);
-
-  const handleCreateLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingCreateLogo(true);
-    const fd = new FormData();
-    fd.append('file', file);
-    try {
-      const res = await fetchApi('/api/admin/upload', {
-        method: 'POST',
-        body: fd
-      });
-      const data = await res.json();
-      if (res.ok && data.url) {
-        setCreateLogoUrl(data.url);
-        showToast('Logo uploaded successfully!', 'success');
-      } else {
-        showToast(data.error || 'Upload failed', 'error');
-      }
-    } catch (err) {
-      console.error(err);
-      showToast('Logo upload failed', 'error');
-    } finally {
-      setUploadingCreateLogo(false);
-    }
-  };
-
-  const handleEditLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingEditLogo(true);
-    const fd = new FormData();
-    fd.append('file', file);
-    try {
-      const res = await fetchApi('/api/admin/upload', {
-        method: 'POST',
-        body: fd
-      });
-      const data = await res.json();
-      if (res.ok && data.url) {
-        setEditLogoUrl(data.url);
-        showToast('Logo uploaded successfully!', 'success');
-      } else {
-        showToast(data.error || 'Upload failed', 'error');
-      }
-    } catch (err) {
-      console.error(err);
-      showToast('Logo upload failed', 'error');
-    } finally {
-      setUploadingEditLogo(false);
-    }
-  };
 
   // Financial states
   const [payments, setPayments] = useState<any[]>([]);
@@ -486,11 +422,11 @@ function AdminDashboardContent() {
       if (res.ok) {
         setApplications(prev => prev.filter(a => a.id !== id));
       } else {
-        alert(`Failed to ${action} instructor`);
+        showToast(`Failed to ${action} instructor`, 'error');
       }
     } catch (err) {
       console.error(err);
-      alert(`Failed to ${action} instructor due to network/server error`);
+      showToast(`Failed to ${action} instructor due to network/server error`, 'error');
     } finally {
       setActioningInstructorId(null);
       setInstructorAction(null);
@@ -509,11 +445,11 @@ function AdminDashboardContent() {
       if (res.ok) {
         setCourses(prev => prev.filter(c => c.id !== id));
       } else {
-        alert(`Failed to ${action === 'approve' ? 'publish' : 'reject'} course`);
+        showToast(`Failed to ${action === 'approve' ? 'publish' : 'reject'} course`, 'error');
       }
     } catch (err) {
       console.error(err);
-      alert('Failed to update course publishing status due to network/server error');
+      showToast('Failed to update course publishing status due to network/server error', 'error');
     } finally {
       setActioningCourseId(null);
       setCourseAction(null);
@@ -548,11 +484,11 @@ function AdminDashboardContent() {
         setPromos([data.promo, ...promos]);
         form.reset();
       } else {
-        alert(data.error || "Failed to create promo");
+        showToast(data.error || "Failed to create promo", "error");
       }
     } catch (err) {
       console.error(err);
-      alert("Failed to create promo due to network/server error");
+      showToast("Failed to create promo due to network/server error", "error");
     } finally {
       setCreatingPromo(false);
     }
@@ -563,7 +499,7 @@ function AdminDashboardContent() {
     if (!inputEl) return;
     const orderId = inputEl.value.trim();
     if (!orderId) {
-      alert('Please enter a Razorpay Order ID');
+      showToast('Please enter a Razorpay Order ID', 'error');
       return;
     }
     setProcessingRefund(true);
@@ -574,13 +510,13 @@ function AdminDashboardContent() {
         body: JSON.stringify({ orderId })
       });
       const data = await res.json();
-      alert(data.message || data.error || 'Done!');
+      showToast(data.message || data.error || "Done!", data.success ? "success" : "error");
       if (res.ok) {
         inputEl.value = '';
       }
     } catch (err) {
       console.error(err);
-      alert('Failed to process refund due to network/server error');
+      showToast('Failed to process refund due to network/server error', 'error');
     } finally {
       setProcessingRefund(false);
     }
@@ -598,36 +534,21 @@ function AdminDashboardContent() {
         body: JSON.stringify({ credential_id: formData.get('credential_id'), reason: formData.get('reason') })
       });
       const data = await res.json();
-      alert(data.message || data.error || 'Done!');
+      showToast(data.message || data.error || "Done!", data.success ? "success" : "error");
       if (res.ok) {
         form.reset();
       }
     } catch (err) {
       console.error(err);
-      alert('Failed to revoke certificate due to network/server error');
+      showToast('Failed to revoke certificate due to network/server error', 'error');
     } finally {
       setRevokingCert(false);
     }
   };
 
-  const handleCreateCourse = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleCreateCourse = async (payload: any) => {
     setCreatingCourse(true);
-    const form = e.currentTarget;
-    const formData = new FormData(form);
-    const payload: any = Object.fromEntries(formData.entries());
-    const dur_h = Number(payload.dur_h) || 0;
-    const dur_m = Number(payload.dur_m) || 0;
-    const dur_s = Number(payload.dur_s) || 0;
-    payload.dur = dur_h * 3600 + dur_m * 60 + dur_s;
-    delete payload.dur_h;
-    delete payload.dur_m;
-    delete payload.dur_s;
-    const format = payload.format;
-    payload.live = format === 'live';
-    payload.nearby = format === 'inperson';
-    delete payload.format;
-    payload.details = createDetails.map(d => d.trim()).filter(Boolean);
+    // Payload is already constructed by CourseForm
     try {
       const res = await fetchApi('/api/admin/courses', {
         method: 'POST',
@@ -637,36 +558,21 @@ function AdminDashboardContent() {
       const data = await res.json();
       if (res.ok) {
         showToast('Course created successfully!', 'success');
-        form.reset();
-        setCreateLogoUrl('');
-        setCreateDetails(['']);
         setActiveView('admin_manage_courses');
       } else {
-        showToast(data.error || 'Failed to create course', 'error');
+        throw new Error(data.error || 'Failed to create course');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      showToast('Failed to create course due to network/server error', 'error');
+      throw new Error(err.message || 'Failed to create course due to network/server error');
     } finally {
       setCreatingCourse(false);
     }
   };
 
-  const handleEditCourse = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleEditCourse = async (payload: any) => {
     setUpdatingCourse(true);
-    const form = e.currentTarget;
-    const formData = new FormData(form);
-    const payload: any = Object.fromEntries(formData.entries());
-    const dur_h = Number(payload.dur_h) || 0;
-    const dur_m = Number(payload.dur_m) || 0;
-    const dur_s = Number(payload.dur_s) || 0;
-    payload.dur = dur_h * 3600 + dur_m * 60 + dur_s;
-    delete payload.dur_h;
-    delete payload.dur_m;
-    delete payload.dur_s;
-    payload.id = editingCourse?.id;
-    payload.details = editDetails.map(d => d.trim()).filter(Boolean);
+    // Payload is already constructed by CourseForm
     try {
       const res = await fetchApi('/api/admin/courses/all', {
         method: 'PUT',
@@ -677,15 +583,14 @@ function AdminDashboardContent() {
       if (res.ok) {
         showToast('Course updated successfully!', 'success');
         setEditingCourse(null);
-        setEditLogoUrl('');
         setActiveView('admin_manage_courses');
         setCoursePage(1); // Refresh the list
       } else {
-        showToast(data.error || 'Failed to update course', 'error');
+        throw new Error(data.error || 'Failed to update course');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      showToast('Failed to update course due to network/server error', 'error');
+      throw new Error(err.message || 'Failed to update course due to network/server error');
     } finally {
       setUpdatingCourse(false);
     }
@@ -1483,204 +1388,14 @@ function AdminDashboardContent() {
               </div>
 
               <div className="admin-card">
-                <form
+                <CourseForm
+                  mode="admin"
+                  isEditing={false}
                   onSubmit={handleCreateCourse}
-                  style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', width: '100%' }}
-                >
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
-                    <div className="form-group">
-                      <label className="admin-label">Course Name</label>
-                      <input name="name" type="text" className="prompt-input" required placeholder="e.g. Master React in 30 Days" disabled={creatingCourse} />
-                    </div>
-                    <div className="form-group">
-                      <label className="admin-label">Slug (URL)</label>
-                      <input name="slug" type="text" className="prompt-input" required placeholder="e.g. react-mastery" disabled={creatingCourse} />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
-                    <div className="form-group">
-                      <label className="admin-label">Category</label>
-                      <select name="category_id" className="prompt-input" required disabled={creatingCourse}>
-                        <option value="">Select Category</option>
-                        {allCategories.map(cat => (
-                          <option key={cat.id} value={cat.id}>
-                            {cat.parent_name ? `\u00A0\u00A0\u00A0\u00A0${cat.name}` : cat.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="admin-label">Format</label>
-                      <select name="format" className="prompt-input" required disabled={creatingCourse}>
-                        <option value="live">🔴 Live session</option>
-                        <option value="recorded" disabled>📹 Recorded (Coming Soon)</option>
-                        <option value="inperson" disabled>📍 In-person (Coming Soon)</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="admin-label">Instructor</label>
-                      <select name="instructor_id" className="prompt-input" required disabled={creatingCourse}>
-                        <option value="">Select Instructor</option>
-                        {allInstructors.map(inst => (
-                          <option key={inst.id} value={inst.id}>{inst.first_name} {inst.last_name} ({inst.email})</option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
-                    <div className="form-group">
-                      <label className="admin-label">Price (₹)</label>
-                      <input name="price" type="number" className="prompt-input" required placeholder="1299" disabled={creatingCourse} />
-                    </div>
-                    <div className="form-group">
-                      <label className="admin-label">Level</label>
-                      <select name="level" className="prompt-input" required disabled={creatingCourse}>
-                        <option value="Beginner">Beginner</option>
-                        <option value="Intermediate">Intermediate</option>
-                        <option value="Advanced">Advanced</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="admin-label">Duration</label>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <input name="dur_h" type="number" min="0" className="prompt-input" placeholder="Hrs" disabled={creatingCourse} />
-                        <input name="dur_m" type="number" min="0" max="59" className="prompt-input" placeholder="Mins" disabled={creatingCourse} />
-                        <input name="dur_s" type="number" min="0" max="59" className="prompt-input" placeholder="Secs" disabled={creatingCourse} />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
-                    <div className="form-group">
-                      <label className="admin-label">Course Logo</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        {createLogoUrl && (
-                          <div style={{ width: '46px', height: '46px', borderRadius: '10px', background: '#ffffff', border: '1px solid var(--border-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, padding: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                            <img src={createLogoUrl} alt="Logo Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                          </div>
-                        )}
-                        <div style={{ position: 'relative', flex: 1 }}>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleCreateLogoUpload}
-                            disabled={creatingCourse || uploadingCreateLogo}
-                            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 2 }}
-                          />
-                          <button
-                            type="button"
-                            className="prompt-input"
-                            style={{ width: '100%', textAlign: 'left', background: 'var(--surface-2)', color: 'var(--text-2)', pointerEvents: 'none' }}
-                          >
-                            {uploadingCreateLogo ? 'Uploading...' : createLogoUrl ? 'Change Image' : 'Choose Image'}
-                          </button>
-                        </div>
-                      </div>
-                      <input type="hidden" name="logo" value={createLogoUrl} />
-                    </div>
-                    <div className="form-group">
-                      <label className="admin-label">Emoji</label>
-                      <input name="emoji" type="text" className="prompt-input" placeholder="🎓" disabled={creatingCourse} />
-                    </div>
-                    <div className="form-group">
-                      <label className="admin-label">Gradient Class</label>
-                      <select name="g" className="prompt-input" disabled={creatingCourse}>
-                        <option value="t-blue">Blue</option>
-                        <option value="t-red">Red</option>
-                        <option value="t-amber">Amber</option>
-                        <option value="t-teal">Teal</option>
-                        <option value="t-green">Green</option>
-                        <option value="t-purple">Purple</option>
-                        <option value="t-pink">Pink</option>
-                        <option value="t-slate">Slate</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="admin-label">Badge (optional)</label>
-                      <input name="tag" type="text" className="prompt-input" placeholder="e.g. hot" disabled={creatingCourse} />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
-                    <div className="form-group">
-                      <label className="admin-label">Badge Label (optional)</label>
-                      <input name="tag_label" type="text" className="prompt-input" placeholder="e.g. Best Seller" disabled={creatingCourse} />
-                    </div>
-                    <div className="form-group">
-                      <label className="admin-label">Certificate Template</label>
-                      <select name="certificate_type" className="prompt-input" required defaultValue="default" disabled={creatingCourse}>
-                        <option value="default">Default Template</option>
-                        <option value="tech_mastery">Tech Mastery (Premium)</option>
-                        <option value="creative_expert">Creative Expert</option>
-                        <option value="business_pro">Business Pro</option>
-                        <option value="completion_standard">Standard Completion</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                    <label className="admin-label">Course Details / "What's included"</label>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxWidth: '600px' }}>
-                      {createDetails.map((detail, idx) => (
-                        <div key={idx} style={{ display: 'flex', gap: '8px' }}>
-                          <textarea
-                            className="prompt-input"
-                            value={detail}
-                            onChange={(e) => {
-                              const newDetails = [...createDetails];
-                              newDetails[idx] = e.target.value;
-                              setCreateDetails(newDetails);
-                            }}
-                            placeholder="e.g. Lifetime access to recordings"
-                            disabled={creatingCourse}
-                            maxLength={250}
-                            style={{ minHeight: '60px', resize: 'vertical' }}
-                          />
-                          <button
-                            type="button"
-                            className="admin-btn"
-                            style={{ padding: '0 16px', background: 'var(--surface-2)', border: '1px solid var(--border)' }}
-                            onClick={() => {
-                              const newDetails = createDetails.filter((_, i) => i !== idx);
-                              setCreateDetails(newDetails);
-                            }}
-                            disabled={creatingCourse}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ))}
-                      {createDetails.length < 8 && (
-                        <button
-                          type="button"
-                          className="admin-btn"
-                          style={{ alignSelf: 'flex-start', padding: '8px 16px', fontSize: '13px', background: 'transparent', color: 'var(--indigo)', border: '1px dashed var(--indigo)' }}
-                          onClick={() => setCreateDetails([...createDetails, ''])}
-                          disabled={creatingCourse}
-                        >
-                          + Add Detail
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                    <label className="admin-label">What you'll learn (optional)</label>
-                    <textarea
-                      name="what_you_will_learn"
-                      className="prompt-input"
-                      placeholder="e.g. Master the intersection of financial markets..."
-                      style={{ minHeight: '100px', resize: 'vertical' }}
-                      disabled={creatingCourse}
-                    ></textarea>
-                  </div>
-
-                  <button type="submit" className="enrol-cta coral" style={{ width: 'auto', justifySelf: 'start', padding: '14px 60px', marginTop: '12px' }} disabled={creatingCourse}>
-                    {creatingCourse ? <div className="btn-loader" style={{ borderTopColor: '#fff' }}></div> : 'Create Course Now →'}
-                  </button>
-                </form>
+                  loading={creatingCourse}
+                  allCategories={allCategories}
+                  allInstructors={allInstructors}
+                />
               </div>
             </div>
           )}
@@ -1697,206 +1412,16 @@ function AdminDashboardContent() {
               </div>
 
               <div className="admin-card">
-                <form
+                <CourseForm
                   key={editingCourse?.id}
+                  mode="admin"
+                  isEditing={true}
+                  initialValues={editingCourse}
                   onSubmit={handleEditCourse}
-                  style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px', width: '100%' }}
-                >
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
-                    <div className="form-group">
-                      <label className="admin-label">Course Name</label>
-                      <input name="name" type="text" className="prompt-input" required defaultValue={editingCourse.name} disabled={updatingCourse} />
-                    </div>
-                    <div className="form-group">
-                      <label className="admin-label">Slug (URL)</label>
-                      <input name="slug" type="text" className="prompt-input" required defaultValue={editingCourse.slug} disabled={updatingCourse} />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
-                    <div className="form-group">
-                      <label className="admin-label">Category</label>
-                      <select name="category_id" className="prompt-input" required defaultValue={editingCourse.category_id} disabled={updatingCourse}>
-                        <option value="">Select Category</option>
-                        {allCategories.map(cat => (
-                          <option key={cat.id} value={cat.id}>
-                            {cat.parent_name ? `\u00A0\u00A0\u00A0\u00A0${cat.name}` : cat.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="admin-label">Instructor</label>
-                      <select name="instructor_id" className="prompt-input" required defaultValue={editingCourse.instructor_id} disabled={updatingCourse}>
-                        <option value="">Select Instructor</option>
-                        {allInstructors.map(inst => (
-                          <option key={inst.id} value={inst.id}>{inst.first_name} {inst.last_name} ({inst.email})</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="admin-label">Format</label>
-                      <select name="format" className="prompt-input" required defaultValue={editingCourse.format || 'live'} disabled={updatingCourse}>
-                        <option value="live">🔴 Live session</option>
-                        <option value="recorded" disabled>📹 Recorded (Coming Soon)</option>
-                        <option value="inperson" disabled>📍 In-person (Coming Soon)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
-                    <div className="form-group">
-                      <label className="admin-label">Price (₹)</label>
-                      <input name="price" type="number" className="prompt-input" required defaultValue={editingCourse.price} disabled={updatingCourse} />
-                    </div>
-                    <div className="form-group">
-                      <label className="admin-label">Level</label>
-                      <select name="level" className="prompt-input" required defaultValue={editingCourse.level} disabled={updatingCourse}>
-                        <option value="Beginner">Beginner</option>
-                        <option value="Intermediate">Intermediate</option>
-                        <option value="Advanced">Advanced</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="admin-label">Duration</label>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <input name="dur_h" type="number" min="0" className="prompt-input" placeholder="Hrs" defaultValue={Math.floor(editingCourse.dur / 3600)} disabled={updatingCourse} />
-                        <input name="dur_m" type="number" min="0" max="59" className="prompt-input" placeholder="Mins" defaultValue={Math.floor((editingCourse.dur % 3600) / 60)} disabled={updatingCourse} />
-                        <input name="dur_s" type="number" min="0" max="59" className="prompt-input" placeholder="Secs" defaultValue={editingCourse.dur % 60} disabled={updatingCourse} />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
-                    <div className="form-group">
-                      <label className="admin-label">Course Logo</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        {editLogoUrl && (
-                          <div style={{ width: '46px', height: '46px', borderRadius: '10px', background: '#ffffff', border: '1px solid var(--border-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0, padding: '4px', boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }}>
-                            <img src={editLogoUrl} alt="Logo Preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
-                          </div>
-                        )}
-                        <div style={{ position: 'relative', flex: 1 }}>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleEditLogoUpload}
-                            disabled={updatingCourse || uploadingEditLogo}
-                            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer', zIndex: 2 }}
-                          />
-                          <button
-                            type="button"
-                            className="prompt-input"
-                            style={{ width: '100%', textAlign: 'left', background: 'var(--surface-2)', color: 'var(--text-2)', pointerEvents: 'none' }}
-                          >
-                            {uploadingEditLogo ? 'Uploading...' : editLogoUrl ? 'Change Image' : 'Choose Image'}
-                          </button>
-                        </div>
-                      </div>
-                      <input type="hidden" name="logo" value={editLogoUrl} />
-                    </div>
-                    <div className="form-group">
-                      <label className="admin-label">Emoji</label>
-                      <input name="emoji" type="text" className="prompt-input" defaultValue={editingCourse.emoji} disabled={updatingCourse} />
-                    </div>
-                    <div className="form-group">
-                      <label className="admin-label">Gradient Class</label>
-                      <select name="g" className="prompt-input" defaultValue={editingCourse.g} disabled={updatingCourse}>
-                        <option value="t-blue">Blue</option>
-                        <option value="t-red">Red</option>
-                        <option value="t-amber">Amber</option>
-                        <option value="t-teal">Teal</option>
-                        <option value="t-green">Green</option>
-                        <option value="t-purple">Purple</option>
-                        <option value="t-pink">Pink</option>
-                        <option value="t-slate">Slate</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="admin-label">Badge (optional)</label>
-                      <input name="tag" type="text" className="prompt-input" defaultValue={editingCourse.tag} disabled={updatingCourse} />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '24px' }}>
-                    <div className="form-group">
-                      <label className="admin-label">Badge Label (optional)</label>
-                      <input name="tag_label" type="text" className="prompt-input" defaultValue={editingCourse.tag_label} disabled={updatingCourse} />
-                    </div>
-                    <div className="form-group">
-                      <label className="admin-label">Certificate Template</label>
-                      <select name="certificate_type" className="prompt-input" required defaultValue={editingCourse.certificate_type || 'default'} disabled={updatingCourse}>
-                        <option value="default">Default Template</option>
-                        <option value="tech_mastery">Tech Mastery (Premium)</option>
-                        <option value="creative_expert">Creative Expert</option>
-                        <option value="business_pro">Business Pro</option>
-                        <option value="completion_standard">Standard Completion</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                    <label className="admin-label">Course Details / "What's included"</label>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxWidth: '600px' }}>
-                      {editDetails.map((detail, idx) => (
-                        <div key={idx} style={{ display: 'flex', gap: '8px' }}>
-                          <textarea
-                            className="prompt-input"
-                            value={detail}
-                            onChange={(e) => {
-                              const newDetails = [...editDetails];
-                              newDetails[idx] = e.target.value;
-                              setEditDetails(newDetails);
-                            }}
-                            placeholder="e.g. Lifetime access to recordings"
-                            disabled={updatingCourse}
-                            maxLength={250}
-                            style={{ minHeight: '60px', resize: 'vertical' }}
-                          />
-                          <button
-                            type="button"
-                            className="admin-btn"
-                            style={{ padding: '0 16px', background: 'var(--surface-2)', border: '1px solid var(--border)' }}
-                            onClick={() => {
-                              const newDetails = editDetails.filter((_, i) => i !== idx);
-                              setEditDetails(newDetails);
-                            }}
-                            disabled={updatingCourse}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ))}
-                      {editDetails.length < 8 && (
-                        <button
-                          type="button"
-                          className="admin-btn"
-                          style={{ alignSelf: 'flex-start', padding: '8px 16px', fontSize: '13px', background: 'transparent', color: 'var(--indigo)', border: '1px dashed var(--indigo)' }}
-                          onClick={() => setEditDetails([...editDetails, ''])}
-                          disabled={updatingCourse}
-                        >
-                          + Add Detail
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="form-group" style={{ gridColumn: '1 / -1' }}>
-                    <label className="admin-label">What you'll learn (optional)</label>
-                    <textarea
-                      name="what_you_will_learn"
-                      className="prompt-input"
-                      placeholder="e.g. Master the intersection of financial markets..."
-                      defaultValue={editingCourse.what_you_will_learn || ''}
-                      style={{ minHeight: '100px', resize: 'vertical' }}
-                      disabled={updatingCourse}
-                    ></textarea>
-                  </div>
-
-                  <button type="submit" className="enrol-cta coral" style={{ width: 'auto', justifySelf: 'start', padding: '14px 60px', marginTop: '12px' }} disabled={updatingCourse}>
-                    {updatingCourse ? <div className="btn-loader" style={{ borderTopColor: '#fff' }}></div> : 'Save Changes'}
-                  </button>
-                </form>
+                  loading={updatingCourse}
+                  allCategories={allCategories}
+                  allInstructors={allInstructors}
+                />
               </div>
             </div>
           )}

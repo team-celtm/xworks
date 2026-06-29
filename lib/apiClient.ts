@@ -11,7 +11,7 @@ interface FetchApiOptions extends RequestInit {
  * - Global 401/403 Session Expiry redirection
  */
 export async function fetchApi(url: string, options: FetchApiOptions = {}): Promise<Response> {
-  const { timeoutMs = 15000, ...fetchOptions } = options;
+  const { timeoutMs = 60000, ...fetchOptions } = options;
 
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeoutMs);
@@ -43,9 +43,9 @@ export async function fetchApi(url: string, options: FetchApiOptions = {}): Prom
     clearTimeout(id);
     if (error.name === 'AbortError') {
       console.error(`[API Timeout] Request to ${url} exceeded ${timeoutMs}ms`);
-      // Attach custom property so we can identify it in the UI
-      error.isTimeout = true;
-      error.message = 'Network connection timed out.';
+      const timeoutError = new Error('Network connection timed out.');
+      (timeoutError as any).isTimeout = true;
+      throw timeoutError;
     }
     throw error;
   }

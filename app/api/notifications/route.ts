@@ -14,11 +14,23 @@ export async function GET(req: NextRequest) {
     const role = (payload as any).role;
 
     // Fetch notifications matching either user_id or role (e.g. admin)
+    // Optimized with UNION ALL to prevent Postgres from doing a slow reverse index scan on created_at
     const sql = `
       SELECT id, title, message, type, is_read as "isRead", created_at as "createdAt"
-      FROM notifications
-      WHERE user_id = $1::uuid OR role = $2
-      ORDER BY created_at DESC
+      FROM (
+        (SELECT id, title, message, type, is_read, created_at
+         FROM notifications
+         WHERE user_id = $1::uuid
+         ORDER BY created_at DESC
+         LIMIT 50)
+        UNION ALL
+        (SELECT id, title, message, type, is_read, created_at
+         FROM notifications
+         WHERE role = $2
+         ORDER BY created_at DESC
+         LIMIT 50)
+      ) sub
+      ORDER BY "createdAt" DESC
       LIMIT 50
     `;
     const { rows } = await pool.query(sql, [userId, role]);

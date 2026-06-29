@@ -28,7 +28,13 @@ export default function FailedPayments() {
     // Simulating a queue push or retry trigger
     await new Promise(resolve => setTimeout(resolve, 1500));
     setRetrying(false);
-    alert('Webhooks scheduled for retry by background worker.');
+    
+    const btn = document.getElementById('retry-webhooks-btn');
+    if (btn) {
+      const original = btn.innerHTML;
+      btn.innerHTML = 'Scheduled! ✅';
+      setTimeout(() => btn.innerHTML = original, 2000);
+    }
   };
 
   if (loading) {
@@ -43,6 +49,7 @@ export default function FailedPayments() {
           <p style={{ color: 'var(--text-3)', fontSize: '13px' }}>Monitor and retry failed webhooks from payment gateways.</p>
         </div>
         <button 
+          id="retry-webhooks-btn"
           className="admin-btn" 
           onClick={handleRetryWebhooks}
           disabled={retrying}

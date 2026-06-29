@@ -932,3 +932,83 @@ html,body{min-height:100%;font-family:var(--fb)}
   opacity: 0.7;
   cursor: not-allowed;
 }
+
+/* Tiptap Editor Styles */
+.tiptap-editor-wrapper .ProseMirror {
+  outline: none;
+}
+.tiptap-editor-wrapper .ProseMirror p {
+  margin-bottom: 1em;
+}
+.tiptap-editor-wrapper .ProseMirror h1 {
+  font-size: 2em;
+  font-weight: bold;
+  margin: 0.67em 0;
+}
+.tiptap-editor-wrapper .ProseMirror h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+  margin: 0.83em 0;
+}
+.tiptap-editor-wrapper .ProseMirror h3 {
+  font-size: 1.17em;
+  font-weight: bold;
+  margin: 1em 0;
+}
+.tiptap-editor-wrapper .ProseMirror ul {
+  list-style-type: disc;
+  padding-left: 20px;
+  margin-bottom: 1em;
+}
+.tiptap-editor-wrapper .ProseMirror ol {
+  list-style-type: decimal;
+  padding-left: 20px;
+  margin-bottom: 1em;
+}
+.tiptap-editor-wrapper .ProseMirror blockquote {
+  border-left: 3px solid var(--border-hover);
+  padding-left: 1rem;
+  color: var(--text-2);
+  margin: 1rem 0;
+}
+.tiptap-editor-wrapper .ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 1em 0;
+}
+.tiptap-editor-wrapper .ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+.tiptap-editor-wrapper .ProseMirror table td,
+.tiptap-editor-wrapper .ProseMirror table th {
+  min-width: 1em;
+  border: 1px solid var(--border);
+  padding: 8px;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+}
+.tiptap-editor-wrapper .ProseMirror table th {
+  font-weight: bold;
+  text-align: left;
+  background-color: var(--surface-2);
+}
+
+.tiptap-prose img {
+  max-width: 100%;
+  border-radius: 8px;
+}
+.tiptap-prose table {
+  border-collapse: collapse;
+  width: 100%;
+}
+.tiptap-prose table td,
+.tiptap-prose table th {
+  border: 1px solid var(--border);
+  padding: 8px;
+}

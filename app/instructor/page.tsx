@@ -3,12 +3,15 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import "../dashboard/dashboard.css";
 import RoleTransitionOverlay from "../components/RoleTransitionOverlay";
 import ActionModal, { ActionModalState } from "../components/ActionModal";
 import EarningsDashboard from "../components/EarningsDashboard";
 import { fetchApi } from '@/lib/apiClient';
 import { useRealtimeSessions } from '@/app/hooks/useRealtimeSessions';
+
+const CourseForm = dynamic(() => import('../components/CourseForm'), { ssr: false });
 
 function useUrlSync(key: string, value: any, setValue: any, defaultValue: any, searchParams: any, router: any) {
   useEffect(() => {
@@ -134,6 +137,12 @@ function InstructorDashboardContent() {
   const [sessions, setSessions] = useRealtimeSessions(initialSessions);
   const [allCategories, setAllCategories] = useState<any[]>([]);
   const [isCreatingCourse, setIsCreatingCourse] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
+
+  // Edit Course States
+  const [editingCourse, setEditingCourse] = useState<any>(null);
+  const [updatingCourse, setUpdatingCourse] = useState(false);
+
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [isScheduling, setIsScheduling] = useState(false);
   const [scheduleData, setScheduleData] = useState({
@@ -297,6 +306,59 @@ function InstructorDashboardContent() {
     const notifInterval = setInterval(fetchNotifications, 10000);
     return () => clearInterval(notifInterval);
   }, [router]);
+
+  const handleCreateCourse = async (payload: any) => {
+    setIsCreatingCourse(true);
+    try {
+      // Admin API uses slug provided by admin, but Instructor doesn't have slug input
+      // Let's generate a slug for instructor here if not provided
+      if (!payload.slug) {
+        payload.slug = payload.name?.toString().toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substring(2, 7);
+      }
+
+      const res = await fetchApi('/api/teach/courses', { 
+        method: 'POST', 
+        headers: {'Content-Type':'application/json'}, 
+        body: JSON.stringify(payload) 
+      }); 
+      if (res.ok) {
+        const newCourse = await res.json();
+        setCourses(prev => [...prev, newCourse]);
+        showModal({ type: 'alert', title: 'Success', message: 'Course Draft Saved!' });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Unable to save draft.');
+      }
+    } catch (error: any) {
+      showModal({ type: 'alert', title: 'Error', message: error.message || 'Unable to save draft. Please try again.' });
+    } finally {
+      setIsCreatingCourse(false);
+    }
+  };
+
+  const handleEditCourse = async (payload: any) => {
+    setUpdatingCourse(true);
+    try {
+      const res = await fetchApi(`/api/teach/courses/${payload.id}`, { 
+        method: 'PUT', 
+        headers: {'Content-Type':'application/json'}, 
+        body: JSON.stringify(payload) 
+      }); 
+      if (res.ok) {
+        const updatedCourse = await res.json();
+        setCourses(prev => prev.map(c => c.id === payload.id ? { ...c, ...updatedCourse } : c));
+        showModal({ type: 'alert', title: 'Success', message: 'Course updated successfully!' });
+        setEditingCourse(null);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Unable to update course.');
+      }
+    } catch (error: any) {
+      showModal({ type: 'alert', title: 'Error', message: error.message || 'Unable to update course. Please try again.' });
+    } finally {
+      setUpdatingCourse(false);
+    }
+  };
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -521,84 +583,35 @@ function InstructorDashboardContent() {
               </div>
               <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)', marginBottom: '24px', display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '16px' }}>
                 <p style={{ color: 'var(--text-3)', marginBottom: '4px' }}>Upload a new course as a draft.</p>
-                <form 
-                  onSubmit={async (e) => { 
-                    e.preventDefault(); 
-                    setIsCreatingCourse(true);
-                    const formData = new FormData(e.currentTarget);
-                    const dur_h = Number(formData.get('dur_h')) || 0;
-                    const dur_m = Number(formData.get('dur_m')) || 0;
-                    const dur_s = Number(formData.get('dur_s')) || 0;
-                    const totalSecs = dur_h * 3600 + dur_m * 60 + dur_s;
-                    const format = formData.get('format');
-                    const live = format === 'live';
-                    const nearby = format === 'inperson';
-                    try {
-                      const res = await fetchApi('/api/teach/courses', { 
-                        method: 'POST', 
-                        headers: {'Content-Type':'application/json'}, 
-                        body: JSON.stringify({ 
-                          name: formData.get('name'), category_id: formData.get('category_id'), 
-                          dur: totalSecs, price: formData.get('price'),
-                          live, nearby,
-                          slug: formData.get('name')?.toString().toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).substring(2, 7)
-                        }) 
-                      }); 
-                      if (res.ok) {
-                        const newCourse = await res.json();
-                        setCourses(prev => [...prev, newCourse]);
-                        showModal({ type: 'alert', title: 'Success', message: 'Course Draft Saved!' });
-                        e.currentTarget.reset();
-                      } else {
-                        const errData = await res.json();
-                        showModal({ type: 'alert', title: 'Error', message: errData.error || 'Failed to create course draft.' });
-                      }
-                    } finally {
-                      setIsCreatingCourse(false);
-                    }
-                  }} 
-                  style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}
-                >
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Course Name</label>
-                    <input name="name" type="text" className="prompt-input" required placeholder="e.g. Advanced Ethical Hacking" disabled={isCreatingCourse} style={{ width: '100%' }} />
+                {editingCourse ? (
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                      <p style={{ color: 'var(--text-3)', fontWeight: 600 }}>Editing: {editingCourse.name}</p>
+                      <button onClick={() => setEditingCourse(null)} style={{ padding: '6px 12px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, color: 'var(--text-2)' }}>Cancel Edit</button>
+                    </div>
+                    <CourseForm
+                      key={editingCourse?.id}
+                      mode="instructor"
+                      isEditing={true}
+                      initialValues={editingCourse}
+                      onSubmit={handleEditCourse}
+                      loading={updatingCourse}
+                      allCategories={allCategories}
+                      allInstructors={[]}
+                    />
                   </div>
-                  
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px' }}>
-                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                       <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Course Category</label>
-                       <select name="category_id" className="prompt-input" required disabled={isCreatingCourse} style={{ width: '100%', height: '46px' }}>
-                         <option value="">Select Category</option>
-                         {allCategories.map(cat => (
-                           <option key={cat.id} value={cat.id}>{cat.name}</option>
-                         ))}
-                       </select>
-                     </div>
-                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                       <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Format</label>
-                       <select name="format" className="prompt-input" required disabled={isCreatingCourse} style={{ width: '100%', height: '46px' }}>
-                         <option value="live">🔴 Live session</option>
-                         <option value="recorded" disabled>📹 Recorded (Coming Soon)</option>
-                         <option value="inperson" disabled>📍 In-person (Coming Soon)</option>
-                       </select>
-                     </div>
-                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                       <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Duration</label>
-                       <div style={{ display: 'flex', gap: '8px' }}>
-                         <input name="dur_h" type="number" min="0" className="prompt-input" placeholder="Hrs" disabled={isCreatingCourse} style={{ width: '100%' }} />
-                         <input name="dur_m" type="number" min="0" max="59" className="prompt-input" placeholder="Min" disabled={isCreatingCourse} style={{ width: '100%' }} />
-                         <input name="dur_s" type="number" min="0" max="59" className="prompt-input" placeholder="Sec" disabled={isCreatingCourse} style={{ width: '100%' }} />
-                       </div>
-                     </div>
-                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                       <label style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Price (₹)</label>
-                       <input name="price" type="number" className="prompt-input" required placeholder="e.g. 1999" disabled={isCreatingCourse} style={{ width: '100%' }} />
-                     </div>
+                ) : (
+                  <div>
+                    <CourseForm
+                      mode="instructor"
+                      isEditing={false}
+                      onSubmit={handleCreateCourse}
+                      loading={isCreatingCourse}
+                      allCategories={allCategories}
+                      allInstructors={[]}
+                    />
                   </div>
-                  <button type="submit" className="enrol-cta coral" disabled={isCreatingCourse} style={{ marginTop: '12px' }}>
-                    {isCreatingCourse ? <div className="btn-loader" style={{ borderTopColor: '#fff' }}></div> : 'Create Draft Course'}
-                  </button>
-                </form>
+                )}
               </div>
 
               <div className="stat-card" style={{ padding: '24px', background: 'var(--surface)', borderRadius: '16px', border: '1px solid var(--border-md)', display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
@@ -631,12 +644,20 @@ function InstructorDashboardContent() {
                           </td>
                           <td style={{ padding: '16px 8px' }}>
                             {(c.status === 'draft' || c.status === 'rejected') && (
-                              <button onClick={async () => {
-                                const res = await fetchApi('/api/teach/courses', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: c.id, action: 'submit_review' }) });
-                                if (res.ok) setCourses(courses.map(course => course.id === c.id ? {...course, status: 'under_review'} : course));
-                              }} style={{ padding:'8px 16px', background:'var(--blue-bg)', color:'var(--blue)', fontWeight: '600', border:'none', borderRadius:'8px', cursor:'pointer' }}>
-                                {c.status === 'rejected' ? 'Re-Submit' : 'Submit'}
-                              </button>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <button onClick={() => {
+                                  setEditingCourse(c);
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }} style={{ padding:'8px 16px', background:'var(--surface-2)', border: '1px solid var(--border)', color:'var(--text-2)', fontWeight: '600', borderRadius:'8px', cursor:'pointer' }}>
+                                  Edit
+                                </button>
+                                <button onClick={async () => {
+                                  const res = await fetchApi('/api/teach/courses', { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: c.id, action: 'submit_review' }) });
+                                  if (res.ok) setCourses(courses.map(course => course.id === c.id ? {...course, status: 'under_review'} : course));
+                                }} style={{ padding:'8px 16px', background:'var(--blue-bg)', color:'var(--blue)', fontWeight: '600', border:'none', borderRadius:'8px', cursor:'pointer' }}>
+                                  {c.status === 'rejected' ? 'Re-Submit' : 'Submit'}
+                                </button>
+                              </div>
                             )}
                             {c.status === 'published' && (
                               <button onClick={async () => {

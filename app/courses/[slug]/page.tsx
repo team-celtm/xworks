@@ -4,11 +4,15 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import '../../catalogue/catalogue.css';
+import { Skeleton } from '@/components/ui/skeleton';
+import DOMPurify from 'isomorphic-dompurify';
 import Logo from '../../components/Logo';
 import AlertModal from '../../components/AlertModal';
 import EnrolModal from '../../components/EnrolModal';
 import { formatDuration } from '@/lib/utils';
 import { fetchApi } from '@/lib/apiClient';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 declare global {
   interface Window {
@@ -18,9 +22,9 @@ declare global {
 
 interface CourseDetail {
   id: string;
-  name: string;
-  level: string;
-  dur: number;
+  title: string;
+  difficulty: string;
+  duration: number;
   price: number;
   rating: number;
   tag: string;
@@ -34,11 +38,20 @@ interface CourseDetail {
   slug: string;
   categoryName: string;
   categorySlug: string;
-  details?: string[];
-  what_you_will_learn?: string;
   instructor: string;
   instructorAvatar: string;
   instructorBio: string;
+  description?: string;
+  shortDescription?: string;
+  learningPoints?: string[];
+  requirements?: string[];
+  targetAudience?: string[];
+  tags?: string[];
+  thumbnail?: string;
+  previewVideo?: string;
+  language?: string;
+  certificateEnabled?: boolean;
+  estimatedCompletion?: string;
 }
 
 interface LiveSession {
@@ -81,7 +94,7 @@ export default function CourseDetailPage() {
 
   useEffect(() => {
     if (course) {
-      document.title = `XWORKS — ${course.name}`;
+      document.title = `XWORKS — ${course.title}`;
     }
   }, [course]);
 
@@ -168,8 +181,8 @@ export default function CourseDetailPage() {
     setError(null);
     setEnrolModalData({
       id: course.id,
-      name: course.name,
-      meta: `by ${course.instructor} · ★ ${course.rating} · ${formatDuration(course.dur)} · ${course.categoryName}`,
+      name: course.title,
+      meta: `by ${course.instructor} · ★ ${course.rating} · ${formatDuration(course.duration)} · ${course.categoryName}`,
       basePrice: Number(course.price) || 0,
       thumbBg: course.g,
       thumbEmoji: course.logo || course.emoji,
@@ -180,16 +193,10 @@ export default function CourseDetailPage() {
     setIsEnrolModalOpen(true);
   };
 
-  if (loading) return (
-    <div className="loading-screen" style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div className="loader"></div>
-    </div>
-  );
-
   if (!course) return (
-    <div className="error-screen" style={{ textAlign: 'center', padding: '100px 20px' }}>
-      <h1>{error || 'Course not found'}</h1>
-      <button onClick={() => router.back()}>Go back</button>
+    <div className="error-screen" style={{ textAlign: 'center', padding: '100px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+      <h1 style={{ color: 'var(--text-1)' }}>Unable to load course details. Please try again.</h1>
+      <button className="nav-back" style={{ border: '1px solid var(--border-md)', padding: '8px 16px', borderRadius: '8px', cursor: 'pointer' }} onClick={() => router.back()}>Go back</button>
     </div>
   );
 
@@ -233,12 +240,24 @@ export default function CourseDetailPage() {
                 <span className="crumb-sep">/</span>
                 <Link href={`/catalogue?cat=${course.categorySlug}`}>{course.categoryName}</Link>
                 <span className="crumb-sep">/</span>
-                <span className="crumb-current">{course.name}</span>
+                <span className="crumb-current">{course.title}</span>
               </div>
 
               <div className="detail-hero-card">
                 <div className="detail-hero-header">
-                  <div className={`detail-emoji-box ${course.g}`} style={{ width: '80px', height: '80px', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px' }}>
+                  {course.thumbnail ? (
+                    <img 
+                      src={course.thumbnail} 
+                      alt={course.title} 
+                      style={{ width: '120px', height: '120px', borderRadius: '20px', objectFit: 'cover' }} 
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.nextSibling as HTMLElement;
+                        if (fallback) fallback.style.display = 'flex';
+                      }}
+                    />
+                  ) : null}
+                  <div className={`detail-emoji-box ${course.g}`} style={{ width: '80px', height: '80px', borderRadius: '20px', display: course.thumbnail ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px' }}>
                     {course.logo ? (
                       <>
                         <img
@@ -266,7 +285,12 @@ export default function CourseDetailPage() {
                       )}
                       <span className="category-tag">{course.tagLabel || course.categoryName}</span>
                     </div>
-                    <h1 className="detail-hero-title">{course.name}</h1>
+                    <h1 className="detail-hero-title">{course.title}</h1>
+                    {course.shortDescription && (
+                      <p style={{ marginTop: '12px', fontSize: '18px', color: 'var(--text-2)', lineHeight: '1.5' }}>
+                        {course.shortDescription}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -274,42 +298,66 @@ export default function CourseDetailPage() {
                   <div className="dstat-card">
                     <span className="dstat-icon">★</span>
                     <div className="dstat-content">
-                      <span className="dstat-value">{course.rating}</span>
+                      <span className="dstat-value">{course.rating === 0 || !course.rating ? 'New Course' : course.rating}</span>
                       <span className="dstat-label">Rating</span>
                     </div>
                   </div>
                   <div className="dstat-card">
                     <span className="dstat-icon">⏱</span>
                     <div className="dstat-content">
-                      <span className="dstat-value">{formatDuration(course.dur)}</span>
+                      <span className="dstat-value">{formatDuration(course.duration)}</span>
                       <span className="dstat-label">Duration</span>
                     </div>
                   </div>
                   <div className="dstat-card">
                     <span className="dstat-icon">📊</span>
                     <div className="dstat-content">
-                      <span className="dstat-value">{course.level}</span>
+                      <span className="dstat-value">{course.difficulty || 'All Levels'}</span>
                       <span className="dstat-label">Level</span>
                     </div>
                   </div>
                   <div className="dstat-card">
                     <span className="dstat-icon">📺</span>
                     <div className="dstat-content">
-                      <span className="dstat-value">Live session</span>
+                      <span className="dstat-value">{course.live ? 'Live Session' : course.nearby ? 'In Person' : 'Pre-recorded'}</span>
                       <span className="dstat-label">Format</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {course.details && course.details.length > 0 && (
+              {/* Preview Video */}
+              {course.previewVideo && (
                 <div className="detail-section" style={{ marginBottom: '40px' }}>
-                  <h2>What's included</h2>
+                  <h2>Course Preview</h2>
+                  <div style={{ borderRadius: '16px', overflow: 'hidden', background: '#000', width: '100%', aspectRatio: '16/9' }}>
+                    {/^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/.+/.test(course.previewVideo) ? (
+                      <iframe 
+                        width="100%" 
+                        height="100%" 
+                        src={course.previewVideo.replace('watch?v=', 'embed/').replace('youtu.be/', 'youtube.com/embed/')} 
+                        title="Course Preview" 
+                        frameBorder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowFullScreen 
+                        style={{ border: 'none' }}
+                      ></iframe>
+                    ) : (
+                      <video src={course.previewVideo} controls style={{ width: '100%', height: '100%', objectFit: 'contain' }}></video>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* What You'll Learn (Checklist) */}
+              {course.learningPoints && course.learningPoints.length > 0 && (
+                <div className="detail-section" style={{ marginBottom: '40px' }}>
+                  <h2>What You'll Learn</h2>
                   <div className="learn-card">
-                    <ul className="feature-list" style={{ marginTop: '0', paddingLeft: '0' }}>
-                      {course.details.map((detail: string, i: number) => (
-                        <li key={i} className="feature-item" style={{ alignItems: 'flex-start', marginBottom: '12px' }}>
-                          <svg className="svg-check" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '2px' }}>
+                    <ul className="feature-list" style={{ marginTop: '0', paddingLeft: '0', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+                      {course.learningPoints.map((detail: string, i: number) => (
+                        <li key={i} className="feature-item" style={{ alignItems: 'flex-start', marginBottom: '0' }}>
+                          <svg className="svg-check" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '2px', color: 'var(--success-color, #10B981)' }}>
                             <polyline points="20 6 9 17 4 12"></polyline>
                           </svg>
                           <span style={{ lineHeight: '1.5' }}>{detail}</span>
@@ -320,12 +368,60 @@ export default function CourseDetailPage() {
                 </div>
               )}
 
-              {course.what_you_will_learn && (
+              {course.description && (
                 <div className="detail-section" style={{ marginBottom: '40px' }}>
-                  <h2>What you'll learn</h2>
-                  <div className="learn-card" style={{ whiteSpace: 'pre-wrap' }}>
-                    {course.what_you_will_learn}
+                  <h2>About This Course</h2>
+                  <div className="learn-card markdown-body tiptap-prose" style={{ whiteSpace: 'normal' }}>
+                    {course.description.trim().startsWith('<') ? (
+                      <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(course.description) }} />
+                    ) : (
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {course.description}
+                      </ReactMarkdown>
+                    )}
                   </div>
+                </div>
+              )}
+
+              {/* Requirements */}
+              {course.requirements && course.requirements.length > 0 && (
+                <div className="detail-section" style={{ marginBottom: '40px' }}>
+                  <h2>Requirements</h2>
+                  <ul style={{ paddingLeft: '20px', margin: '0', color: 'var(--text-2)' }}>
+                    {course.requirements.map((req, i) => (
+                      <li key={i} style={{ marginBottom: '8px', lineHeight: '1.5' }}>{req}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Target Audience & Tags */}
+              {(course.targetAudience && course.targetAudience.length > 0 || course.tags && course.tags.length > 0) && (
+                <div className="detail-section" style={{ marginBottom: '40px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  {course.targetAudience && course.targetAudience.length > 0 && (
+                    <div>
+                      <h2 style={{ fontSize: '18px', marginBottom: '16px' }}>Who this course is for</h2>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                        {course.targetAudience.map((aud, i) => (
+                          <span key={i} style={{ padding: '6px 14px', borderRadius: '100px', background: 'var(--surface-2)', border: '1px solid var(--border-md)', color: 'var(--ink)', fontSize: '14px', fontWeight: '500' }}>
+                            {aud}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {course.tags && course.tags.length > 0 && (
+                    <div>
+                      <h2 style={{ fontSize: '18px', marginBottom: '16px' }}>Tags</h2>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                        {course.tags.map((tag, i) => (
+                          <span key={i} style={{ padding: '6px 14px', borderRadius: '100px', background: '#EEF2FF', color: '#4F46E5', fontSize: '14px', fontWeight: '500' }}>
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -405,8 +501,9 @@ export default function CourseDetailPage() {
                   </div>
                   <div>
                     <div className="instructor-name">{course.instructor}</div>
-                    <div className="instructor-subtitle">Platform Educator · 4.9★ Average</div>
-                    <div className="instructor-bio">{course.instructorBio || 'An experienced industry professional dedicated to sharing knowledge and helping the next generation of learners succeed in their career journey.'}</div>
+                    {course.instructorBio && (
+                      <div className="instructor-bio">{course.instructorBio}</div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -417,16 +514,26 @@ export default function CourseDetailPage() {
                 <div className="price-card">
                   <div className="price-val">{priceStr}</div>
 
-                  {course.details && course.details.length > 0 && (
-                    <ul className="feature-list">
-                      {course.details.map((t: string) => (
-                        <li key={t} className="feature-item">
-                          <svg className="svg-check" viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round">
-                            <polyline points="20 6 9 17 4 12"></polyline>
-                          </svg>
-                          <span>{t}</span>
+                  {(course.language || course.certificateEnabled || course.estimatedCompletion) && (
+                    <ul className="feature-list" style={{ marginTop: '20px', paddingLeft: 0 }}>
+                      {course.language && (
+                        <li className="feature-item">
+                          <span style={{ marginRight: '8px' }}>🌐</span>
+                          <span>{course.language}</span>
                         </li>
-                      ))}
+                      )}
+                      {course.estimatedCompletion && (
+                        <li className="feature-item">
+                          <span style={{ marginRight: '8px' }}>⏳</span>
+                          <span>Estimated Completion: {course.estimatedCompletion}</span>
+                        </li>
+                      )}
+                      {course.certificateEnabled && (
+                        <li className="feature-item">
+                          <span style={{ marginRight: '8px' }}>🏆</span>
+                          <span>Certificate of Completion Included</span>
+                        </li>
+                      )}
                     </ul>
                   )}
 
@@ -667,6 +774,8 @@ export default function CourseDetailPage() {
             line-height: 1.2;
             letter-spacing: -0.8px;
             margin: 0;
+            overflow-wrap: break-word;
+            word-break: break-word;
           }
 
           /* Stats Section */

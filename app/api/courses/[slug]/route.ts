@@ -9,9 +9,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
     const query = `
       SELECT 
         c.id, 
-        c.name, 
-        c.level, 
-        c.dur, 
+        c.name as "title", 
+        c.level as "difficulty", 
+        c.dur as "duration", 
         c.price, 
         c.rating, 
         c.tag, 
@@ -22,8 +22,17 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
         c.emoji, 
         c.g,
         c.slug,
-        c.details,
-        c.what_you_will_learn,
+        c.description,
+        c.short_description as "shortDescription",
+        c.learning_points as "learningPoints",
+        c.requirements,
+        c.target_audience as "targetAudience",
+        c.tags_array as "tags",
+        c.thumbnail,
+        c.preview_video as "previewVideo",
+        c.language,
+        c.certificate_enabled as "certificateEnabled",
+        c.estimated_completion as "estimatedCompletion",
         cat.name as "categoryName",
         cat.slug as "categorySlug",
         u.first_name || ' ' || u.last_name as instructor,
@@ -44,12 +53,25 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ slug
     }
 
     const course = rows[0];
+
+    const safeParse = (val: any) => {
+      if (typeof val === 'string') {
+        try { return JSON.parse(val); } catch (e) { return []; }
+      }
+      return Array.isArray(val) ? val : [];
+    };
+
     const payload = {
       ...course,
       price: parseFloat(course.price),
-      dur: parseInt(course.dur),
+      duration: parseInt(course.duration),
       rating: parseFloat(course.rating),
-      tag: course.tag ? course.tag.toLowerCase() : ''
+      tag: course.tag ? course.tag.toLowerCase() : '',
+      learningPoints: safeParse(course.learningPoints),
+      requirements: safeParse(course.requirements),
+      targetAudience: safeParse(course.targetAudience),
+      tags: safeParse(course.tags),
+      certificateEnabled: course.certificateEnabled || false
     };
 
     return NextResponse.json(payload, { status: 200 });

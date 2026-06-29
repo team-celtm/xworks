@@ -81,6 +81,7 @@ export async function PUT(req: Request) {
   }
 }
 import { slugify } from '@/lib/utils';
+import DOMPurify from 'isomorphic-dompurify';
 
 export async function POST(req: Request) {
   const admin = await checkAdmin(req);
@@ -90,24 +91,41 @@ export async function POST(req: Request) {
     const body = await req.json();
     let {
       name, slug, category_id, instructor_id, price,
-      level, dur, emoji, g, tag, tag_label, certificate_type, logo, details, what_you_will_learn
+      level, dur, emoji, g, tag, tag_label, certificate_type, logo, details, what_you_will_learn,
+      description, short_description, learning_points, requirements, target_audience, tags_array, thumbnail, preview_video, difficulty, language, certificate_enabled, estimated_completion
     } = body;
     slug = slugify(slug || name);
+
+    if (description) {
+      description = DOMPurify.sanitize(description.toString().trim());
+    }
+    const safeJson = (val: any) => JSON.stringify(Array.isArray(val) ? val.map(i => i.toString().trim().substring(0,200)) : []);
+
 
     if (!name || !slug || !category_id || !instructor_id) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Check for duplicates
+    const duplicateCheck = await pool.query(
+      "SELECT id FROM courses WHERE slug = $1 OR name = $2",
+      [slug, name.trim()]
+    );
+    if (duplicateCheck.rows.length > 0) {
+      return NextResponse.json({ error: 'A course with this name or slug already exists' }, { status: 400 });
+    }
+
     const result = await pool.query(
       `INSERT INTO courses (
         name, slug, category_id, instructor_id, price, 
-        level, dur, emoji, g, tag, tag_label, status, certificate_type, logo, details, what_you_will_learn, created_at, updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'published', $12, $13, $14, $15, NOW(), NOW()) 
+        level, dur, emoji, g, tag, tag_label, status, certificate_type, logo, details, what_you_will_learn, description, short_description, learning_points, requirements, target_audience, tags_array, thumbnail, preview_video, difficulty, language, certificate_enabled, estimated_completion, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'published', $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, NOW(), NOW()) 
       RETURNING id`,
       [
         name, slug, category_id, instructor_id, price || 0,
         level || 'Beginner', dur || 0, emoji || '🎓', g || 't-indigo',
-        tag || null, tag_label || null, certificate_type || 'default', logo || null, JSON.stringify(details || []), what_you_will_learn || null
+        tag || null, tag_label || null, certificate_type || 'default', logo || null, JSON.stringify(details || []), what_you_will_learn || null,
+        description || null, short_description || null, safeJson(learning_points), safeJson(requirements), safeJson(target_audience), safeJson(tags_array), thumbnail || null, preview_video || null, difficulty || null, language || null, certificate_enabled || false, estimated_completion || null
       ]
     );
 

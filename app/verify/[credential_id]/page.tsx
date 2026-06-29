@@ -137,9 +137,12 @@ export default function VerifyPage({ params }: { params: Promise<{ credential_id
         <button className="v-btn v-btn-primary" onClick={() => window.print()}>
           Download PDF ↓
         </button>
-        <button className="v-btn v-btn-secondary" onClick={() => {
+        <button className="v-btn v-btn-secondary" onClick={(e) => {
           navigator.clipboard.writeText(window.location.href);
-          alert("Verification link copied!");
+          const btn = e.currentTarget;
+          const originalText = btn.innerHTML;
+          btn.innerHTML = 'Copied! ✅';
+          setTimeout(() => btn.innerHTML = originalText, 2000);
         }}>
           Share Verification Link
         </button>

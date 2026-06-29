@@ -3,10 +3,23 @@ import './secrets';
 
 const isProduction = process.env.NODE_ENV === "production";
 
-export const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: isProduction ? { rejectUnauthorized: false } : false,
-});
+let poolInstance: Pool;
+if (isProduction) {
+  poolInstance = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+  });
+} else {
+  if (!(global as any).pgPool) {
+    (global as any).pgPool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: false,
+    });
+  }
+  poolInstance = (global as any).pgPool;
+}
+
+export const pool = poolInstance;
 
 pool.on("connect", () => {
   console.log("Connected to database");
