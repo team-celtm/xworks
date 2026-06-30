@@ -81,7 +81,6 @@ export async function PUT(req: Request) {
   }
 }
 import { slugify } from '@/lib/utils';
-import DOMPurify from 'isomorphic-dompurify';
 
 export async function POST(req: Request) {
   const admin = await checkAdmin(req);
@@ -97,7 +96,12 @@ export async function POST(req: Request) {
     slug = slugify(slug || name);
 
     if (description) {
-      description = DOMPurify.sanitize(description.toString().trim());
+      try {
+        const DOMPurify = (await import('isomorphic-dompurify')).default;
+        description = DOMPurify.sanitize(description.toString().trim());
+      } catch (e) {
+        description = description.toString().trim();
+      }
     }
     const safeJson = (val: any) => JSON.stringify(Array.isArray(val) ? val.map(i => i.toString().trim().substring(0,200)) : []);
 

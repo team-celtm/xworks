@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import DOMPurify from 'isomorphic-dompurify';
 import pool from '@/lib/db';
 import { jwtVerify } from 'jose';
 
@@ -70,7 +69,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Short description exceeds 250 characters' }, { status: 422 });
     }
     
-    description = DOMPurify.sanitize(description?.toString().trim() || '');
+    if (description) {
+      try {
+        const DOMPurify = (await import('isomorphic-dompurify')).default;
+        description = DOMPurify.sanitize(description.toString().trim());
+      } catch (e) {
+        description = description.toString().trim();
+      }
+    }
     if (description && description.length > 50000) {
       return NextResponse.json({ error: 'Description exceeds maximum allowed length of 50,000 characters' }, { status: 422 });
     }

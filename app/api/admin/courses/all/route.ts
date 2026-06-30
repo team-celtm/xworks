@@ -142,7 +142,12 @@ export async function PUT(req: Request) {
     slug = slugify(slug || name);
 
     if (description) {
-      description = description.toString().trim();
+      try {
+        const DOMPurify = (await import('isomorphic-dompurify')).default;
+        description = DOMPurify.sanitize(description.toString().trim());
+      } catch (e) {
+        description = description.toString().trim();
+      }
     }
     const safeJson = (val: any) => JSON.stringify(Array.isArray(val) ? val.map(i => i.toString().trim().substring(0,200)) : []);
 

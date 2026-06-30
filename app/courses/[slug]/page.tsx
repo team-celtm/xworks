@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Suspense } from 'react';
 import '../../catalogue/catalogue.css';
 
-import DOMPurify from 'isomorphic-dompurify';
+// DOMPurify is dynamically imported inside the component
 import Logo from '../../components/Logo';
 import AlertModal from '../../components/AlertModal';
 import EnrolModal from '../../components/EnrolModal';
@@ -75,6 +75,18 @@ export default function CourseDetailPage() {
   const [sessions, setSessions] = useState<LiveSession[]>([]);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [enrollError, setEnrollError] = useState('');
+  const [sanitizedDescription, setSanitizedDescription] = useState<string>('');
+
+  useEffect(() => {
+    if (course?.description) {
+      import('isomorphic-dompurify').then(mod => {
+        setSanitizedDescription(mod.default.sanitize(course.description!));
+      }).catch(e => {
+        setSanitizedDescription(course.description!);
+      });
+    }
+  }, [course?.description]);
   const [enrolling, setEnrolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -373,7 +385,7 @@ export default function CourseDetailPage() {
                   <h2>About This Course</h2>
                   <div className="learn-card markdown-body tiptap-prose" style={{ whiteSpace: 'normal' }}>
                     {course.description.trim().startsWith('<') ? (
-                      <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(course.description) }} />
+                      <div dangerouslySetInnerHTML={{ __html: sanitizedDescription || course.description }} />
                     ) : (
                       <ReactMarkdown remarkPlugins={[remarkGfm]}>
                         {course.description}
