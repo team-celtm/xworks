@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import { Syne, DM_Sans } from "next/font/google";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/react";
 import "./globals.css";
 
 const syne = Syne({
@@ -33,6 +35,8 @@ export default function RootLayout({
         <div id="app-layout-container" style={{ display: "contents" }}>
           {children}
         </div>
+        <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   );
