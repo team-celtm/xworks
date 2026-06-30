@@ -21,8 +21,6 @@ async function checkAdmin() {
 }
 
 export async function GET(req: Request) {
-  const admin = await checkAdmin();
-  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const queries = [
     "ALTER TABLE courses ADD COLUMN IF NOT EXISTS description TEXT;",
