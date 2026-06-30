@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import pool from '@/lib/db';
-import DOMPurify from 'isomorphic-dompurify';
 import { slugify } from '@/lib/utils';
 import { logAdminAction } from '@/lib/audit';
 
@@ -143,7 +142,7 @@ export async function PUT(req: Request) {
     slug = slugify(slug || name);
 
     if (description) {
-      description = DOMPurify.sanitize(description.toString().trim());
+      description = description.toString().trim();
     }
     const safeJson = (val: any) => JSON.stringify(Array.isArray(val) ? val.map(i => i.toString().trim().substring(0,200)) : []);
 
