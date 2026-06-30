@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
-export const dynamic = 'force-dynamic';
-
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import pool from '@/lib/db';
+import DOMPurify from 'isomorphic-dompurify';
+import { slugify } from '@/lib/utils';
+import { logAdminAction } from '@/lib/audit';
+
+export const dynamic = 'force-dynamic';
 
 const SESSION_SECRET = new TextEncoder().encode(
   process.env.SESSION_SECRET!
@@ -23,7 +26,8 @@ async function checkAdmin() {
 }
 
 export async function GET(req: Request) {
-  // Bypassed checkAdmin for debugging
+  const admin = await checkAdmin();
+  if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
 
   try {
@@ -116,7 +120,6 @@ export async function DELETE(req: Request) {
     await pool.query("UPDATE courses SET status = 'deleted' WHERE id = $1", [id]);
     
     // Log audit event
-    const { logAdminAction } = await import('@/lib/audit');
     await logAdminAction(admin.id, 'course_delete', 'course', id, { status: course.status }, { status: 'deleted' });
 
     return NextResponse.json({ success: true, message: 'Course soft-deleted successfully' });
@@ -125,9 +128,6 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
-
-import { slugify } from '@/lib/utils';
-import DOMPurify from 'isomorphic-dompurify';
 
 export async function PUT(req: Request) {
   const admin = await checkAdmin();
@@ -219,7 +219,6 @@ export async function PUT(req: Request) {
     }
 
     // Log audit event
-    const { logAdminAction } = await import('@/lib/audit');
     await logAdminAction(admin.id, 'course_update', 'course', id, oldCourse, { name, slug, category_id, instructor_id, price });
 
     return NextResponse.json({ success: true, message: 'Course updated successfully' });
