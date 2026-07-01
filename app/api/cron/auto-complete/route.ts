@@ -3,17 +3,7 @@ import pool from '@/lib/db';
 import { createNotification } from '@/lib/notifications';
 
 
-const globalForCron = global as unknown as {
-  autoCompleteRunning?: boolean;
-};
-
 export async function POST(req: NextRequest) {
-  if (globalForCron.autoCompleteRunning) {
-    console.log('[Cron] Auto-complete is already running, skipping overlapping execution.');
-    return NextResponse.json({ error: 'Auto-complete is already running' }, { status: 409 });
-  }
-
-  globalForCron.autoCompleteRunning = true;
   try {
     // Only allow local calls or specific secret token (for production)
     // For simplicity here, we assume it's hit internally
@@ -134,7 +124,5 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Auto-Complete Cron Error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
-  } finally {
-    globalForCron.autoCompleteRunning = false;
   }
 }
