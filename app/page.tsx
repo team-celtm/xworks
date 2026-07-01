@@ -301,7 +301,7 @@ export default function Home() {
       <div className={`mobile-nav ${isMobileNavOpen ? 'open' : ''}`}>
         <div className="mobile-nav-header">
           <span style={{ fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: 800, color: '#FFFFFF' }}>
-            X<span style={{ color: 'var(--coral)' }}>WORKS</span>
+            <span style={{ color: '#FFD54A' }}>X</span><span style={{ color: 'var(--coral)' }}>WORKS</span>
           </span>
           <button className="mobile-nav-close" onClick={toggleMobileNav}>✕</button>
         </div>
@@ -326,7 +326,7 @@ export default function Home() {
         <div className="hero-glow-2"></div>
         <div className="hero-inner">
           <div className="hero-left">
-            <div className="hero-wordmark">X<span>WORKS</span></div>
+            <div className="hero-wordmark"><span style={{ color: '#FFD54A' }}>X</span><span>WORKS</span></div>
             <div className="hero-bars">
               <div className="hero-bar-row"><div className="hero-bar-line bar-1"></div></div>
               <div style={{ height: '10px' }}></div>

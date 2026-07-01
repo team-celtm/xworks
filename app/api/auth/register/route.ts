@@ -170,14 +170,12 @@ export async function POST(req: NextRequest) {
           </div>
         `,
       });
-      
-      if (result.success) {
-        console.log(`Verification link sent to ${email}`);
-      } else {
-        console.log(`[DEV MODE] Verification Link for ${email}: ${verifyUrl}`);
+
+      if (!result.success) {
+        console.warn('Failed to send verification email:', result.error);
       }
     } else {
-      console.warn('SMTP credentials not found. Link for dev is:', verifyUrl);
+      console.warn('SMTP credentials not found, cannot send verification email.');
     }
 
     return NextResponse.json({

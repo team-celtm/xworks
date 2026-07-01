@@ -2,11 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Logo from '../components/Logo';
 
 export default function TeachPage() {
   const router = useRouter();
-  const [bio, setBio] = useState('');
-  const [linkedin, setLinkedin] = useState('');
 
   useEffect(() => {
     // Show toast for direct route access
@@ -21,14 +20,14 @@ export default function TeachPage() {
       toast.style.zIndex = '9999';
       toast.style.boxShadow = '0 10px 30px rgba(0,0,0,0.1)';
       document.body.appendChild(toast);
-      
+
       setTimeout(() => {
         toast.style.opacity = '0';
         toast.style.transition = 'opacity 0.3s ease';
         setTimeout(() => toast.remove(), 300);
       }, 4000);
     }, 500);
-    
+
     return () => clearTimeout(timeout);
   }, []);
 
@@ -47,13 +46,10 @@ export default function TeachPage() {
           <div className="bm" style={{ width: '160px' }}></div>
         </div>
         <div className="left-content">
-          <a href="#" className="logo" onClick={(e) => { e.preventDefault(); router.push('/'); }}>
-            <div className="logo-icon"><div className="lb"></div><div className="lb"></div></div>
-            <span className="logo-text">X<span>WORKS</span></span>
-          </a>
+          <Logo className="logo" />
           <div>
             <div className="eyebrow"><div className="eyebrow-dash"></div>Become an Instructor</div>
-            <h1 className="hero-title">Share your knowledge.<br/><em>Empower</em><br/>learners today.</h1>
+            <h1 className="hero-title">Share your knowledge.<br /><em>Empower</em><br />learners today.</h1>
             <p className="hero-body">Join the cyber-tech revolution. Share your expertise with 5,000+ curious minds, build immersive learning experiences, and earn revenue doing what you love.</p>
             <div className="chips">
               <div className="chip"><div className="chip-dot"></div>Industry standard payout splits</div>

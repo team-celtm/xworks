@@ -5,7 +5,7 @@ import { SESSION_SECRET_ENCODED } from './secrets';
 
 export async function getAuthId(req?: NextRequest) {
   let accessToken: string | undefined;
-  
+
   if (req) {
     accessToken = req.cookies.get('access_token')?.value;
   } else {
@@ -21,7 +21,7 @@ export async function getAuthId(req?: NextRequest) {
       SESSION_SECRET_ENCODED
     );
     return payload.id as string;
-  } catch (err) {
+  } catch {
     return null;
   }
 }

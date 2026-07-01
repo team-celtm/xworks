@@ -455,7 +455,7 @@ function InstructorDashboardContent() {
               <div className="sb-logo-bar"></div>
               <div className="sb-logo-bar"></div>
             </div>
-            <span className="sb-logo-name">X<span className="works-text">WORKS</span></span>
+            <span className="sb-logo-name"><span style={{ color: '#FFD54A' }}>X</span><span className="works-text">WORKS</span></span>
           </Link>
           <div className="sb-user">
             <div className="sb-avatar">

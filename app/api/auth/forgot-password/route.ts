@@ -57,10 +57,10 @@ export async function POST(req: NextRequest) {
       });
 
       if (!result.success) {
-        console.log(`[DEV MODE] Password Reset Link for ${email}: ${resetUrl}`);
+        console.warn('Failed to send password reset email:', result.error);
       }
     } else {
-      console.warn('SMTP credentials not found. Link for dev is:', resetUrl);
+      console.warn('SMTP credentials not found, cannot send password reset email.');
     }
 
     return NextResponse.json({ message: "If an account exists for this email, we've sent a link to reset your password." });

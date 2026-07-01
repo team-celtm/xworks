@@ -61,7 +61,7 @@ export function validateMeetingLink(url: string | null | undefined): { isValid: 
     }
 
     return { isValid: true, sanitizedUrl: trimmed };
-  } catch (e) {
+  } catch {
     return { isValid: false, error: 'Please enter a valid meeting URL.' };
   }
 }

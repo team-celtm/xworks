@@ -273,7 +273,6 @@ const Toolbar = React.memo(({ editor, disabled, onError }: { editor: any; disabl
         value={editor.getAttributes('textStyle').color || '#000000'}
         style={{ width: '24px', height: '24px', padding: 0, border: 'none', cursor: 'pointer', borderRadius: '4px' }}
         title="Text Color" aria-label="Text Color"
-        aria-label="Text Color"
       />
       <input 
         type="color" 
@@ -281,7 +280,6 @@ const Toolbar = React.memo(({ editor, disabled, onError }: { editor: any; disabl
         value={editor.getAttributes('highlight').color || '#ffffff'}
         style={{ width: '24px', height: '24px', padding: 0, border: 'none', cursor: 'pointer', borderRadius: '4px' }}
         title="Highlight Color" aria-label="Highlight Color"
-        aria-label="Highlight Color"
       />
     </div>
   );
@@ -417,7 +415,7 @@ export default function RichTextEditor({ value = '', onChange, disabled = false 
   return (
     <EditorErrorBoundary>
       <div className="tiptap-editor-wrapper" style={{ border: '1px solid var(--border-md)', borderRadius: '12px', background: 'var(--surface)', position: 'relative' }}>
-        <Toolbar editor={editor} disabled={disabled} onError={(msg) => setAlertInfo({ isOpen: true, title: "Upload Error", message: msg })} />
+        <Toolbar editor={editor} disabled={disabled} onError={(msg) => alert(msg)} />
         <div style={{ padding: '16px', minHeight: '300px', cursor: disabled ? 'not-allowed' : 'text' }} onClick={() => !disabled && editor?.commands.focus()}>
           <EditorContent editor={editor} disabled={disabled} />
         </div>

@@ -32,7 +32,7 @@ export default function VerifyPage({ params }: { params: Promise<{ credential_id
         }
         const data = await res.json();
         setCert(data);
-      } catch (err) {
+      } catch {
         setError("Error verifying certificate.");
       } finally {
         setLoading(false);
@@ -66,7 +66,7 @@ export default function VerifyPage({ params }: { params: Promise<{ credential_id
   return (
     <div className="v-shell">
       <nav className="v-nav">
-        <Link href="/" className="v-logo">X<span>WORKS</span></Link>
+        <Link href="/" className="v-logo"><span style={{ color: '#FFD54A' }}>X</span><span>WORKS</span></Link>
         <div style={{ fontSize: "13px", fontWeight: 700, color: "var(--cert-orange)", letterSpacing: "0.5px" }}>
           CREDENTIAL ID: {cert.credentialId}
         </div>
@@ -87,12 +87,12 @@ export default function VerifyPage({ params }: { params: Promise<{ credential_id
 
         <div className="v-cert-inner">
           <div className="v-cert-branding">
-             <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: "22px", fontWeight: 800, color: "var(--cert-ink)", letterSpacing: "-0.3px", marginBottom: "0" }}>
-                  X<span style={{ color: "var(--cert-orange)" }}>WORKS</span>
-                </div>
-                <div style={{ fontSize: "10px", color: "var(--cert-indigo)", fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", marginTop: "2px" }}>Skills for the Future</div>
-             </div>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontSize: "22px", fontWeight: 800, color: "var(--cert-ink)", letterSpacing: "-0.3px", marginBottom: "0" }}>
+                <span style={{ color: '#FFD54A' }}>X</span><span style={{ color: "var(--cert-orange)" }}>WORKS</span>
+              </div>
+              <div style={{ fontSize: "10px", color: "var(--cert-indigo)", fontWeight: 700, letterSpacing: "1px", textTransform: "uppercase", marginTop: "2px" }}>Skills for the Future</div>
+            </div>
           </div>
 
           <h1 className="v-title-main">CERTIFICATE</h1>
@@ -106,8 +106,8 @@ export default function VerifyPage({ params }: { params: Promise<{ credential_id
           <p className="v-at-works">at <strong>XWORKS</strong> on {new Date(cert.issuedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
 
           <p className="v-body-p">
-            During this period, {cert.learnerName.split(' ')[0]} demonstrated exceptional creativity, technical proficiency, and a 
-            strong work ethic, making significant contributions to our organization. We commend {cert.learnerName.split(' ')[0]} 
+            During this period, {cert.learnerName.split(' ')[0]} demonstrated exceptional creativity, technical proficiency, and a
+            strong work ethic, making significant contributions to our organization. We commend {cert.learnerName.split(' ')[0]}
             for the dedication, professionalism, and outstanding performance throughout the course.
           </p>
 
@@ -118,9 +118,9 @@ export default function VerifyPage({ params }: { params: Promise<{ credential_id
               Credential ID: {cert.credentialId}
             </div>
             <div className="v-qr-box" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-              <img 
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`} 
-                alt="Scan to Verify" 
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`}
+                alt="Scan to Verify"
                 style={{ width: '70px', height: '70px', border: '1px solid #ddd', padding: '3px', borderRadius: '4px', background: '#fff' }}
               />
               <span style={{ fontSize: '9px', color: 'var(--cert-indigo)', fontWeight: 'bold' }}>Scan to Verify</span>
