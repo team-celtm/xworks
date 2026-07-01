@@ -24,7 +24,7 @@ export default function Logo({ className = "", href = "/" }: LogoProps) {
         display: 'flex',
         alignItems: 'center'
       }}>
-        <span style={{ color: '#FFD54A' }}>X</span><span style={{ color: 'var(--coral)' }}>WORKS</span>
+        <span style={{ color: '#FFC83D' }}>X</span><span style={{ color: 'var(--coral)' }}>WORKS</span>
       </span>
       <style jsx>{`
         .logo-wrap:hover .logo-bar { transform: translateX(2px); transition: 0.2s; }
