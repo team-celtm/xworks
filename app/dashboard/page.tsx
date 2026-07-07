@@ -801,7 +801,7 @@ function DashboardPageContent() {
                 <div className="card-logo-badge">
                   <img 
                     src={w.logo} 
-                    alt="" 
+                    alt={w.name || "Workshop Logo"} 
                     onError={(e) => {
                       e.currentTarget.style.display = 'none';
                       const badge = e.currentTarget.closest('.card-logo-badge') as HTMLElement;
@@ -862,7 +862,7 @@ function DashboardPageContent() {
                 <div className="card-logo-badge">
                   <img 
                     src={e.logo} 
-                    alt="" 
+                    alt={e.name || "Workshop Logo"} 
                     onError={(err) => {
                       err.currentTarget.style.display = 'none';
                       const badge = err.currentTarget.closest('.card-logo-badge') as HTMLElement;
@@ -1413,7 +1413,7 @@ function DashboardPageContent() {
                           <>
                             <img 
                               src={c.icon} 
-                              alt="" 
+                              alt={c.name || "Workshop Logo"} 
                               style={{ width: '80%', height: '80%', objectFit: 'contain' }} 
                               onError={(e) => {
                                 e.currentTarget.style.display = 'none';
@@ -1793,7 +1793,7 @@ function DashboardPageContent() {
                             <>
                               <img 
                                 src={c.logo} 
-                                alt="" 
+                                alt={c.courseName || "Workshop Logo"} 
                                 style={{ width: '80%', height: '80%', objectFit: 'contain' }} 
                                 onError={(e) => {
                                   e.currentTarget.style.display = 'none';

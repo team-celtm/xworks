@@ -376,13 +376,13 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
                 </div>
               )}
               <div className="field">
-                <label>Email address</label>
-                <input className="inp" type="email" placeholder="you@example.com" value={inEmail} onChange={(e) => setInEmail(e.target.value)} />
+                <label htmlFor="signin-email">Email address</label>
+                <input id="signin-email" className="inp" type="email" placeholder="you@example.com" value={inEmail} onChange={(e) => setInEmail(e.target.value)} />
               </div>
               <div className="field">
-                <label>Password</label>
+                <label htmlFor="signin-password">Password</label>
                 <div className="pwd-wrap">
-                  <input className="inp" type={showPwd ? "text" : "password"} placeholder="••••••••" value={inPwd} onChange={(e) => setInPwd(e.target.value)} />
+                  <input id="signin-password" className="inp" type={showPwd ? "text" : "password"} placeholder="••••••••" value={inPwd} onChange={(e) => setInPwd(e.target.value)} />
                   <button className="eye-btn" onClick={() => setShowPwd(!showPwd)} tabIndex={-1}>{showPwd ? '🙈' : '👁'}</button>
                 </div>
               </div>
@@ -407,25 +407,25 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
               )}
               <div className="two-col">
                 <div className="field">
-                  <label>First name</label>
-                  <input className="inp" type="text" placeholder="Priya" value={upFirst} onChange={(e) => setUpFirst(e.target.value)} />
+                  <label htmlFor="signup-firstname">First name</label>
+                  <input id="signup-firstname" className="inp" type="text" placeholder="Priya" value={upFirst} onChange={(e) => setUpFirst(e.target.value)} />
                 </div>
                 <div className="field">
-                  <label>Last name</label>
-                  <input className="inp" type="text" placeholder="Rajan" value={upLast} onChange={(e) => setUpLast(e.target.value)} />
+                  <label htmlFor="signup-lastname">Last name</label>
+                  <input id="signup-lastname" className="inp" type="text" placeholder="Rajan" value={upLast} onChange={(e) => setUpLast(e.target.value)} />
                 </div>
               </div>
               <div className="field">
-                <label>Email address</label>
-                <input className="inp" type="email" placeholder="you@example.com" value={upEmail} onChange={(e) => setUpEmail(e.target.value)} />
+                <label htmlFor="signup-email">Email address</label>
+                <input id="signup-email" className="inp" type="email" placeholder="you@example.com" value={upEmail} onChange={(e) => setUpEmail(e.target.value)} />
               </div>
               <div className="field">
-                <label>Phone number</label>
-                <input className="inp" type="tel" placeholder="+91 98765 43210" value={upPhone} onChange={(e) => setUpPhone(e.target.value)} />
+                <label htmlFor="signup-phone">Phone number</label>
+                <input id="signup-phone" className="inp" type="tel" placeholder="+91 98765 43210" value={upPhone} onChange={(e) => setUpPhone(e.target.value)} />
               </div>
               <div className="field">
-                <label>I am a…</label>
-                <select className="sel" value={upProfile} onChange={(e) => setUpProfile(e.target.value)}>
+                <label htmlFor="signup-role">I am a…</label>
+                <select id="signup-role" className="sel" value={upProfile} onChange={(e) => setUpProfile(e.target.value)}>
                   <option value="">Choose your profile</option>
                   <option>Learner</option>
                 </select>
@@ -433,8 +433,9 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
               {upProfile === 'Instructor' && (
                 <>
                   <div className="field">
-                    <label>Short Bio</label>
+                    <label htmlFor="signup-bio">Short Bio</label>
                     <textarea
+                      id="signup-bio"
                       className="inp"
                       placeholder="Tell us about your background, expertise, and what you teach..."
                       value={upBio}
@@ -444,8 +445,9 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
                     />
                   </div>
                   <div className="field">
-                    <label>LinkedIn Profile URL</label>
+                    <label htmlFor="signup-linkedin">LinkedIn Profile URL</label>
                     <input
+                      id="signup-linkedin"
                       className="inp"
                       type="url"
                       placeholder="https://linkedin.com/in/username"
@@ -456,9 +458,9 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
                 </>
               )}
               <div className="field">
-                <label>Create a password</label>
+                <label htmlFor="signup-password">Create a password</label>
                 <div className="pwd-wrap">
-                  <input className="inp" type={showUpPwd ? "text" : "password"} placeholder="Min. 8 characters" value={upPwd} onChange={(e) => setUpPwd(e.target.value)} />
+                  <input id="signup-password" className="inp" type={showUpPwd ? "text" : "password"} placeholder="Min. 8 characters" value={upPwd} onChange={(e) => setUpPwd(e.target.value)} />
                   <button className="eye-btn" onClick={() => setShowUpPwd(!showUpPwd)} tabIndex={-1}>{showUpPwd ? '🙈' : '👁'}</button>
                 </div>
                 <div className={`strength ${upPwd ? 'show' : ''}`}>
@@ -502,8 +504,8 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
                 </div>
               )}
               <div className="field">
-                <label>Email address</label>
-                <input className="inp" type="email" placeholder="you@example.com" value={inEmail} onChange={(e) => setInEmail(e.target.value)} />
+                <label htmlFor="forgot-email">Email address</label>
+                <input id="forgot-email" className="inp" type="email" placeholder="you@example.com" value={inEmail} onChange={(e) => setInEmail(e.target.value)} />
               </div>
               <button className={`btn-cta ${loading ? 'loading' : ''} ${wiggleBtn ? 'shake' : ''}`} onClick={doForgotPassword}>
                 <span className="spinner"></span><span className="btn-txt">Send Reset Link →</span>
@@ -530,16 +532,16 @@ export default function AuthScreen({ defaultTab = 'in' }: AuthScreenProps) {
                 </div>
               )}
               <div className="field">
-                <label>New Password</label>
+                <label htmlFor="reset-password">New Password</label>
                 <div className="pwd-wrap">
-                  <input className="inp" type={showPwd ? "text" : "password"} placeholder="Min. 8 characters" value={resetPwd} onChange={(e) => setResetPwd(e.target.value)} />
+                  <input id="reset-password" className="inp" type={showPwd ? "text" : "password"} placeholder="Min. 8 characters" value={resetPwd} onChange={(e) => setResetPwd(e.target.value)} />
                   <button className="eye-btn" onClick={() => setShowPwd(!showPwd)} tabIndex={-1}>{showPwd ? '🙈' : '👁'}</button>
                 </div>
               </div>
               <div className="field">
-                <label>Confirm Password</label>
+                <label htmlFor="reset-password-confirm">Confirm Password</label>
                 <div className="pwd-wrap">
-                  <input className="inp" type={showPwd ? "text" : "password"} placeholder="Min. 8 characters" value={confirmResetPwd} onChange={(e) => setConfirmResetPwd(e.target.value)} />
+                  <input id="reset-password-confirm" className="inp" type={showPwd ? "text" : "password"} placeholder="Min. 8 characters" value={confirmResetPwd} onChange={(e) => setConfirmResetPwd(e.target.value)} />
                 </div>
               </div>
               <button className={`btn-cta ${loading ? 'loading' : ''} ${wiggleBtn ? 'shake' : ''}`} onClick={doResetPassword}>

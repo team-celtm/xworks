@@ -416,7 +416,7 @@ export default function Home() {
                                 <div className="card-logo-badge">
                                   <img 
                                     src={c.logo} 
-                                    alt="" 
+                                    alt={c.name || "Workshop Logo"} 
                                     onError={(e) => {
                                       e.currentTarget.style.display = 'none';
                                       const badge = e.currentTarget.closest('.card-logo-badge') as HTMLElement;
@@ -479,7 +479,7 @@ export default function Home() {
                                 <div className="card-logo-badge">
                                   <img 
                                     src={c.logo} 
-                                    alt="" 
+                                    alt={c.name || "Workshop Logo"} 
                                     onError={(e) => {
                                       e.currentTarget.style.display = 'none';
                                       const badge = e.currentTarget.closest('.card-logo-badge') as HTMLElement;
@@ -658,7 +658,7 @@ export default function Home() {
                                   <div className="sub-logo-badge">
                                     <img 
                                       src={item.logo} 
-                                      alt="" 
+                                      alt={item.name || "Workshop Logo"} 
                                       onError={(e) => {
                                         e.currentTarget.style.display = 'none';
                                         const badge = e.currentTarget.closest('.sub-logo-badge') as HTMLElement;
@@ -752,7 +752,7 @@ export default function Home() {
                                     <div className="card-logo-badge">
                                       <img 
                                         src={c.logo} 
-                                        alt="" 
+                                        alt={c.name || "Workshop Logo"} 
                                         onError={(e) => {
                                           e.currentTarget.style.display = 'none';
                                           const badge = e.currentTarget.closest('.card-logo-badge') as HTMLElement;

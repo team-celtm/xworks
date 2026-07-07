@@ -484,7 +484,7 @@ function CatalogueContent() {
                             <div className="card-logo-badge">
                               <img 
                                 src={w.logo} 
-                                alt="" 
+                                alt={w.name || "Workshop Logo"} 
                                 onError={(e) => {
                                   e.currentTarget.style.display = 'none';
                                   const badge = e.currentTarget.closest('.card-logo-badge') as HTMLElement;

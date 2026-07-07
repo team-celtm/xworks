@@ -336,7 +336,7 @@ export default function EnrolModal({
                       <>
                         <img 
                           src={enrolData.thumbEmoji} 
-                          alt="" 
+                          alt={enrolData.courseName || "Workshop Logo"} 
                           style={{ width: '80%', height: '80%', objectFit: 'contain' }} 
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';

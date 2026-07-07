@@ -274,7 +274,7 @@ export default function CourseDetailPage() {
                       <>
                         <img
                           src={course.logo}
-                          alt=""
+                          alt={course.title || "Workshop Logo"}
                           style={{ width: '60px', height: '60px', objectFit: 'contain' }}
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';
