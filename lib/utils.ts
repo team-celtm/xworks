@@ -1,57 +1,71 @@
 import { NextRequest } from 'next/server';
 
-/**
- * Robustly determines the base URL of the application.
- * Priority:
- * 1. process.env.NEXT_PUBLIC_BASE_URL (if set and not localhost in production)
- * 2. Request headers (host, x-forwarded-host)
- * 3. process.env.VERCEL_URL (standard Vercel env var)
- * 4. Fallback to localhost:3000
- */
-/**
- * Robustly determines the base URL of the application.
- * Priority:
- * 1. process.env.NEXT_PUBLIC_BASE_URL (Manual override for production/canonical URL)
- * 2. Request headers (host, x-forwarded-host) - Best for dynamic environments
- * 3. process.env.VERCEL_URL (standard Vercel env var)
- * 4. Fallback to localhost:3000
- */
-export function getBaseUrl(req?: NextRequest): string {
-  // 1. Priority: Manual override (Canonical Production URL)
-  // Highly recommended for OAuth to ensure consistent redirect URIs
-  const envBaseUrl = process.env.NEXT_PUBLIC_BASE_URL;
-  if (envBaseUrl) {
-    return envBaseUrl.replace(/\/$/, '');
-  }
+export function getBaseUrl(req?: NextRequest | Request | { headers?: Headers | { get(name: string): string | null } } | null): string {
+  // 1. Dynamic Request Headers (highest priority for multi-domain, reverse proxies, and production deployments)
+  if (req && 'headers' in req && req.headers) {
+    const headers = req.headers;
+    const rawHost = headers.get('x-forwarded-host') || headers.get('host');
+    const rawProto = headers.get('x-forwarded-proto');
 
-  // 2. Fallback: Request headers (Current deployment URL)
-  // This is usually correct for both local and production (even with custom domains)
-  if (req) {
-    const host = req.headers.get('host');
-    const protocol = req.headers.get('x-forwarded-proto') || (host?.includes('localhost') || host?.includes('127.0.0.1') ? 'http' : 'https');
-    
-    if (host) {
-      // Validate host to prevent host header injection
-      const isAllowedHost = host.includes('localhost') || host.includes('127.0.0.1') || host.startsWith('xworks.celtm.com') ||
-                            (process.env.ALLOWED_HOSTS?.split(',').map(h => h.trim()).some(h => host.startsWith(h)));
-      if (isAllowedHost || process.env.NODE_ENV !== 'production') {
-        return `${protocol}://${host}`;
+    if (rawHost) {
+      // Pick first host if comma-separated (reverse proxies)
+      const host = rawHost.split(',')[0].trim();
+      
+      // Basic sanitization to prevent host header injection
+      const isValidHost = /^[a-zA-Z0-9.\-_]+(:[0-9]+)?$/.test(host);
+
+      if (isValidHost) {
+        const isLocal = host.includes('localhost') || host.includes('127.0.0.1');
+        
+        // Determine protocol
+        let protocol = rawProto ? rawProto.split(',')[0].trim() : '';
+        if (!protocol) {
+          protocol = isLocal ? 'http' : 'https';
+        }
+
+        // Use request host if it's a real host or if in development
+        if (!isLocal || process.env.NODE_ENV !== 'production') {
+          return `${protocol}://${host}`;
+        }
       }
     }
   }
 
-  // 3. Fallback: Vercel / Railway / Render System Variables
-  if (process.env.NEXT_PUBLIC_VERCEL_URL) {
-    return `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
-  }
-  if (process.env.RAILWAY_PUBLIC_DOMAIN) {
-    return `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
-  }
-  if (process.env.RENDER_EXTERNAL_URL) {
-    return process.env.RENDER_EXTERNAL_URL;
+  // 2. Canonical URL from Environment Variables (skipping localhost in production)
+  const envUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || process.env.APP_URL || process.env.NEXTAUTH_URL;
+  if (envUrl) {
+    const trimmed = envUrl.trim().replace(/\/$/, '');
+    const isLocal = trimmed.includes('localhost') || trimmed.includes('127.0.0.1');
+    if (!isLocal || process.env.NODE_ENV !== 'production') {
+      return trimmed.startsWith('http://') || trimmed.startsWith('https://') ? trimmed : `https://${trimmed}`;
+    }
   }
 
-  // 4. Local Development Fallback
+  // 3. Platform hosting environment variables
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL.replace(/\/$/, '')}`;
+  }
+  if (process.env.NEXT_PUBLIC_VERCEL_URL) {
+    const vUrl = process.env.NEXT_PUBLIC_VERCEL_URL.replace(/\/$/, '');
+    return vUrl.startsWith('http') ? vUrl : `https://${vUrl}`;
+  }
+  if (process.env.VERCEL_URL) {
+    const vUrl = process.env.VERCEL_URL.replace(/\/$/, '');
+    return vUrl.startsWith('http') ? vUrl : `https://${vUrl}`;
+  }
+  if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+    return `https://${process.env.RAILWAY_PUBLIC_DOMAIN.replace(/\/$/, '')}`;
+  }
+  if (process.env.RENDER_EXTERNAL_URL) {
+    const rUrl = process.env.RENDER_EXTERNAL_URL.replace(/\/$/, '');
+    return rUrl.startsWith('http') ? rUrl : `https://${rUrl}`;
+  }
+
+  // 4. Fallback for local development or if env is localhost
+  if (envUrl) {
+    return envUrl.trim().replace(/\/$/, '');
+  }
+
   return 'http://localhost:3000';
 }
 
